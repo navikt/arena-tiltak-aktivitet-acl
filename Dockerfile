@@ -1,2 +1,2 @@
 FROM ghcr.io/navikt/poao-baseimages/java:17
-COPY /target/amt-arena-acl.jar app.jar
+COPY /target/arena-tiltak-aktivitet-acl.jar app.jar
