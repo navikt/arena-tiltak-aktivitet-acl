@@ -17,16 +17,21 @@ CREATE TABLE arena_data
 
 CREATE UNIQUE INDEX arena_data_table_operation_type_operation_pos_idx on arena_data (arena_table_name, operation_type, operation_pos);
 
-CREATE TABLE arena_data_id_translation
+create table aktivitet
 (
-    amt_id           UUID PRIMARY KEY NOT NULL,
-    arena_table_name VARCHAR          NOT NULL,
-    arena_id         VARCHAR          NOT NULL,
-    is_ignored       BOOLEAN          NOT NULL,
-    current_hash     VARCHAR          NOT NULL
+    id              UUID PRIMARY KEY NOT NULL,
+    person_ident    VARCHAR NOT NULL,
+    tittel          VARCHAR NOT NULL,
+    type            VARCHAR NOT NULL,
+    data            JSONB NOT NULL
 );
 
-CREATE UNIQUE INDEX arena_data_id_translation_arena_table_name_arena_id_idx on arena_data_id_translation (arena_table_name, arena_id);
+CREATE TABLE arena_id_translation
+(
+    aktivitet_id    UUID PRIMARY KEY NOT NULL,-- REFERENCES aktivitet(id),
+    arena_id        BIGINT UNIQUE NOT NULL,
+    aktivitet_type  VARCHAR NOT NULL
+);
 
 CREATE TABLE arena_tiltak
 (
@@ -34,4 +39,18 @@ CREATE TABLE arena_tiltak
     kode VARCHAR UNIQUE   NOT NULL,
     navn VARCHAR          NOT NULL
 
-)
+);
+
+CREATE TABLE gjennomforing
+(
+    arena_id                   BIGINT PRIMARY KEY       NOT NULL,
+    tiltak_kode                VARCHAR                  NOT NULL,
+    arrangor_virksomhetsnummer VARCHAR,
+    arrangor_navn              VARCHAR,
+    navn                       VARCHAR, --TODO: kan være null?
+    start_dato                 DATE,
+    slutt_dato                 DATE,
+    status                     VARCHAR                  NOT NULL,
+    modified_at                TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at                 TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

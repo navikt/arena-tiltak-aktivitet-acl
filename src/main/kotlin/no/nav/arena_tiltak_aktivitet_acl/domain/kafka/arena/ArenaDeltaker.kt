@@ -4,7 +4,6 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.ValidationException
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDate
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import org.slf4j.LoggerFactory
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
 
@@ -48,12 +47,12 @@ data class ArenaDeltaker(
 	private val placeholderDate = LocalDateTime.of(1970, Month.JANUARY, 1, 0,0)
 
 	fun mapTiltakDeltaker(): TiltakDeltaker {
-		val tiltakdeltakerId = TILTAKDELTAKER_ID.toString().also {
-			if (it == "0") throw ValidationException("TILTAKDELTAKER_ID er 0")
+		val tiltakdeltakerId = TILTAKDELTAKER_ID.also {
+			if (it == 0L) throw ValidationException("TILTAKDELTAKER_ID er 0")
 		}
 
-		val tiltakgjennomforingId = TILTAKGJENNOMFORING_ID.toString().also {
-			if (it == "0") throw ValidationException("TILTAKGJENNOMFORING_ID er 0")
+		val tiltakgjennomforingId = TILTAKGJENNOMFORING_ID.also {
+			if (it == 0L) throw ValidationException("TILTAKGJENNOMFORING_ID er 0")
 		}
 
 		val regDato = REG_DATO?.asValidatedLocalDateTime("REG_DATO") ?: placeholderDate.also {
@@ -64,7 +63,7 @@ data class ArenaDeltaker(
 		return TiltakDeltaker(
 			tiltakdeltakerId = tiltakdeltakerId,
 			tiltakgjennomforingId = tiltakgjennomforingId,
-			personId = PERSON_ID?.toString() ?: throw ValidationException("PERSON_ID er null"),
+			personId = PERSON_ID ?: throw ValidationException("PERSON_ID er null"),
 			datoFra = DATO_FRA?.asValidatedLocalDate("DATO_FRA"),
 			datoTil = DATO_TIL?.asValidatedLocalDate("DATO_TIL"),
 			deltakerStatusKode = DELTAKERSTATUSKODE,
@@ -79,16 +78,3 @@ data class ArenaDeltaker(
 }
 // @SONAR_STOP@
 
-data class TiltakDeltaker(
-	val tiltakdeltakerId: String,
-	val tiltakgjennomforingId: String,
-	val personId: String,
-	val datoFra: LocalDate?,
-	val datoTil: LocalDate?,
-	val deltakerStatusKode: String,
-	val datoStatusendring: LocalDateTime?,
-	val dagerPerUke: Int?,
-	val prosentDeltid: Float?,
-	val regDato: LocalDateTime,
-	val innsokBegrunnelse: String?
-)

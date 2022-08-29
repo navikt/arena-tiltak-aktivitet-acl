@@ -1,13 +1,13 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtDeltaker
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitet
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerResult
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAmtIntegrationConsumer
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataIdTranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
@@ -16,7 +16,7 @@ import java.util.*
 class DeltakerTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	translationRepository: ArenaDataIdTranslationRepository
+	translationRepository: ArenaDataTranslationRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
 	arenaDataRepository = arenaDataRepository,
@@ -24,36 +24,36 @@ class DeltakerTestExecutor(
 ) {
 
 	private val topic = "deltaker"
-	private val outputMessages = mutableListOf<AmtKafkaMessageDto<AmtDeltaker>>()
+	private val outputMessages = mutableListOf<KafkaMessageDto<Aktivitet>>()
 
 	init {
-		KafkaAmtIntegrationConsumer.subscribeDeltaker { outputMessages.add(it) }
+		KafkaAmtIntegrationConsumer.subscribeAktivitet { outputMessages.add(it) }
 	}
 
-	fun execute(command: DeltakerCommand): DeltakerResult {
+	fun execute(command: DeltakerCommand): AktivitetResult {
 		return command.execute(incrementAndGetPosition()) { sendAndCheck(it) }
 	}
 
-	fun updateResults(position: String, command: DeltakerCommand): DeltakerResult {
+	fun updateResults(position: String, command: DeltakerCommand): AktivitetResult {
 		return command.execute(position) { getResults(it) }
 	}
 
-	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto): DeltakerResult {
+	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto): AktivitetResult {
 		sendKafkaMessage(topic, objectMapper.writeValueAsString(wrapper))
 		return getResults(wrapper)
 	}
 
-	private fun getResults(wrapper: ArenaKafkaMessageDto): DeltakerResult {
+	private fun getResults(wrapper: ArenaKafkaMessageDto): AktivitetResult {
 		val arenaData = getArenaData(
 			ARENA_DELTAKER_TABLE_NAME,
-			AmtOperation.fromArenaOperationString(wrapper.opType),
+			Operation.fromArenaOperationString(wrapper.opType),
 			wrapper.pos
 		)
 
-		val translation = getTranslation(ARENA_DELTAKER_TABLE_NAME, arenaData.arenaId)
-		val message = if (translation != null) getOutputMessage(translation.amtId) else null
+		val translation = getTranslation(arenaData.arenaId.toLong(), Aktivitet.Type.TILTAKSAKTIVITET) //TODO: bare tiltaksaktiviteter?
+		val message = if (translation != null) getOutputMessage(translation.aktivitetId) else null
 
-		return DeltakerResult(
+		return AktivitetResult(
 			arenaData.operationPosition,
 			arenaData,
 			translation,
@@ -61,13 +61,13 @@ class DeltakerTestExecutor(
 		)
 	}
 
-	private fun getOutputMessage(id: UUID): AmtKafkaMessageDto<AmtDeltaker>? {
+	private fun getOutputMessage(id: UUID): KafkaMessageDto<Aktivitet>? {
 		var attempts = 0
 		while (attempts < 5) {
-			val data = outputMessages.firstOrNull { it.payload != null && (it.payload as AmtDeltaker).id == id }
+			val data = outputMessages.firstOrNull { it.payload != null && (it.payload as Aktivitet).id == id }
 
 			if (data != null) {
-				outputMessages.clear()
+				outputMessages.remove(data)
 				return data
 			}
 
@@ -75,7 +75,6 @@ class DeltakerTestExecutor(
 			attempts++
 		}
 
-		outputMessages.clear()
 		return null
 	}
 

@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing
 
 import com.fasterxml.jackson.databind.JsonNode
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforing
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforingDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
@@ -13,9 +13,9 @@ abstract class GjennomforingCommand : Command() {
 	): GjennomforingResult
 
 	fun createPayload(input: GjennomforingInput): JsonNode {
-		val data = ArenaGjennomforing(
+		val data = ArenaGjennomforingDto(
 			TILTAKGJENNOMFORING_ID = input.gjennomforingId,
-			SAK_ID = input.sakId,
+			SAK_ID = GENERIC_LONG,
 			TILTAKSKODE = input.tiltakKode,
 			ANTALL_DELTAKERE = GENERIC_INT,
 			ANTALL_VARIGHET = GENERIC_INT,

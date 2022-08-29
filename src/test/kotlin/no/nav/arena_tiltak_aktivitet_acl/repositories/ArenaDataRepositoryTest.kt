@@ -9,7 +9,7 @@ import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.utils.DbUtils.isEqualTo
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -36,7 +36,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val data = ArenaDataUpsertInput(
 			arenaTableName = "Table",
 			arenaId = "ARENA_ID",
-			operation = AmtOperation.CREATED,
+			operation = Operation.CREATED,
 			operationPosition = "1",
 			operationTimestamp = LocalDateTime.now(),
 			after = after
@@ -57,7 +57,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val data = ArenaDataUpsertInput(
 			arenaTableName = "Table",
 			arenaId = "ARENA_ID",
-			operation = AmtOperation.CREATED,
+			operation = Operation.CREATED,
 			operationPosition = "1",
 			operationTimestamp = LocalDateTime.now(),
 			after = "{\"test\": \"test\"}"
@@ -91,7 +91,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val data1 = ArenaDataUpsertInput(
 			arenaTableName = "Table",
 			arenaId = "ARENA_ID",
-			operation = AmtOperation.CREATED,
+			operation = Operation.CREATED,
 			operationPosition = "1",
 			operationTimestamp = LocalDateTime.now(),
 			after = afterData
@@ -100,7 +100,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val data2 = ArenaDataUpsertInput(
 			arenaTableName = "Table",
 			arenaId = "ARENA_ID",
-			operation = AmtOperation.CREATED,
+			operation = Operation.CREATED,
 			operationPosition = "2",
 			operationTimestamp = LocalDateTime.now(),
 			ingestStatus = IngestStatus.IGNORED,
@@ -110,7 +110,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val data3 = ArenaDataUpsertInput(
 			arenaTableName = "Table",
 			arenaId = "ARENA_ID",
-			operation = AmtOperation.CREATED,
+			operation = Operation.CREATED,
 			operationPosition = "3",
 			operationTimestamp = LocalDateTime.now(),
 			ingestStatus = IngestStatus.IGNORED,

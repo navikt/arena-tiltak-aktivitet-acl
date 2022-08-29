@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
@@ -21,7 +21,7 @@ open class TiltakProcessor(
 	override fun handleArenaMessage(message: ArenaTiltakKafkaMessage) {
 		val data = message.getData()
 
-		if (message.operationType == AmtOperation.DELETED) {
+		if (message.operationType == Operation.DELETED) {
 			log.error("Implementation for delete elements are not implemented. Cannot handle arena id ${data.TILTAKSKODE} from table ${message.arenaTableName} at position ${message.operationPosition}")
 			throw OperationNotImplementedException("Kan ikke håndtere tiltak med operation type DELETE")
 		}

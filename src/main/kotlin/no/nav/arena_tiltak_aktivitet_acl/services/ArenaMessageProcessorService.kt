@@ -4,7 +4,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInput
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
@@ -24,7 +24,6 @@ open class ArenaMessageProcessorService(
 	private val tiltakProcessor: TiltakProcessor,
 	private val gjennomforingProcessor: GjennomforingProcessor,
 	private val deltakerProcessor: DeltakerProcessor,
-	private val sakProcessor: SakProcessor,
 	private val arenaDataRepository: ArenaDataRepository,
 	private val meterRegistry: MeterRegistry
 ) {
@@ -48,7 +47,6 @@ open class ArenaMessageProcessorService(
 				ARENA_TILTAK_TABLE_NAME -> process(messageDto, tiltakProcessor) { it.TILTAKSKODE }
 				ARENA_GJENNOMFORING_TABLE_NAME -> process(messageDto, gjennomforingProcessor) { it.TILTAKGJENNOMFORING_ID.toString() }
 				ARENA_DELTAKER_TABLE_NAME -> process(messageDto, deltakerProcessor) { it.TILTAKDELTAKER_ID.toString() }
-				ARENA_SAK_TABLE_NAME -> process(messageDto, sakProcessor) { it.SAK_ID.toString() }
 				else -> throw IllegalArgumentException("Kan ikke håndtere melding fra ukjent arena tabell: ${messageDto.table}")
 			}
 		}
@@ -94,7 +92,7 @@ open class ArenaMessageProcessorService(
 	private inline fun <reified D> toArenaKafkaMessage(messageDto: ArenaKafkaMessageDto): ArenaKafkaMessage<D> {
 		return ArenaKafkaMessage(
 			arenaTableName = messageDto.table,
-			operationType = AmtOperation.fromArenaOperationString(messageDto.opType),
+			operationType = Operation.fromArenaOperationString(messageDto.opType),
 			operationTimestamp = parseArenaDateTime(messageDto.opTs),
 			operationPosition = messageDto.pos,
 			before = messageDto.before?.let { mapper.treeToValue(it, D::class.java) },
@@ -107,7 +105,6 @@ open class ArenaMessageProcessorService(
 			ARENA_TILTAK_TABLE_NAME -> "tiltak"
 			ARENA_GJENNOMFORING_TABLE_NAME -> "gjennomforing"
 			ARENA_DELTAKER_TABLE_NAME -> "deltaker"
-			ARENA_SAK_TABLE_NAME -> "sak"
 			else -> "unknown"
 		}
 	}

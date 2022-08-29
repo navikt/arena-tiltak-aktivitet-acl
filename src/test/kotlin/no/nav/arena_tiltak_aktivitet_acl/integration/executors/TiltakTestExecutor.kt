@@ -1,11 +1,11 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataIdTranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.fail
 class TiltakTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	translationRepository: ArenaDataIdTranslationRepository,
+	translationRepository: ArenaDataTranslationRepository,
 	private val tiltakRepository: TiltakRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
@@ -30,11 +30,11 @@ class TiltakTestExecutor(
 	}
 
 	private fun executor(arenaWrapper: ArenaKafkaMessageDto, kode: String): TiltakResult {
-		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper))
+		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper)) //TODO: Slette?
 
 		val data = getArenaData(
 			ARENA_TILTAK_TABLE_NAME,
-			AmtOperation.fromArenaOperationString(arenaWrapper.opType),
+			Operation.fromArenaOperationString(arenaWrapper.opType),
 			arenaWrapper.pos
 		)
 

@@ -1,6 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
@@ -21,7 +21,7 @@ fun createArenaDeltakerKafkaMessage(
 	dagerPerUke: Int? = null,
 	prosentDeltid: Float = 0.0f,
 	registrertDato: LocalDateTime = LocalDateTime.now(),
-	operation: AmtOperation = AmtOperation.CREATED
+	operation: Operation = Operation.CREATED
 ): ArenaDeltakerKafkaMessage {
 	val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
@@ -43,8 +43,8 @@ fun createArenaDeltakerKafkaMessage(
 		operationType = operation,
 		operationTimestamp = LocalDateTime.now(),
 		operationPosition = position,
-		after = if (operation != AmtOperation.DELETED) deltaker else null,
-		before = if (operation != AmtOperation.CREATED) deltaker else null
+		after = if (operation != Operation.DELETED) deltaker else null,
+		before = if (operation != Operation.CREATED) deltaker else null
 	)
 }
 

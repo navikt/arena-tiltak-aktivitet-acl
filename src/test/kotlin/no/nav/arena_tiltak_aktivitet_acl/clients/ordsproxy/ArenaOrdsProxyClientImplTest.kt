@@ -38,7 +38,7 @@ class ArenaOrdsProxyClientImplTest {
 
 		)
 
-		assertEquals("78900", client.hentFnr("987654"))
+		assertEquals("78900", client.hentFnr(987654L))
 	}
 
 	@Test
@@ -54,7 +54,7 @@ class ArenaOrdsProxyClientImplTest {
 				.willReturn(aResponse().withStatus(404))
 		)
 
-		assertNull(client.hentFnr("987654"))
+		assertNull(client.hentFnr(987654L))
 	}
 
 	@Test
@@ -89,7 +89,7 @@ class ArenaOrdsProxyClientImplTest {
 			organisasjonsnummerMorselskap = "74894532"
 		)
 
-		assertEquals(expectedArbeidsgiver, client.hentArbeidsgiver("1234567"))
+		assertEquals(expectedArbeidsgiver, client.hentArbeidsgiver(1234567L))
 	}
 
 	@Test
@@ -105,7 +105,7 @@ class ArenaOrdsProxyClientImplTest {
 				.willReturn(aResponse().withStatus(404))
 		)
 
-		assertNull(client.hentArbeidsgiver("1234567"))
+		assertNull(client.hentArbeidsgiver(1234567L))
 	}
 
 }

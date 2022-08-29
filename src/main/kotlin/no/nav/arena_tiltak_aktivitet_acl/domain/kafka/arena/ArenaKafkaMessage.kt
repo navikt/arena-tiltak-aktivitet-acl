@@ -1,11 +1,11 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import java.time.LocalDateTime
 
 data class ArenaKafkaMessage<D>(
 	val arenaTableName: String,
-	val operationType: AmtOperation,
+	val operationType: Operation,
 	val operationTimestamp: LocalDateTime,
 	val operationPosition: String,
 	val before: D?,
@@ -13,17 +13,15 @@ data class ArenaKafkaMessage<D>(
 ) {
 	fun getData(): D {
 		return when (operationType) {
-			AmtOperation.CREATED -> after ?: throw NoSuchElementException("Message with opType=CREATED is missing 'after'")
-			AmtOperation.MODIFIED -> after ?: throw NoSuchElementException("Message with opType=MODIFIED is missing 'after'")
-			AmtOperation.DELETED -> before ?: throw NoSuchElementException("Message with opType=DELETED is missing 'before'")
+			Operation.CREATED -> after ?: throw NoSuchElementException("Message with opType=CREATED is missing 'after'")
+			Operation.MODIFIED -> after ?: throw NoSuchElementException("Message with opType=MODIFIED is missing 'after'")
+			Operation.DELETED -> before ?: throw NoSuchElementException("Message with opType=DELETED is missing 'before'")
 		}
 	}
 }
 
 typealias ArenaTiltakKafkaMessage = ArenaKafkaMessage<ArenaTiltak>
 
-typealias ArenaGjennomforingKafkaMessage = ArenaKafkaMessage<ArenaGjennomforing>
+typealias ArenaGjennomforingKafkaMessage = ArenaKafkaMessage<ArenaGjennomforingDto>
 
 typealias ArenaDeltakerKafkaMessage = ArenaKafkaMessage<ArenaDeltaker>
-
-typealias ArenaSakKafkaMessage = ArenaKafkaMessage<ArenaSak>

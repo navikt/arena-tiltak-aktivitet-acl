@@ -5,17 +5,16 @@ import io.kotest.matchers.date.*
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtGjennomforing
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
-import java.util.*
+import kotlin.random.Random
 
 class ArenaGjennomforingRepositoryTest : FunSpec({
 	val datasource = SingletonPostgresContainer.getDataSource()
-	lateinit var repository: ArenaGjennomforingRepository
+	lateinit var repository: GjennomforingRepository
 	val now = LocalDateTime.now()
 	beforeEach {
-		repository = ArenaGjennomforingRepository(NamedParameterJdbcTemplate( datasource))
+		repository = GjennomforingRepository(NamedParameterJdbcTemplate( datasource))
 	}
 
 	infix fun LocalDateTime.shouldBeCloseTo(other: LocalDateTime) {
@@ -26,84 +25,41 @@ class ArenaGjennomforingRepositoryTest : FunSpec({
 		this shouldHaveMinute other.minute
 	}
 
-	infix fun ArenaGjennomforingDbo.shouldCompareTo(other: ArenaGjennomforingDbo) {
-		this.registrertDato shouldBeCloseTo other.registrertDato
-
-		if(fremmoteDato == null) other.fremmoteDato shouldBe null
-		else this.fremmoteDato!! shouldBeCloseTo other.fremmoteDato!!
-
-	}
-
 	test("upsert - skal inserte ny record") {
-		val gjennomforing = ArenaGjennomforingDbo(
-			id = UUID.randomUUID(),
+		val gjennomforing = GjennomforingDbo(
+			arenaId = Random.nextLong(),
 			tiltakKode = "INDOPPFAG",
-			virksomhetsnummer = "123",
+			arrangorVirksomhetsnummer = "123",
+			arrangorNavn = "Navn på arrangør",
 			navn = "Gjennomføringnavn",
 			startDato = now.toLocalDate(),
 			sluttDato = now.toLocalDate().plusDays(1),
-			registrertDato = now,
-			fremmoteDato = now,
-			status = AmtGjennomforing.Status.GJENNOMFORES,
-			ansvarligNavEnhetId = "1233",
-			opprettetAar = 2001,
-			lopenr = 902380943,
-			arenaSakId = 4892304830924
+			status = "GJENNOMFOR",
 		)
 		repository.upsert(gjennomforing)
 
-		val inserted = repository.get(gjennomforing.id)
+		val inserted = repository.get(gjennomforing.arenaId)
 		inserted shouldNotBe null
-		inserted!! shouldCompareTo gjennomforing
+		inserted!! shouldBe gjennomforing
 	}
 
 	test("upsert - kun obligatoriske felter - skal inserte ny record") {
-		val gjennomforing = ArenaGjennomforingDbo(
-			id = UUID.randomUUID(),
-			arenaSakId = null,
+		val gjennomforing = GjennomforingDbo(
+			arenaId = Random.nextLong(),
 			tiltakKode = "INDOPPFAG",
-			virksomhetsnummer = "123",
+			arrangorVirksomhetsnummer = null,
+			arrangorNavn = null,
 			navn = "Gjennomføringnavn",
 			startDato = null,
 			sluttDato = null,
-			registrertDato = now,
-			fremmoteDato = null,
-			status = AmtGjennomforing.Status.GJENNOMFORES,
-			ansvarligNavEnhetId = null,
-			opprettetAar = null,
-			lopenr = null,
+			status = "GJENNOMFOR"
 		)
 		repository.upsert(gjennomforing)
 
-		val inserted = repository.get(gjennomforing.id)
+		val inserted = repository.get(gjennomforing.arenaId)
 
 		inserted shouldNotBe null
-		inserted!! shouldCompareTo gjennomforing
-
-	}
-
-	test("getBySakId - gjennomføring med sakId eksisterer - skal hente") {
-		val gjennomforing = ArenaGjennomforingDbo(
-			id = UUID.randomUUID(),
-			arenaSakId = 3453453453534,
-			tiltakKode = "INDOPPFAG",
-			virksomhetsnummer = "123",
-			navn = "Gjennomføringnavn",
-			startDato = null,
-			sluttDato = null,
-			registrertDato = now,
-			fremmoteDato = null,
-			status = AmtGjennomforing.Status.GJENNOMFORES,
-			ansvarligNavEnhetId = null,
-			opprettetAar = null,
-			lopenr = null,
-		)
-		repository.upsert(gjennomforing)
-
-		val inserted = repository.getBySakId(gjennomforing.arenaSakId!!)
-
-		inserted shouldNotBe null
-		inserted!! shouldCompareTo gjennomforing
+		inserted!! shouldBe gjennomforing
 
 	}
 })

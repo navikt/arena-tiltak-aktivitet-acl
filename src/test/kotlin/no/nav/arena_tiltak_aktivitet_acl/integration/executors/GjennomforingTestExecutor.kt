@@ -1,22 +1,22 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtGjennomforing
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Gjennomforing
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingResult
-import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAmtIntegrationConsumer
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataIdTranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_GJENNOMFORING_TABLE_NAME
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
-import java.util.*
 
 class GjennomforingTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	translationRepository: ArenaDataIdTranslationRepository
+	val gjennomforingRepository: GjennomforingRepository,
+	translationRepository: ArenaDataTranslationRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
 	arenaDataRepository = arenaDataRepository,
@@ -25,18 +25,8 @@ class GjennomforingTestExecutor(
 
 	private val topic = "gjennomforing"
 
-	private val outputMessages = mutableListOf<AmtKafkaMessageDto<AmtGjennomforing>>()
-
-	init {
-		KafkaAmtIntegrationConsumer.subscribeGjennomforing { outputMessages.add(it) }
-	}
-
 	fun execute(command: GjennomforingCommand): GjennomforingResult {
 		return command.execute(incrementAndGetPosition()) { sendAndCheck(it) }
-	}
-
-	fun updateResults(position: String, command: GjennomforingCommand): GjennomforingResult {
-		return command.execute(position) { getResults(it) }
 	}
 
 	private fun sendAndCheck(arenaWrapper: ArenaKafkaMessageDto): GjennomforingResult {
@@ -47,34 +37,13 @@ class GjennomforingTestExecutor(
 	private fun getResults(arenaWrapper: ArenaKafkaMessageDto): GjennomforingResult {
 		val arenaData = getArenaData(
 			ARENA_GJENNOMFORING_TABLE_NAME,
-			AmtOperation.fromArenaOperationString(arenaWrapper.opType),
+			Operation.fromArenaOperationString(arenaWrapper.opType),
 			arenaWrapper.pos
 		)
 
-		val translation = getTranslation(ARENA_GJENNOMFORING_TABLE_NAME, arenaData.arenaId)
-		val message = if (translation != null) getOutputMessage(translation.amtId) else null
-
-		return GjennomforingResult(arenaWrapper.pos, arenaData, translation, message)
+		val output = gjennomforingRepository.get(arenaData.arenaId.toLong())
+		return GjennomforingResult(arenaWrapper.pos, arenaData, output)
 	}
-
-
-	private fun getOutputMessage(id: UUID): AmtKafkaMessageDto<AmtGjennomforing>? {
-		var attempts = 0
-		while (attempts < 5) {
-			val data = outputMessages.firstOrNull { it.payload != null && (it.payload as AmtGjennomforing).id == id }
-
-			if (data != null) {
-				outputMessages.clear()
-				return data
-			}
-
-			Thread.sleep(250)
-			attempts++
-		}
-
-		outputMessages.clear()
-		return null
-	}
-
 
 }
+

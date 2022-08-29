@@ -2,7 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.kafka
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.JsonNode
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.*
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
 import no.nav.common.kafka.consumer.KafkaConsumerClient
@@ -21,17 +21,17 @@ class KafkaAmtIntegrationConsumer(
 
 
 	companion object {
-		private val deltakerSubsctiptions = mutableMapOf<UUID, (wrapper: AmtKafkaMessageDto<AmtDeltaker>) -> Unit>()
-		private val gjennomforingSubscriptions = mutableMapOf<UUID, (wrapper: AmtKafkaMessageDto<AmtGjennomforing>) -> Unit>()
+		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Aktivitet>) -> Unit>()
+		private val gjennomforingSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Gjennomforing>) -> Unit>()
 
-		fun subscribeDeltaker(handler: (record: AmtKafkaMessageDto<AmtDeltaker>) -> Unit): UUID {
+		fun subscribeAktivitet(handler: (record: KafkaMessageDto<Aktivitet>) -> Unit): UUID {
 			val id = UUID.randomUUID()
-			deltakerSubsctiptions[id] = handler
+			aktivitetSubscriptions[id] = handler
 
 			return id
 		}
 
-		fun subscribeGjennomforing(handler: (record: AmtKafkaMessageDto<AmtGjennomforing>) -> Unit): UUID {
+		fun subscribeGjennomforing(handler: (record: KafkaMessageDto<Gjennomforing>) -> Unit): UUID {
 			val id = UUID.randomUUID()
 			gjennomforingSubscriptions[id] = handler
 
@@ -39,8 +39,7 @@ class KafkaAmtIntegrationConsumer(
 		}
 
 		fun reset() {
-			deltakerSubsctiptions.clear()
-			gjennomforingSubscriptions.clear()
+			aktivitetSubscriptions.clear()
 		}
 	}
 
@@ -67,25 +66,19 @@ class KafkaAmtIntegrationConsumer(
 		val unknownMessageWrapper = fromJson(record.value(), UnknownMessageWrapper::class.java)
 
 		when (unknownMessageWrapper.type) {
-			PayloadType.DELTAKER -> {
+			PayloadType.AKTIVITET -> {
 				val deltakerPayload =
-					ObjectMapperFactory.get().treeToValue(unknownMessageWrapper.payload, AmtDeltaker::class.java)
+					ObjectMapperFactory.get().treeToValue(unknownMessageWrapper.payload, Aktivitet::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
-				deltakerSubsctiptions.values.forEach { it.invoke(message) }
+				aktivitetSubscriptions.values.forEach { it.invoke(message) }
 
-			}
-			PayloadType.GJENNOMFORING -> {
-				val gjennomforingPayload =
-					ObjectMapperFactory.get().treeToValue(unknownMessageWrapper.payload, AmtGjennomforing::class.java)
-				val message = toKnownMessageWrapper(gjennomforingPayload, unknownMessageWrapper)
-				gjennomforingSubscriptions.values.forEach { it.invoke(message) }
 			}
 			else -> throw IllegalStateException("${unknownMessageWrapper.type} does not have a handler.")
 		}
 	}
 
-	private fun <T> toKnownMessageWrapper(payload: T, unknownMessageWrapper: UnknownMessageWrapper): AmtKafkaMessageDto<T> {
-		return AmtKafkaMessageDto(
+	private fun <T> toKnownMessageWrapper(payload: T, unknownMessageWrapper: UnknownMessageWrapper): KafkaMessageDto<T> {
+		return KafkaMessageDto(
 			transactionId = UUID.fromString(unknownMessageWrapper.transactionId),
 			type = unknownMessageWrapper.type,
 			timestamp = unknownMessageWrapper.timestamp,
@@ -103,7 +96,7 @@ class KafkaAmtIntegrationConsumer(
 		val transactionId: String,
 		val type: PayloadType,
 		val timestamp: LocalDateTime,
-		val operation: AmtOperation,
+		val operation: Operation,
 		val payload: JsonNode
 	)
 

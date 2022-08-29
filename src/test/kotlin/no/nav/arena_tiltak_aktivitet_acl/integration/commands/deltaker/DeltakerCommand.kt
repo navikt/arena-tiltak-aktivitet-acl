@@ -9,8 +9,8 @@ abstract class DeltakerCommand : Command() {
 
 	abstract fun execute(
 		position: String,
-		executor: (wrapper: ArenaKafkaMessageDto) -> DeltakerResult
-	): DeltakerResult
+		executor: (wrapper: ArenaKafkaMessageDto) -> AktivitetResult
+	): AktivitetResult
 
 	fun createPayload(input: DeltakerInput): JsonNode {
 		val data = ArenaDeltaker(

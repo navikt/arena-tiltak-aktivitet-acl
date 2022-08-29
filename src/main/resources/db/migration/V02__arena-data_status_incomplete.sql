@@ -6,6 +6,3 @@ ALTER TABLE arena_data
         CHECK ( ingest_status IN
                 ('NEW', 'HANDLED', 'RETRY', 'FAILED', 'IGNORED', 'INVALID')
             );
-
-ALTER TABLE arena_data_id_translation
-DROP COLUMN current_hash;

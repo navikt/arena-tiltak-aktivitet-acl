@@ -4,7 +4,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_GJENNOMFORING_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
@@ -24,7 +24,7 @@ open class ArenaDataRepository(
 			id = rs.getInt("id"),
 			arenaTableName = rs.getString("arena_table_name"),
 			arenaId = rs.getString("arena_id"),
-			operation = AmtOperation.valueOf(rs.getString("operation_type")),
+			operation = Operation.valueOf(rs.getString("operation_type")),
 			operationPosition = rs.getString("operation_pos"),
 			operationTimestamp = rs.getTimestamp("operation_timestamp").toLocalDateTime(),
 			ingestStatus = IngestStatus.valueOf(rs.getString("ingest_status")),
@@ -103,7 +103,7 @@ open class ArenaDataRepository(
 		)
 	}
 
-	fun get(tableName: String, operation: AmtOperation, position: String): ArenaDataDbo {
+	fun get(tableName: String, operation: Operation, position: String): ArenaDataDbo {
 		val sql = """
 			SELECT *
 			FROM arena_data
@@ -201,7 +201,7 @@ open class ArenaDataRepository(
 		val sql = """
 			SELECT *
 				FROM arena_data deltaker
-				JOIN arena_data_id_translation translation on deltaker.after ->> 'TILTAKGJENNOMFORING_ID' = translation.arena_id
+				JOIN arena_data_translation translation on deltaker.after ->> 'TILTAKGJENNOMFORING_ID' = translation.arena_id
 				WHERE deltaker.arena_table_name = '$ARENA_DELTAKER_TABLE_NAME'
 				  AND translation.arena_table_name = '$ARENA_GJENNOMFORING_TABLE_NAME'
 				  AND deltaker.ingest_status IN (:ingestStatuses)

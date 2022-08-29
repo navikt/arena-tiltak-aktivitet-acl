@@ -2,7 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.services
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtTiltak
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.CacheUtils.tryCacheFirstNullable
 import org.springframework.stereotype.Service
@@ -14,7 +14,7 @@ open class TiltakService(
 	private val tiltakRepository: TiltakRepository
 ) {
 
-	private val cache: Cache<String, AmtTiltak> = Caffeine.newBuilder()
+	private val cache: Cache<String, Tiltak> = Caffeine.newBuilder()
 		.maximumSize(200)
 		.expireAfterWrite(10, TimeUnit.MINUTES)
 		.recordStats()
@@ -25,7 +25,7 @@ open class TiltakService(
 		tiltakRepository.upsert(id, kode, navn)
 	}
 
-	fun getByKode(kode: String): AmtTiltak? {
+	fun getByKode(kode: String): Tiltak? {
 		return tryCacheFirstNullable(cache, kode) { tiltakRepository.getByKode(kode) }
 	}
 
@@ -34,3 +34,4 @@ open class TiltakService(
 	}
 
 }
+

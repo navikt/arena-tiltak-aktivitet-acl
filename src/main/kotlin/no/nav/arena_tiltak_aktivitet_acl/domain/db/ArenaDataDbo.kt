@@ -1,6 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import java.time.LocalDateTime
 
 enum class IngestStatus {
@@ -16,7 +16,7 @@ data class ArenaDataDbo(
 	val id: Int,
 	val arenaTableName: String,
 	val arenaId: String,
-	val operation: AmtOperation,
+	val operation: Operation,
 	val operationPosition: String,
 	val operationTimestamp: LocalDateTime,
 	val ingestStatus: IngestStatus,

@@ -1,6 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
 import java.time.LocalDateTime
@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 data class ArenaDataUpsertInput(
 	val arenaTableName: String,
 	val arenaId: String,
-	val operation: AmtOperation,
+	val operation: Operation,
 	val operationPosition: String,
 	val operationTimestamp: LocalDateTime,
 	val ingestStatus: IngestStatus = IngestStatus.NEW,
@@ -33,6 +33,10 @@ fun ArenaKafkaMessage<*>.toUpsertInput(arenaId: String, ingestStatus: IngestStat
 		after = this.after?.let { objectMapper.writeValueAsString(it) },
 		note = note
 	)
+}
+
+fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: Long): ArenaDataUpsertInput {
+	return this.toUpsertInput(arenaId.toString(), IngestStatus.HANDLED, null)
 }
 
 fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: String): ArenaDataUpsertInput {

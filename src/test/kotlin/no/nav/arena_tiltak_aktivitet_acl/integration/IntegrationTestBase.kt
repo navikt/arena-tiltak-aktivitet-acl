@@ -4,15 +4,14 @@ import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.DeltakerTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.GjennomforingTestExecutor
-import no.nav.arena_tiltak_aktivitet_acl.integration.executors.SakTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.TiltakTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAmtIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.SingletonKafkaProvider
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataIdTranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaSakRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.RetryArenaMessageProcessorService
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
@@ -51,10 +50,8 @@ abstract class IntegrationTestBase {
 	lateinit var gjennomforingExecutor: GjennomforingTestExecutor
 
 	@Autowired
-	lateinit var sakExecutor: SakTestExecutor
-
-	@Autowired
 	lateinit var deltakerExecutor: DeltakerTestExecutor
+
 
 	@BeforeEach
 	fun beforeEach() {
@@ -85,7 +82,7 @@ open class IntegrationTestConfiguration(
 	open fun tiltakExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: ArenaDataIdTranslationRepository,
+		translationRepository: ArenaDataTranslationRepository,
 		tiltakRepository: TiltakRepository
 	): TiltakTestExecutor {
 		return TiltakTestExecutor(kafkaProducer, arenaDataRepository, translationRepository, tiltakRepository)
@@ -95,26 +92,17 @@ open class IntegrationTestConfiguration(
 	open fun gjennomforingExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: ArenaDataIdTranslationRepository
+		gjennomforingRepository: GjennomforingRepository,
+		translationRepository: ArenaDataTranslationRepository
 	): GjennomforingTestExecutor {
-		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
-	}
-
-	@Bean
-	open fun sakExecutor(
-		kafkaProducer: KafkaProducerClientImpl<String, String>,
-		arenaDataRepository: ArenaDataRepository,
-		translationRepository: ArenaDataIdTranslationRepository,
-		sakRepository: ArenaSakRepository
-	): SakTestExecutor {
-		return SakTestExecutor(kafkaProducer, arenaDataRepository, translationRepository, sakRepository)
+		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository, translationRepository)
 	}
 
 	@Bean
 	open fun deltakerExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: ArenaDataIdTranslationRepository
+		translationRepository: ArenaDataTranslationRepository
 	): DeltakerTestExecutor {
 		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
 	}

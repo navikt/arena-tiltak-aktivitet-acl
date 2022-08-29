@@ -2,7 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.metrics
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
 import org.springframework.stereotype.Component
 
@@ -12,9 +12,9 @@ class DeltakerMetricHandler(
 ) {
 
 	fun publishMetrics(message: ArenaDeltakerKafkaMessage) {
-		if (message.operationType == AmtOperation.CREATED) {
+		if (message.operationType == Operation.CREATED) {
 			registry.counter("amt.arena-acl.deltaker.ny").increment()
-		} else if (message.operationType == AmtOperation.MODIFIED) {
+		} else if (message.operationType == Operation.MODIFIED) {
 			val before = message.before
 			val after = message.after
 

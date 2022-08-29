@@ -1,6 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.services
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
 import no.nav.common.kafka.producer.KafkaProducerClient
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -18,7 +18,7 @@ open class KafkaProducerService(
 	@Value("\${app.env.amtTopic}")
 	lateinit var topic: String
 
-	fun sendTilAmtTiltak(messageKey: UUID, data: AmtKafkaMessageDto<*>) {
+	fun sendTilAmtTiltak(messageKey: UUID, data: KafkaMessageDto<*>) {
 		val record = ProducerRecord(topic, messageKey.toString(), objectMapper.writeValueAsString(data))
 		kafkaProducer.sendSync(record)
 	}

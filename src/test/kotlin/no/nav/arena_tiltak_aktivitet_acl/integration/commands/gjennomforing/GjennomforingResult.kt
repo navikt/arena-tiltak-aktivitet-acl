@@ -1,16 +1,13 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataIdTranslationDbo
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtGjennomforing
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingDbo
 import org.junit.jupiter.api.fail
 
 data class GjennomforingResult(
 	val position: String,
 	val arenaDataDbo: ArenaDataDbo,
-	val translation: ArenaDataIdTranslationDbo?,
-	val output: AmtKafkaMessageDto<AmtGjennomforing>?
+	val output: GjennomforingDbo?
 ) {
 
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): GjennomforingResult {
@@ -18,16 +15,8 @@ data class GjennomforingResult(
 		return this
 	}
 
-	fun translation(check: (data: ArenaDataIdTranslationDbo) -> Unit): GjennomforingResult {
-		if (translation == null) {
-			fail("Trying to get translation, but it is null")
-		}
 
-		check.invoke(translation)
-		return this
-	}
-
-	fun output(check: (data: AmtKafkaMessageDto<AmtGjennomforing>) -> Unit): GjennomforingResult {
+	fun output(check: (data: GjennomforingDbo) -> Unit): GjennomforingResult {
 		if (output == null) {
 			fail("Trying to get output, but it is null")
 		}
@@ -36,8 +25,8 @@ data class GjennomforingResult(
 		return this
 	}
 
-	fun result(check: (arenaDataDbo: ArenaDataDbo, translation: ArenaDataIdTranslationDbo?, output: AmtKafkaMessageDto<AmtGjennomforing>?) -> Unit): GjennomforingResult {
-		check.invoke(arenaDataDbo, translation, output)
+	fun result(check: (arenaDataDbo: ArenaDataDbo, output: GjennomforingDbo?) -> Unit): GjennomforingResult {
+		check.invoke(arenaDataDbo, output)
 		return this
 	}
 

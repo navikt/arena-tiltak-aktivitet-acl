@@ -1,6 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtTiltak
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -14,7 +14,7 @@ open class TiltakRepository(
 ) {
 
 	private val rowMapper = RowMapper { rs, _ ->
-		AmtTiltak(
+		Tiltak(
 			id = rs.getUUID("id"),
 			kode = rs.getString("kode"),
 			navn = rs.getString("navn")
@@ -41,7 +41,7 @@ open class TiltakRepository(
 		template.update(sql, parameters)
 	}
 
-	fun getByKode(kode: String): AmtTiltak? {
+	fun getByKode(kode: String): Tiltak? {
 		val sql = "SELECT * FROM arena_tiltak WHERE kode = :kode"
 
 		return template.query(sql, singletonParameterMap("kode", kode), rowMapper).firstOrNull()

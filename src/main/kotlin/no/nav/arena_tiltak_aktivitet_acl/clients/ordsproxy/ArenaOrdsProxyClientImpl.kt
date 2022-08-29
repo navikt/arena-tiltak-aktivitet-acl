@@ -22,7 +22,7 @@ open class ArenaOrdsProxyClientImpl(
 	private val objectMapper: ObjectMapper = ObjectMapper().registerKotlinModule(),
 ) : ArenaOrdsProxyClient {
 
-	override fun hentFnr(arenaPersonId: String): String? {
+	override fun hentFnr(arenaPersonId: Long): String? {
 		val request = Request.Builder()
 			.url("$arenaOrdsProxyUrl/api/ords/fnr?personId=$arenaPersonId")
 			.header("Downstream-Authorization", "Bearer ${ordsProxyTokenProvider.get()}")
@@ -45,7 +45,7 @@ open class ArenaOrdsProxyClientImpl(
 		}
 	}
 
-	override fun hentArbeidsgiver(arenaArbeidsgiverId: String): Arbeidsgiver? {
+	override fun hentArbeidsgiver(arenaArbeidsgiverId: Long): Arbeidsgiver? {
 		val request = Request.Builder()
 			.url("$arenaOrdsProxyUrl/api/ords/arbeidsgiver?arbeidsgiverId=$arenaArbeidsgiverId")
 			.header("Downstream-Authorization", "Bearer ${ordsProxyTokenProvider.get()}")
@@ -73,7 +73,7 @@ open class ArenaOrdsProxyClientImpl(
 		}
 	}
 
-	override fun hentVirksomhetsnummer(arenaArbeidsgiverId: String): String {
+	override fun hentVirksomhetsnummer(arenaArbeidsgiverId: Long): String {
 		return hentArbeidsgiver(arenaArbeidsgiverId)?.virksomhetsnummer
 			?: throw UnsupportedOperationException("Kan ikke hente virksomhetsnummer på en arbeidsgiver som ikke eksisterer. arenaArbeidsgiverId=$arenaArbeidsgiverId")
 	}

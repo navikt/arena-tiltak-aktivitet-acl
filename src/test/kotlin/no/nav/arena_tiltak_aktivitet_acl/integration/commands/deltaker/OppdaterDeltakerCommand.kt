@@ -10,7 +10,7 @@ class OppdaterDeltakerCommand(
 	val updatedDeltakerData: DeltakerInput
 ) : DeltakerCommand() {
 
-	override fun execute(position: String, executor: (wrapper: ArenaKafkaMessageDto) -> DeltakerResult): DeltakerResult {
+	override fun execute(position: String, executor: (wrapper: ArenaKafkaMessageDto) -> AktivitetResult): AktivitetResult {
 		val wrapper = ArenaKafkaMessageDto(
 			table = ARENA_DELTAKER_TABLE_NAME,
 			opType = ArenaOperation.U.name,

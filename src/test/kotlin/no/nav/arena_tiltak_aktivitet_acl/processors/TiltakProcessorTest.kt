@@ -10,7 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.amt.AmtOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
@@ -61,12 +61,12 @@ class TiltakProcessorTest : FunSpec({
 		tiltakProcessor.handleArenaMessage(data)
 
 		val arenaDataRepositoryEntry = shouldNotThrowAny {
-			arenaDataRepository.get(ARENA_TILTAK_TABLE_NAME, AmtOperation.CREATED, position)
+			arenaDataRepository.get(ARENA_TILTAK_TABLE_NAME, Operation.CREATED, position)
 		}
 
 		arenaDataRepositoryEntry.before shouldBe null
 		mapper.readValue(arenaDataRepositoryEntry.after, ArenaTiltak::class.java) shouldBe data.after
-		arenaDataRepositoryEntry.operation shouldBe AmtOperation.CREATED
+		arenaDataRepositoryEntry.operation shouldBe Operation.CREATED
 		arenaDataRepositoryEntry.id shouldNotBe -1
 
 		arenaDataRepositoryEntry.ingestStatus shouldBe IngestStatus.HANDLED
@@ -89,7 +89,7 @@ class TiltakProcessorTest : FunSpec({
 
 		val kafkaMessageInsertOp = createArenaTiltakKafkaMessage(
 			operationPosition = newPosition,
-			operationType = AmtOperation.CREATED,
+			operationType = Operation.CREATED,
 			arenaTiltak = createArenaTiltak(tiltakNavn, tiltakKode)
 		)
 
@@ -100,17 +100,17 @@ class TiltakProcessorTest : FunSpec({
 
 		val kafkaMessageUpdateOp = createArenaTiltakKafkaMessage(
 			operationPosition = updatedPosition,
-			operationType = AmtOperation.MODIFIED,
+			operationType = Operation.MODIFIED,
 			arenaTiltak = createArenaTiltak(updatedNavn, tiltakKode)
 		)
 
 		tiltakProcessor.handleArenaMessage(kafkaMessageUpdateOp)
 
 		val arenaDataRepositoryEntry = shouldNotThrowAny {
-			arenaDataRepository.get(ARENA_TILTAK_TABLE_NAME, AmtOperation.MODIFIED, updatedPosition)
+			arenaDataRepository.get(ARENA_TILTAK_TABLE_NAME, Operation.MODIFIED, updatedPosition)
 		}
 
-		arenaDataRepositoryEntry.operation shouldBe AmtOperation.MODIFIED
+		arenaDataRepositoryEntry.operation shouldBe Operation.MODIFIED
 		arenaDataRepositoryEntry.ingestStatus shouldBe IngestStatus.HANDLED
 		arenaDataRepositoryEntry.ingestedTimestamp shouldNotBe null
 		arenaDataRepositoryEntry.ingestAttempts shouldBe 0
@@ -131,7 +131,7 @@ class TiltakProcessorTest : FunSpec({
 
 		val kafkaMessageInsertOp = createArenaTiltakKafkaMessage(
 			operationPosition = newPosition,
-			operationType = AmtOperation.CREATED,
+			operationType = Operation.CREATED,
 			arenaTiltak = createArenaTiltak(tiltakNavn, tiltakKode)
 		)
 
@@ -141,7 +141,7 @@ class TiltakProcessorTest : FunSpec({
 
 		val kafkaMessageDeleteOp = createArenaTiltakKafkaMessage(
 			operationPosition = deletePosition,
-			operationType = AmtOperation.DELETED,
+			operationType = Operation.DELETED,
 			arenaTiltak = createArenaTiltak(tiltakNavn, tiltakKode)
 		)
 
@@ -189,7 +189,7 @@ private fun createArenaTiltak(
 
 private fun createArenaTiltakKafkaMessage(
 	operationPosition: String = "1",
-	operationType: AmtOperation = AmtOperation.CREATED,
+	operationType: Operation = Operation.CREATED,
 	operationTimestamp: LocalDateTime = LocalDateTime.now(),
 	arenaTiltak: ArenaTiltak,
 ): ArenaTiltakKafkaMessage {
@@ -198,7 +198,7 @@ private fun createArenaTiltakKafkaMessage(
 		operationType = operationType,
 		operationTimestamp = operationTimestamp,
 		operationPosition =  operationPosition,
-		before = if (listOf(AmtOperation.MODIFIED, AmtOperation.DELETED).contains(operationType)) arenaTiltak else null,
-		after =  if (listOf(AmtOperation.CREATED, AmtOperation.MODIFIED).contains(operationType)) arenaTiltak else null,
+		before = if (listOf(Operation.MODIFIED, Operation.DELETED).contains(operationType)) arenaTiltak else null,
+		after =  if (listOf(Operation.CREATED, Operation.MODIFIED).contains(operationType)) arenaTiltak else null,
 	)
 }

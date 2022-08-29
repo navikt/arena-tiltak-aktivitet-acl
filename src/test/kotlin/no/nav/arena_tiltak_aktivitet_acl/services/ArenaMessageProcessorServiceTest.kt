@@ -15,7 +15,6 @@ import io.mockk.verify
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforingKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
-import no.nav.arena_tiltak_aktivitet_acl.processors.SakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
@@ -34,8 +33,6 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 
 	lateinit var deltakerProcessor: DeltakerProcessor
 
-	lateinit var sakProcessor: SakProcessor
-
 	lateinit var meterRegistry: MeterRegistry
 
 	lateinit var messageProcessor: ArenaMessageProcessorService
@@ -47,7 +44,6 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		arenaDataRepository = mockk()
 		tiltakProcessor = mockk()
 		gjennomforingProcessor = mockk()
-		sakProcessor = mockk()
 		deltakerProcessor = mockk()
 
 		meterRegistry = SimpleMeterRegistry()
@@ -56,7 +52,6 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 			tiltakProcessor = tiltakProcessor,
 			gjennomforingProcessor = gjennomforingProcessor,
 			deltakerProcessor = deltakerProcessor,
-			sakProcessor = sakProcessor,
 			arenaDataRepository = arenaDataRepository,
 			meterRegistry = meterRegistry
 		)
@@ -143,25 +138,6 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		val capturedData = capturingSlot.captured
 
 		capturedData.after?.VURDERING_GJENNOMFORING shouldBe "Vurdering"
-	}
-
-	"should handle arena sak message" {
-		val tiltakJsonFileContent =
-			javaClass.classLoader.getResource("data/arena-sakendret-v1.json").readText()
-		val sakList: List<JsonNode> = mapper.readValue(tiltakJsonFileContent)
-		val sakJson = sakList.toList()[0].toString()
-
-		every {
-			sakProcessor.handleArenaMessage(any())
-		} returns Unit
-
-		messageProcessor.handleArenaGoldenGateRecord(
-			ConsumerRecord("test", 1, 1, "123456", sakJson)
-		)
-
-		verify(exactly = 1) {
-			sakProcessor.handleArenaMessage(any())
-		}
 	}
 
 })
