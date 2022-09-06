@@ -23,18 +23,10 @@ class KafkaAmtIntegrationConsumer(
 
 	companion object {
 		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<TiltakAktivitet>) -> Unit>()
-		private val gjennomforingSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Gjennomforing>) -> Unit>()
 
 		fun subscribeAktivitet(handler: (record: KafkaMessageDto<TiltakAktivitet>) -> Unit): UUID {
 			val id = UUID.randomUUID()
 			aktivitetSubscriptions[id] = handler
-
-			return id
-		}
-
-		fun subscribeGjennomforing(handler: (record: KafkaMessageDto<Gjennomforing>) -> Unit): UUID {
-			val id = UUID.randomUUID()
-			gjennomforingSubscriptions[id] = handler
 
 			return id
 		}
