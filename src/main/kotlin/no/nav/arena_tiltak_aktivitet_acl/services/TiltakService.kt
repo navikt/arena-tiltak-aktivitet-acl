@@ -20,13 +20,21 @@ open class TiltakService(
 		.recordStats()
 		.build()
 
-	fun upsert(id: UUID, kode: String, navn: String) {
+	fun upsert(id: UUID, kode: String, navn: String, administrasjonskode: String) {
 		cache.invalidate(kode)
-		tiltakRepository.upsert(id, kode, navn)
+		tiltakRepository.upsert(id, kode, navn, administrasjonskode)
 	}
 
 	fun getByKode(kode: String): Tiltak? {
-		return tryCacheFirstNullable(cache, kode) { tiltakRepository.getByKode(kode) }
+		return tryCacheFirstNullable(cache, kode) {
+			tiltakRepository.getByKode(kode)?.let {
+				Tiltak(
+					id = it.id,
+					kode = it.kode,
+					navn = it.navn,
+					administrasjonskode = Tiltak.Administrasjonskode.valueOf(it.administrasjonskode))
+			}
+		}
 	}
 
 	fun invalidateTiltakByKodeCache() {

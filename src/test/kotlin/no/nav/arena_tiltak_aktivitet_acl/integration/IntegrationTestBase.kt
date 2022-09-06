@@ -9,10 +9,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAmtIntegrationCo
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.SingletonKafkaProvider
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.RetryArenaMessageProcessorService
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
@@ -82,7 +79,7 @@ open class IntegrationTestConfiguration(
 	open fun tiltakExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: ArenaDataTranslationRepository,
+		translationRepository: TranslationRepository,
 		tiltakRepository: TiltakRepository
 	): TiltakTestExecutor {
 		return TiltakTestExecutor(kafkaProducer, arenaDataRepository, translationRepository, tiltakRepository)
@@ -93,7 +90,7 @@ open class IntegrationTestConfiguration(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
 		gjennomforingRepository: GjennomforingRepository,
-		translationRepository: ArenaDataTranslationRepository
+		translationRepository: TranslationRepository
 	): GjennomforingTestExecutor {
 		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository, translationRepository)
 	}
@@ -102,7 +99,7 @@ open class IntegrationTestConfiguration(
 	open fun deltakerExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: ArenaDataTranslationRepository
+		translationRepository: TranslationRepository
 	): DeltakerTestExecutor {
 		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
 	}

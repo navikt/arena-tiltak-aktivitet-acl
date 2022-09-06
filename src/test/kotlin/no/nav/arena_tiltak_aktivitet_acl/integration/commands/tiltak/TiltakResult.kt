@@ -1,11 +1,11 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 
 data class TiltakResult(
 	val arenaDataDbo: ArenaDataDbo,
-	val tiltak: Tiltak
+	val tiltak: TiltakDbo
 ) {
 
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): TiltakResult {
@@ -13,7 +13,7 @@ data class TiltakResult(
 		return this
 	}
 
-	fun tiltak(check: (data: Tiltak) -> Unit): TiltakResult {
+	fun tiltak(check: (data: TiltakDbo) -> Unit): TiltakResult {
 		check.invoke(tiltak)
 		return this
 	}

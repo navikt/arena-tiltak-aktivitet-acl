@@ -21,10 +21,10 @@ class KafkaAmtIntegrationConsumer(
 
 
 	companion object {
-		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Aktivitet>) -> Unit>()
+		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<TiltakAktivitet>) -> Unit>()
 		private val gjennomforingSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Gjennomforing>) -> Unit>()
 
-		fun subscribeAktivitet(handler: (record: KafkaMessageDto<Aktivitet>) -> Unit): UUID {
+		fun subscribeAktivitet(handler: (record: KafkaMessageDto<TiltakAktivitet>) -> Unit): UUID {
 			val id = UUID.randomUUID()
 			aktivitetSubscriptions[id] = handler
 
@@ -65,24 +65,24 @@ class KafkaAmtIntegrationConsumer(
 	private fun handle(record: ConsumerRecord<String, String>) {
 		val unknownMessageWrapper = fromJson(record.value(), UnknownMessageWrapper::class.java)
 
-		when (unknownMessageWrapper.type) {
-			PayloadType.AKTIVITET -> {
+		when (unknownMessageWrapper.actionType) {
+			ActionType.UPSERT_TILTAK_AKTIVITET_V1 -> {
 				val deltakerPayload =
-					ObjectMapperFactory.get().treeToValue(unknownMessageWrapper.payload, Aktivitet::class.java)
+					ObjectMapperFactory.get().treeToValue(unknownMessageWrapper.payload, TiltakAktivitet::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
 				aktivitetSubscriptions.values.forEach { it.invoke(message) }
 
 			}
-			else -> throw IllegalStateException("${unknownMessageWrapper.type} does not have a handler.")
+			else -> throw IllegalStateException("${unknownMessageWrapper.actionType} does not have a handler.")
 		}
 	}
 
 	private fun <T> toKnownMessageWrapper(payload: T, unknownMessageWrapper: UnknownMessageWrapper): KafkaMessageDto<T> {
 		return KafkaMessageDto(
-			transactionId = UUID.fromString(unknownMessageWrapper.transactionId),
-			type = unknownMessageWrapper.type,
-			timestamp = unknownMessageWrapper.timestamp,
-			operation = unknownMessageWrapper.operation,
+			id = UUID.fromString(unknownMessageWrapper.id),
+			utsender = unknownMessageWrapper.utsender,
+			sendt = unknownMessageWrapper.sendt,
+			actionType = unknownMessageWrapper.actionType,
 			payload = payload
 		)
 	}
@@ -93,10 +93,10 @@ class KafkaAmtIntegrationConsumer(
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	data class UnknownMessageWrapper(
-		val transactionId: String,
-		val type: PayloadType,
-		val timestamp: LocalDateTime,
-		val operation: Operation,
+		val id: String,
+		val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
+		val sendt: LocalDateTime,
+		val actionType: ActionType,
 		val payload: JsonNode
 	)
 

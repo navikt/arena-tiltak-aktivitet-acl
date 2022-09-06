@@ -21,7 +21,7 @@ open class GjennomforingProcessor(
 		val gjennomforing = message.getData().mapTiltakGjennomforing()
 
 		val virksomhetsnummer = gjennomforing.arbgivIdArrangor?.let { ordsClient.hentVirksomhetsnummer(it) }
-		val gjennomforingDbo = gjennomforing.toDbo(virksomhetsnummer, "") //TODO: arrangørnavn mangler
+		val gjennomforingDbo = gjennomforing.toDbo(virksomhetsnummer, "") //TODO: hente arrangørnavn fra enhetsregisteret
 
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(gjennomforing.arenaId))
 		gjennomforingRepository.upsert(gjennomforingDbo)
