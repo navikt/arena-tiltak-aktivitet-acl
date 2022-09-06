@@ -51,7 +51,7 @@ class DeltakerTestExecutor(
 			wrapper.pos
 		)
 
-		val translation = getTranslation(arenaData.arenaId.toLong(), AktivitetKategori.TILTAKSAKTIVITET) //TODO: bare tiltaksaktiviteter?
+		val translation = getTranslation(arenaData.arenaId.toLong(), AktivitetKategori.TILTAKSAKTIVITET)
 		val message = if (translation != null) getOutputMessage(translation.aktivitetId) else null
 
 		return AktivitetResult(

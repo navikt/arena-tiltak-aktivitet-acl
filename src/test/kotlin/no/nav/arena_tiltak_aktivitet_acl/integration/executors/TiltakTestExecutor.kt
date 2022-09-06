@@ -30,7 +30,7 @@ class TiltakTestExecutor(
 	}
 
 	private fun executor(arenaWrapper: ArenaKafkaMessageDto, kode: String): TiltakResult {
-		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper)) //TODO: Slette?
+		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper))
 
 		val data = getArenaData(
 			ARENA_TILTAK_TABLE_NAME,
