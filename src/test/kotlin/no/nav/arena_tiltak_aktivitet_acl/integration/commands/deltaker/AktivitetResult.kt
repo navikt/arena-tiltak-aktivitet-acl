@@ -45,7 +45,7 @@ data class AktivitetResult(
 			fail("Forsøker å hente payload på en outgoing melding som er null")
 		}
 
-		check.invoke(output.payload!!)
+		check.invoke(output.payload)
 		return this
 	}
 }

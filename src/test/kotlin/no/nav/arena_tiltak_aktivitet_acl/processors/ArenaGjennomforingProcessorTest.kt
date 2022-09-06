@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import ArenaOrdsProxyClient
+import io.mockk.mockk
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
@@ -43,7 +44,8 @@ class ArenaGjennomforingProcessorTest {
 		gjennomforingProcessor = GjennomforingProcessor(
 			repository,
 			GjennomforingRepository(jdbcTemplate),
-			ordsClient
+			ordsClient,
+			mockk()
 		)
 
 		`when`(this.tiltakService.getByKode(tiltakKode)).thenReturn(Tiltak(UUID.randomUUID(), kode=tiltakKode, navn="Oppfølging", administrasjonskode = Tiltak.Administrasjonskode.IND))

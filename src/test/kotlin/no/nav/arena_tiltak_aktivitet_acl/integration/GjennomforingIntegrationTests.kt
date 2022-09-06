@@ -19,7 +19,7 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 		)
 		val arbgivId = gjennomforingInput.arbeidsgiverIdArrangor
 		val virksomhetsnummer = "123"
-		val expected = gjennomforingInput.toDbo(gjennomforingInput.gjennomforingId, virksomhetsnummer)
+		val expected = gjennomforingInput.toDbo(gjennomforingInput.gjennomforingId, virksomhetsnummer, "virksomhetnavn")
 		OrdsClientMock.virksomhetsHandler[arbgivId!!] = { virksomhetsnummer }
 
 		tiltakExecutor.execute(NyttTiltakCommand())
