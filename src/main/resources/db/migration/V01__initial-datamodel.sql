@@ -48,7 +48,7 @@ CREATE TABLE gjennomforing
     tiltak_kode                VARCHAR                  NOT NULL,
     arrangor_virksomhetsnummer VARCHAR,
     arrangor_navn              VARCHAR,
-    navn                       VARCHAR, --TODO: kan være null?
+    navn                       VARCHAR                  NOT NULL,
     start_dato                 DATE,
     slutt_dato                 DATE,
     status                     VARCHAR                  NOT NULL,

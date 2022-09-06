@@ -4,7 +4,7 @@ import java.util.*
 
 data class Tiltak(
 	val id: UUID,
-	val kode: String, //TODO: Burde dette være en enum? Det er over 100 mulige verdier
+	val kode: String,
 	val navn: String,
 	val administrasjonskode: Administrasjonskode
 ) {

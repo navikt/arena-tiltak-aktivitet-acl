@@ -28,6 +28,6 @@ data class KafkaMessageDto<D>(
 	val id: UUID,
 	val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
 	val sendt: LocalDateTime,
-	val actionType: ActionType, // upsert_tiltak_aktivitet_v1/upsert_utdanning_aktivitet, utlede payload type
+	val actionType: ActionType,
 	val payload: D // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
 )
