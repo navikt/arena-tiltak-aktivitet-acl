@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.fail
 class TiltakTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	translationRepository: ArenaDataTranslationRepository,
+	translationRepository: TranslationRepository,
 	private val tiltakRepository: TiltakRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,

@@ -4,7 +4,7 @@ import ArenaOrdsProxyClient
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataTranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
@@ -21,7 +21,7 @@ import java.util.*
 class ArenaGjennomforingProcessorTest {
 	private lateinit var jdbcTemplate: NamedParameterJdbcTemplate
 	private lateinit var repository: ArenaDataRepository
-	private lateinit var translationRepository: ArenaDataTranslationRepository
+	private lateinit var translationRepository: TranslationRepository
 	private lateinit var tiltakService: TiltakService
 	private lateinit var ordsClient: ArenaOrdsProxyClient
 	private lateinit var kafkaProducerService: KafkaProducerService
@@ -35,7 +35,7 @@ class ArenaGjennomforingProcessorTest {
 	fun beforeAll() {
 		jdbcTemplate = NamedParameterJdbcTemplate(dataSource)
 		repository = ArenaDataRepository(jdbcTemplate)
-		translationRepository = ArenaDataTranslationRepository(jdbcTemplate)
+		translationRepository = TranslationRepository(jdbcTemplate)
 		tiltakService = mock(TiltakService::class.java)
 		ordsClient = mock(ArenaOrdsProxyClient::class.java)
 		kafkaProducerService = mock(KafkaProducerService::class.java)
@@ -46,7 +46,7 @@ class ArenaGjennomforingProcessorTest {
 			ordsClient
 		)
 
-		`when`(this.tiltakService.getByKode(tiltakKode)).thenReturn(Tiltak(UUID.randomUUID(), kode=tiltakKode, navn="Oppfølging"))
+		`when`(this.tiltakService.getByKode(tiltakKode)).thenReturn(Tiltak(UUID.randomUUID(), kode=tiltakKode, navn="Oppfølging", administrasjonskode = Tiltak.Administrasjonskode.IND))
 		`when`(ordsClient.hentVirksomhetsnummer(ARBGIV_ID_ARRANGOR)).thenReturn("123")
 	}
 

@@ -6,7 +6,9 @@ CREATE TABLE arena_data
     operation_type      VARCHAR            NOT NULL CHECK ( operation_type IN ('CREATED', 'MODIFIED', 'DELETED')),
     operation_pos       VARCHAR            NOT NULL,
     operation_timestamp TIMESTAMP          NOT NULL,
-    ingest_status       VARCHAR            NOT NULL DEFAULT 'NEW' CHECK ( ingest_status IN ('NEW', 'HANDLED', 'RETRY', 'FAILED', 'IGNORED')),
+    ingest_status       VARCHAR            NOT NULL DEFAULT 'NEW' CHECK ( ingest_status IN
+                                                                          ('NEW', 'HANDLED', 'RETRY', 'FAILED',
+                                                                           'IGNORED', 'INVALID')),
     ingested_timestamp  TIMESTAMP,
     ingest_attempts     INT                NOT NULL DEFAULT 0,
     last_attempted      TIMESTAMP,
@@ -19,26 +21,25 @@ CREATE UNIQUE INDEX arena_data_table_operation_type_operation_pos_idx on arena_d
 
 create table aktivitet
 (
-    id              UUID PRIMARY KEY NOT NULL,
-    person_ident    VARCHAR NOT NULL,
-    tittel          VARCHAR NOT NULL,
-    type            VARCHAR NOT NULL,
-    data            JSONB NOT NULL
+    id            UUID PRIMARY KEY NOT NULL,
+    person_ident  VARCHAR          NOT NULL,
+    kategori_type VARCHAR          NOT NULL, --tiltakV1/gruppeV1/utdanningV1
+    data          JSONB            NOT NULL
 );
 
-CREATE TABLE arena_id_translation
+CREATE TABLE translation
 (
-    aktivitet_id    UUID PRIMARY KEY NOT NULL,-- REFERENCES aktivitet(id),
-    arena_id        BIGINT UNIQUE NOT NULL,
-    aktivitet_type  VARCHAR NOT NULL
+    aktivitet_id       UUID PRIMARY KEY NOT NULL,-- REFERENCES aktivitet(id),
+    arena_id           BIGINT UNIQUE    NOT NULL,
+    aktivitet_kategori VARCHAR          NOT NULL
 );
 
 CREATE TABLE arena_tiltak
 (
-    id   UUID PRIMARY KEY NOT NULL,
-    kode VARCHAR UNIQUE   NOT NULL,
-    navn VARCHAR          NOT NULL
-
+    id                  UUID PRIMARY KEY NOT NULL,
+    kode                VARCHAR UNIQUE   NOT NULL,
+    navn                VARCHAR          NOT NULL,
+    administrasjonskode VARCHAR          NOT NULL
 );
 
 CREATE TABLE gjennomforing

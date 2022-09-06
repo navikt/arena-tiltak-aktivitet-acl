@@ -20,15 +20,14 @@ enum class Operation {
 	}
 }
 
-enum class PayloadType {
-	AKTIVITET
+enum class ActionType {
+	UPSERT_TILTAK_AKTIVITET_V1
 }
 
-data class KafkaMessageDto<T>(
-	val transactionId: UUID = UUID.randomUUID(),
-	val source: String = "ARENA_TILTAK_AKTIVITET_ACL",
-	val type: PayloadType,
-	val timestamp: LocalDateTime = LocalDateTime.now(),
-	val operation: Operation,
-	val payload: T?
+data class KafkaMessageDto<D>(
+	val id: UUID,
+	val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
+	val sendt: LocalDateTime,
+	val actionType: ActionType, // upsert_tiltak_aktivitet_v1/upsert_utdanning_aktivitet, utlede payload type
+	val payload: D // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
 )

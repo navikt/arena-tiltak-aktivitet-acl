@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak
 
 import com.fasterxml.jackson.databind.JsonNode
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
@@ -12,7 +13,7 @@ abstract class TiltakCommand : Command() {
 		executor: (wrapper: ArenaKafkaMessageDto, kode: String) -> TiltakResult
 	): TiltakResult
 
-	fun createPayload(kode: String, navn: String): JsonNode {
+	fun createPayload(kode: String, navn: String, administrasjonskode: String): JsonNode {
 		val data = ArenaTiltak(
 			TILTAKSKODE = kode,
 			TILTAKSNAVN = navn,
@@ -25,7 +26,7 @@ abstract class TiltakCommand : Command() {
 			DATO_TIL = GENERIC_STRING,
 			AVSNITT_ID_GENERELT = GENERIC_INT,
 			STATUS_BASISYTELSE = GENERIC_STRING,
-			ADMINISTRASJONKODE = GENERIC_STRING,
+			ADMINISTRASJONKODE = administrasjonskode,
 			STATUS_KOPI_TILSAGN = GENERIC_STRING,
 			ARKIVNOKKEL = GENERIC_STRING,
 			STATUS_ANSKAFFELSE = GENERIC_STRING,

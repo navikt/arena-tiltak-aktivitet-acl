@@ -31,9 +31,10 @@ open class TiltakProcessor(
 		val navn = data.TILTAKSNAVN
 
 		tiltakService.upsert(
-			id = UUID.randomUUID(),
+			id = id,
 			kode = data.TILTAKSKODE,
-			navn = navn
+			navn = navn,
+			administrasjonskode = data.ADMINISTRASJONKODE
 		)
 
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(kode))

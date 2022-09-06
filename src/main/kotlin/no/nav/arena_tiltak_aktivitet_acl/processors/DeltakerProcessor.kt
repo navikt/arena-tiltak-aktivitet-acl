@@ -2,29 +2,33 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import ArenaOrdsProxyClient
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitet
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.PayloadType
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
-import no.nav.arena_tiltak_aktivitet_acl.metrics.DeltakerMetricHandler
+import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.services.ArenaDataIdTranslationService
+import no.nav.arena_tiltak_aktivitet_acl.services.AktivitetService
+import no.nav.arena_tiltak_aktivitet_acl.services.TranslationService
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
+import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.util.*
 
 @Component
 open class DeltakerProcessor(
 	private val arenaDataRepository: ArenaDataRepository,
-	private val arenaDataIdTranslationService: ArenaDataIdTranslationService,
+	private val arenaIdTranslationService: TranslationService,
 	private val ordsClient: ArenaOrdsProxyClient,
-	private val metrics: DeltakerMetricHandler,
 	private val kafkaProducerService: KafkaProducerService,
-	private val gjennomforingRepository: GjennomforingRepository
+	private val gjennomforingRepository: GjennomforingRepository,
+	private val aktivitetService: AktivitetService,
+	private val tiltakService: TiltakService
+
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
 
 	private val log = LoggerFactory.getLogger(javaClass)
@@ -33,54 +37,60 @@ open class DeltakerProcessor(
 		val arenaDeltaker = message.getData()
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
 
-		if (harStatusSomSkalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE)) {
-			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} som ikke skal håndteres")
-		}
-
-		val tiltakDeltaker = arenaDeltaker.mapTiltakDeltaker()
-
 		val gjennomforing = gjennomforingRepository.get(arenaGjennomforingId)
 			?: throw DependencyNotIngestedException("Venter på at gjennomføring med id=$arenaGjennomforingId skal bli håndtert")
 
-		val personIdent = ordsClient.hentFnr(tiltakDeltaker.personId)
-			?: throw IllegalStateException("Expected person with personId=${tiltakDeltaker.personId} to exist")
+		val tiltak = tiltakService.getByKode(gjennomforing.tiltakKode)
+			?: throw DependencyNotIngestedException("Venter på at tiltak med id=${gjennomforing.tiltakKode} skal bli håndtert")
 
-		val aktivitetId = arenaDataIdTranslationService.hentEllerOpprettAktivitetId(tiltakDeltaker.tiltakdeltakerId, Aktivitet.Type.TILTAKSAKTIVITET)
+		val deltaker = arenaDeltaker.mapTiltakDeltaker()
 
-		val aktivitet = tiltakDeltaker.convertToAktivitet(
+		if (skalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)) {
+			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
+		}
+
+		val personIdent = ordsClient.hentFnr(deltaker.personId)
+			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
+
+		val aktivitetId = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+
+		val aktivitet = ArenaDeltakerConverter
+			.convertToAktivitet(
+				deltaker = deltaker,
+				aktivitetId = aktivitetId,
+				personIdent = personIdent,
+				arrangorNavn = gjennomforing.arrangorNavn,
+				gjennomforingNavn = gjennomforing.navn,
+				tiltak = tiltak
+			)
+
+		arenaIdTranslationService.upsertTranslation(
+			arenaId = deltaker.tiltakdeltakerId,
 			aktivitetId = aktivitetId,
-			personIdent = personIdent,
-			aktivitetType = Aktivitet.Type.TILTAKSAKTIVITET,
-			tiltakKode = gjennomforing.tiltakKode,
-			arrangorNavn = gjennomforing.arrangorNavn,
-			beskrivelse = gjennomforing.navn, //TODO: Denne skal bare være lokaltnavn på jobbklubb
-			tiltakNavn = gjennomforing.navn //TODO: Lage mapping for å sette denne
+			kategori = AktivitetKategori.TILTAKSAKTIVITET
 		)
 
-		arenaDataIdTranslationService.upsertTranslation(
-			arenaId = tiltakDeltaker.tiltakdeltakerId,
-			aktivitetId = aktivitetId,
-			aktivitetType = Aktivitet.Type.TILTAKSAKTIVITET
-		)
-
-		val amtData = KafkaMessageDto(
-			type = PayloadType.AKTIVITET,
-			operation = message.operationType,
+		val kafkaMessage = KafkaMessageDto(
+			id = UUID.randomUUID(),
+			sendt = LocalDateTime.now(),
+			actionType = ActionType.UPSERT_TILTAK_AKTIVITET_V1,
 			payload = aktivitet
 		)
 
-		kafkaProducerService.sendTilAmtTiltak(aktivitet.id, amtData)
+		kafkaProducerService.sendTilAmtTiltak(aktivitet.id, kafkaMessage)
+		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltaker.tiltakdeltakerId))
 
-		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(tiltakDeltaker.tiltakdeltakerId))
 
-		secureLog.info("Melding for deltaker id=$aktivitetId arenaId=${tiltakDeltaker.tiltakdeltakerId} personId=${tiltakDeltaker.personId} fnr=$personIdent er sendt")
-		log.info("Melding for deltaker id=$aktivitetId arenaId=${tiltakDeltaker.tiltakdeltakerId} transactionId=${amtData.transactionId} op=${amtData.operation} er sendt")
-		metrics.publishMetrics(message)
+		aktivitetService.insert(aktivitet)
+		secureLog.info("Melding for deltaker id=$aktivitetId arenaId=${deltaker.tiltakdeltakerId} personId=${deltaker.personId} fnr=$personIdent er sendt")
+		log.info("Melding id=${kafkaMessage.id} arenaId=${deltaker.tiltakdeltakerId} type=${kafkaMessage.actionType} er sendt")
 	}
 
-	private fun harStatusSomSkalIgnoreres(arenaDeltakerStatusKode: String): Boolean {
-		val statuserSomIgnoreres = listOf("VENTELISTE", "AKTUELL", "JATAKK", "INFOMOETE")
-		return statuserSomIgnoreres.contains(arenaDeltakerStatusKode)
+	//	Alle tiltaksaktiviteter hentes med unntak for tiltak av
+	//	administrasjonstypene Institusjonelt tiltak (INST) og Individuelt tiltak (IND) som har deltakerstatus Aktuell (AKTUELL).
+	private fun skalIgnoreres(arenaDeltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode): Boolean {
+		return arenaDeltakerStatusKode == "AKTUELL"
+			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
 	}
 
 }
