@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
+import no.nav.arena_tiltak_aktivitet_acl.utils.JsonUtils
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
 import no.nav.common.kafka.consumer.KafkaConsumerClient
 import no.nav.common.kafka.consumer.util.KafkaConsumerClientBuilder
@@ -63,7 +64,7 @@ class KafkaAmtIntegrationConsumer(
 	}
 
 	private fun handle(record: ConsumerRecord<String, String>) {
-		val unknownMessageWrapper = fromJson(record.value(), UnknownMessageWrapper::class.java)
+		val unknownMessageWrapper = JsonUtils.fromJson(record.value(), UnknownMessageWrapper::class.java)
 
 		when (unknownMessageWrapper.actionType) {
 			ActionType.UPSERT_TILTAK_AKTIVITET_V1 -> {
@@ -85,10 +86,6 @@ class KafkaAmtIntegrationConsumer(
 			actionType = unknownMessageWrapper.actionType,
 			payload = payload
 		)
-	}
-
-	fun <T> fromJson(jsonStr: String, clazz: Class<T>): T {
-		return ObjectMapperFactory.get().readValue(jsonStr, clazz)
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)

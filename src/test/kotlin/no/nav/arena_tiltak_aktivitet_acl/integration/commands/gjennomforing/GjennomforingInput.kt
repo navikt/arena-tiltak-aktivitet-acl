@@ -17,11 +17,11 @@ data class GjennomforingInput(
 	val registrertDato: LocalDateTime = LocalDateTime.now().minusDays(14).truncatedTo(ChronoUnit.HOURS),
 	val tiltakStatusKode: String = "GJENNOMFOR",
 ) {
-	fun toDbo(arenaId: Long, virksomhetsnummer: String) = GjennomforingDbo(
+	fun toDbo(arenaId: Long, virksomhetsnummer: String, virksomhetsnavn: String) = GjennomforingDbo(
 		arenaId = arenaId,
 		tiltakKode = tiltakKode,
 		arrangorVirksomhetsnummer = virksomhetsnummer,
-		arrangorNavn = "",
+		arrangorNavn = virksomhetsnavn,
 		navn = navn!!,
 		startDato = startDato,
 		sluttDato = sluttDato,

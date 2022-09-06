@@ -53,7 +53,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		startDato shouldBe deltakerInput.datoFra
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null
-		arrangorNavn shouldBe ""
+		arrangorNavn shouldBe "virksomhetnavn"
 		deltakelseProsent shouldBe deltakerInput.prosentDeltid
 		dagerPerUke shouldBe deltakerInput.antallDagerPerUke
 		registrertDato shouldNotBe null
