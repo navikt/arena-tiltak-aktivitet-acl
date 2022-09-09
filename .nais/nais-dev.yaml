@@ -1,12 +1,12 @@
 kind: Application
 apiVersion: nais.io/v1alpha1
 metadata:
-  name: arena-tiltak-aktivitet-acl
+  name: arena-aktivitet-acl
   namespace: dab
   labels:
     team: dab
 spec:
-  image: ghcr.io/navikt/arena-tiltak-aktivitet-acl/arena-tiltak-aktivitet-acl:{{version}}
+  image: ghcr.io/navikt/arena-aktivitet-acl/arena-aktivitet-acl:{{version}}
   port: 8080
   prometheus:
     enabled: true
@@ -53,9 +53,9 @@ spec:
       value: teamarenanais.aapen-arena-tiltakdeltakerendret-v1-q2
   gcp:
     sqlInstances:
-      - name: arena-tiltak-aktivitet-acl-v1
+      - name: arena-aktivitet-acl-v1
         type: POSTGRES_14
         tier: db-custom-1-3840
         databases:
-          - name: arena-tiltak-aktivitet-acl
+          - name: arena-aktivitet-acl
             envVarPrefix: DB
