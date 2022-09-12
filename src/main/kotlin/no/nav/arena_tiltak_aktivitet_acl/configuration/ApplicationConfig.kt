@@ -15,11 +15,6 @@ import org.springframework.context.annotation.Profile
 open class ApplicationConfig {
 
 	@Bean
-	open fun scopedTokenProvider(): ScopedTokenProvider {
-		return AzureAdScopedTokenProviderBuilder.builder().withEnvironmentDefaults().build()
-	}
-
-	@Bean
 	open fun machineToMachineTokenClient(): MachineToMachineTokenClient {
 		return AzureAdTokenClientBuilder.builder()
 			.withNaisDefaults()

@@ -1,7 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak
 
 import com.fasterxml.jackson.databind.JsonNode
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command

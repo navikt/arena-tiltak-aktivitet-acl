@@ -15,18 +15,16 @@ data class Arbeidsgiver(
 )
 
 open class ArenaOrdsProxyClientImpl(
-	private val arenaOrdsProxyUrl: String,
-	private val proxyTokenProvider: Supplier<String>,
-	private val ordsProxyTokenProvider: Supplier<String>,
+	private val baseUrl: String,
+	private val tokenProvider: Supplier<String>,
 	private val httpClient: OkHttpClient = baseClient(),
 	private val objectMapper: ObjectMapper = ObjectMapper().registerKotlinModule(),
 ) : ArenaOrdsProxyClient {
 
 	override fun hentFnr(arenaPersonId: Long): String? {
 		val request = Request.Builder()
-			.url("$arenaOrdsProxyUrl/api/ords/fnr?personId=$arenaPersonId")
-			.header("Downstream-Authorization", "Bearer ${ordsProxyTokenProvider.get()}")
-			.header("Authorization", "Bearer ${proxyTokenProvider.get()}")
+			.url("$baseUrl/api/ords/fnr?personId=$arenaPersonId")
+			.header("Authorization", "Bearer ${tokenProvider.get()}")
 			.get()
 			.build()
 
@@ -47,9 +45,9 @@ open class ArenaOrdsProxyClientImpl(
 
 	override fun hentArbeidsgiver(arenaArbeidsgiverId: Long): Arbeidsgiver? {
 		val request = Request.Builder()
-			.url("$arenaOrdsProxyUrl/api/ords/arbeidsgiver?arbeidsgiverId=$arenaArbeidsgiverId")
-			.header("Downstream-Authorization", "Bearer ${ordsProxyTokenProvider.get()}")
-			.header("Authorization", "Bearer ${proxyTokenProvider.get()}")
+			.url("$baseUrl/api/ords/arbeidsgiver?arbeidsgiverId=$arenaArbeidsgiverId")
+			.header("Downstream-Authorization", "Bearer ${tokenProvider.get()}")
+			.header("Authorization", "Bearer ${tokenProvider.get()}")
 			.get()
 			.build()
 
