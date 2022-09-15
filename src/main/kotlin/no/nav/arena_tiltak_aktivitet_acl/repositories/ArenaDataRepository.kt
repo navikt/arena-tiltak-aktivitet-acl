@@ -201,7 +201,7 @@ open class ArenaDataRepository(
 		val sql = """
 			SELECT *
 				FROM arena_data deltaker
-				JOIN arena_data_translation translation on deltaker.after ->> 'TILTAKGJENNOMFORING_ID' = translation.arena_id
+				JOIN translation translation on deltaker.after ->> 'TILTAKGJENNOMFORING_ID' = translation.arena_id
 				WHERE deltaker.arena_table_name = '$ARENA_DELTAKER_TABLE_NAME'
 				  AND translation.arena_table_name = '$ARENA_GJENNOMFORING_TABLE_NAME'
 				  AND deltaker.ingest_status IN (:ingestStatuses)

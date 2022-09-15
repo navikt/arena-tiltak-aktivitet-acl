@@ -1,12 +1,12 @@
 name: Deploy application
 on:
-  workflow_dispatch: # This workflow can be triggered manually from: https://github.com/navikt/arena-aktivitet-acl/actions/workflows/deploy.yaml
+  workflow_dispatch: # This workflow can be triggered manually from: https://github.com/navikt/aktivitet-arena-acl/actions/workflows/deploy.yaml
   push:
     branches:
       - main
 env:
   IMAGE_TAG: ${{ github.sha }}
-  IMAGE: ghcr.io/${{ github.repository }}/arena-aktivitet-acl
+  IMAGE: ghcr.io/${{ github.repository }}/aktivitet-arena-acl
   PRINT_PAYLOAD: true
 
 jobs:
