@@ -30,7 +30,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		DatabaseTestUtils.cleanDatabase(dataSource)
 	}
 
-	test("Insert and get should return inserted object") {
+	test("get - data finnes - skal hente inserta data") {
 		val after = "{\"test\": \"test\"}"
 
 		val data = ArenaDataUpsertInput(
@@ -53,7 +53,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		stored.after shouldBe after
 	}
 
-	test("Upserting a Inserted object should modify it") {
+	test("upsert - data finnes allerede - oppdaterer eksisterende") {
 		val data = ArenaDataUpsertInput(
 			arenaTableName = "Table",
 			arenaId = "ARENA_ID",
@@ -85,7 +85,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		updated.note shouldBe "some note"
 	}
 
-	test("Should delete all ignored arena data") {
+	test("deleteAllIgnoredData - skal slette ignorerte data") {
 		val afterData = "{\"test\": \"test\"}"
 
 		val data1 = ArenaDataUpsertInput(
