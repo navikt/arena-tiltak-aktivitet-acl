@@ -14,5 +14,7 @@ data class TiltakDeltaker(
     val dagerPerUke: Int?,
     val prosentDeltid: Float?,
     val regDato: LocalDateTime,
-    val innsokBegrunnelse: String?
+    val innsokBegrunnelse: String?,
+	val regUser: String?,
+	val modUser: String?,
 )

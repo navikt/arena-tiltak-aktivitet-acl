@@ -71,7 +71,9 @@ data class ArenaDeltaker(
 			dagerPerUke = ANTALL_DAGER_PR_UKE,
 			prosentDeltid = PROSENT_DELTID,
 			regDato = regDato,
-			innsokBegrunnelse = BEGRUNNELSE_BESTILLING
+			innsokBegrunnelse = BEGRUNNELSE_BESTILLING,
+			modUser = MOD_USER,
+			regUser = REG_USER
 		)
 	}
 

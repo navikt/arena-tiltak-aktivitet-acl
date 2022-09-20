@@ -18,7 +18,7 @@ open class KafkaProducerService(
 	@Value("\${app.env.amtTopic}")
 	lateinit var topic: String
 
-	fun sendTilAmtTiltak(messageKey: UUID, data: KafkaMessageDto<*>) {
+	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto<*>) {
 		val record = ProducerRecord(topic, messageKey.toString(), objectMapper.writeValueAsString(data))
 		kafkaProducer.sendSync(record)
 	}

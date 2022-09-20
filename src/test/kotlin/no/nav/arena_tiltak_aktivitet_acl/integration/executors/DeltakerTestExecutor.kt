@@ -7,7 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
-import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAmtIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
@@ -28,7 +28,7 @@ class DeltakerTestExecutor(
 	private val outputMessages = mutableListOf<KafkaMessageDto<TiltakAktivitet>>()
 
 	init {
-		KafkaAmtIntegrationConsumer.subscribeAktivitet { outputMessages.add(it) }
+		KafkaAktivitetskortIntegrationConsumer.subscribeAktivitet { outputMessages.add(it) }
 	}
 
 	fun execute(command: DeltakerCommand): AktivitetResult {

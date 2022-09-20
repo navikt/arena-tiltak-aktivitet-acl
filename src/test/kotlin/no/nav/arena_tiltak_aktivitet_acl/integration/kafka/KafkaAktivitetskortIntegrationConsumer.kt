@@ -13,7 +13,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.time.LocalDateTime
 import java.util.*
 
-class KafkaAmtIntegrationConsumer(
+class KafkaAktivitetskortIntegrationConsumer(
 	kafkaProperties: KafkaProperties,
 	topic: String
 ) {
@@ -72,8 +72,8 @@ class KafkaAmtIntegrationConsumer(
 
 	private fun <T> toKnownMessageWrapper(payload: T, unknownMessageWrapper: UnknownMessageWrapper): KafkaMessageDto<T> {
 		return KafkaMessageDto(
-			id = UUID.fromString(unknownMessageWrapper.id),
-			utsender = unknownMessageWrapper.utsender,
+			messageId = UUID.fromString(unknownMessageWrapper.id),
+			source = unknownMessageWrapper.utsender,
 			sendt = unknownMessageWrapper.sendt,
 			actionType = unknownMessageWrapper.actionType,
 			payload = payload

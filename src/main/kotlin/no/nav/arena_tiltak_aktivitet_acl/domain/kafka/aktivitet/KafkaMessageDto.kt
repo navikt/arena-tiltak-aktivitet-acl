@@ -27,8 +27,8 @@ enum class ActionType {
 }
 
 data class KafkaMessageDto<D>(
-	val id: UUID,
-	val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
+	val messageId: UUID,
+	val source: String = "ARENA_TILTAK_AKTIVITET_ACL",
 	val sendt: LocalDateTime,
 	val actionType: ActionType,
 	val payload: D // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
