@@ -32,7 +32,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
-			innsokBegrunnelse = "innsøkbegrunnelse"
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = "SIG123"
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
@@ -58,7 +59,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		dagerPerUke shouldBe deltakerInput.antallDagerPerUke
 		registrertDato shouldNotBe null
 		statusEndretDato shouldBe deltakerInput.datoStatusEndring.atStartOfDay()
-
+		endretAv shouldBe deltakerInput.endretAv
 	}
 }
 

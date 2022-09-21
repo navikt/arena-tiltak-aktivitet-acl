@@ -89,7 +89,8 @@ object ArenaDeltakerConverter {
 			tiltak = TiltakDto(
 				navn = tiltak.navn,
 				kode = tiltak.kode
-			)
+			),
+			endretAv = deltaker.modUser ?: deltaker.regUser
 		)
 	}
 }

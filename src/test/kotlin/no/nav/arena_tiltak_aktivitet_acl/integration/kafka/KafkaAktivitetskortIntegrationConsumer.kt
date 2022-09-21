@@ -72,7 +72,7 @@ class KafkaAktivitetskortIntegrationConsumer(
 
 	private fun <T> toKnownMessageWrapper(payload: T, unknownMessageWrapper: UnknownMessageWrapper): KafkaMessageDto<T> {
 		return KafkaMessageDto(
-			messageId = UUID.fromString(unknownMessageWrapper.id),
+			messageId = unknownMessageWrapper.messageId,
 			source = unknownMessageWrapper.utsender,
 			sendt = unknownMessageWrapper.sendt,
 			actionType = unknownMessageWrapper.actionType,
@@ -82,11 +82,10 @@ class KafkaAktivitetskortIntegrationConsumer(
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	data class UnknownMessageWrapper(
-		val id: String,
+		val messageId: UUID,
 		val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
 		val sendt: LocalDateTime,
 		val actionType: ActionType,
 		val payload: JsonNode
 	)
-
 }

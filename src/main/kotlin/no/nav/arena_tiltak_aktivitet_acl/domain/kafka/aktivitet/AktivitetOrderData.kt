@@ -10,6 +10,5 @@ interface AktivitetOrderData {
 	val startDato: LocalDate? // dobbelsjekk
 	val sluttDato: LocalDate? //
 	val beskrivelse: String? //alle, men annen oppførsel på tiltak(jobbklubb)
-	val endretAv: String
-	val customPayload: Map<String, Any?>?
+	val endretAv: String?
 }

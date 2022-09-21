@@ -14,5 +14,6 @@ data class DeltakerInput(
 	val registrertDato: LocalDateTime = LocalDateTime.now().minusDays(7),
 	val prosentDeltid: Float = 50.0f,
 	val antallDagerPerUke: Int = 5,
-	val innsokBegrunnelse: String? = null
+	val innsokBegrunnelse: String? = null,
+	val endretAv: String
 )
