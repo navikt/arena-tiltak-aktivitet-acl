@@ -3,7 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet
 import java.time.LocalDate
 import java.util.*
 
-interface AktivitetEventData {
+interface AktivitetOrderData {
 	val id: UUID
 	val personIdent: String
 	val tittel: String

@@ -45,6 +45,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	private fun TiltakAktivitet.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
 		personIdent shouldBe "12345"
+		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn
 		tiltak.kode shouldBe gjennomforingInput.tiltakKode
 		status.type shouldBe AktivitetStatus.GJENNOMFORES
