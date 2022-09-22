@@ -35,6 +35,12 @@ spec:
     pool: nav-dev
   secureLogs:
     enabled: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: amt-arena-ords-proxy
+          namespace: amt
+          cluster: dev-gcp
   env:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
       value: api://dev-fss.amt.amt-arena-ords-proxy/.default
