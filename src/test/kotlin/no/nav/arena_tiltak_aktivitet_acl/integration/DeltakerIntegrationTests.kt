@@ -49,8 +49,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn
 		tiltak.kode shouldBe gjennomforingInput.tiltakKode
-		status.type shouldBe AktivitetStatus.GJENNOMFORES
-		status.aarsak shouldBe null
+		deltakerStatus.type shouldBe AktivitetStatus.GJENNOMFORES
+		deltakerStatus.aarsak shouldBe null
 		startDato shouldBe deltakerInput.datoFra
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null

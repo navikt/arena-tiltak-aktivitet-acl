@@ -74,7 +74,7 @@ object ArenaDeltakerConverter {
 			eksternReferanseId = deltaker.tiltakdeltakerId,
 			personIdent = personIdent,
 			tittel = toTittel(gjennomforingNavn, tiltak.kode),
-			status = StatusDto(
+			deltakerStatus = StatusDto(
 				status,
 				aarsak
 			),

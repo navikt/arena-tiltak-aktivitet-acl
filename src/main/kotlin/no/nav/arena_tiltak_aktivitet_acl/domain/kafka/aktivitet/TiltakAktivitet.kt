@@ -4,7 +4,6 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetOrderData
 
 data class TiltakAktivitet(
 	override val id: UUID,
@@ -15,15 +14,21 @@ data class TiltakAktivitet(
 	override val sluttDato: LocalDate?,
 	override val beskrivelse: String?, // alle, men annen oppførsel på tiltak(jobbklubb)
 	override val endretAv: String?,
-	val tiltak: TiltakDto,
-	val status: StatusDto,
+	override val aktivitetStatus: AktivitetStatus,
+	override val avtaltMedNav: Boolean,
 
+	val tiltaksKode: String,
+	val tiltaksNavn: String,
+	val deltakerStatus: DeltakerStatus,
 	val arrangorNavn: String?,
-	val deltakelseProsent: Float?,
-	val dagerPerUke: Int?,
 
-	val registrertDato: LocalDateTime,
-	val statusEndretDato: LocalDateTime?,
+	val details: Map<String, String>,
+	// val deltakelseProsent: Float?,
+	// val dagerPerUke: Int?,
+
+	// TODO: Finne ut om vi trenger disse feltene
+	// val registrertDato: LocalDateTime,
+	// val statusEndretDato: LocalDateTime?,
 ) : AktivitetOrderData {
 
 	fun toDbo(data: String) = AktivitetDbo(
