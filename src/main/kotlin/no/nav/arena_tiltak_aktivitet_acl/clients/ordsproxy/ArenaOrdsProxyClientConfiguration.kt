@@ -22,7 +22,7 @@ open class ArenaOrdsProxyClientConfiguration {
 		machineToMachineTokenClient: MachineToMachineTokenClient
 	): ArenaOrdsProxyClient {
 		return ArenaOrdsProxyClientImpl(
-			baseUrl = "$url/proxy/amt-arena-ords-proxy",
+			baseUrl = url,
 			tokenProvider = { machineToMachineTokenClient.createMachineToMachineToken(scope) },
 		)
 	}
