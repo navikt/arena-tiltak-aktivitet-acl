@@ -15,10 +15,10 @@ open class KafkaProducerService(
 
 	private val objectMapper = ObjectMapperFactory.get()
 
-	@Value("\${app.env.amtTopic}")
+	@Value("\${app.env.aktivitetskortTopic}")
 	lateinit var topic: String
 
-	fun sendTilAmtTiltak(messageKey: UUID, data: KafkaMessageDto<*>) {
+	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto<*>) {
 		val record = ProducerRecord(topic, messageKey.toString(), objectMapper.writeValueAsString(data))
 		kafkaProducer.sendSync(record)
 	}

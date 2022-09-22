@@ -71,19 +71,19 @@ open class DeltakerProcessor(
 		)
 
 		val kafkaMessage = KafkaMessageDto(
-			id = UUID.randomUUID(),
+			messageId = UUID.randomUUID(),
 			sendt = LocalDateTime.now(),
 			actionType = ActionType.UPSERT_TILTAK_AKTIVITET_V1,
 			payload = aktivitet
 		)
 
-		kafkaProducerService.sendTilAmtTiltak(aktivitet.id, kafkaMessage)
+		kafkaProducerService.sendTilAktivitetskortTopic(aktivitet.id, kafkaMessage)
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltaker.tiltakdeltakerId))
 
 
 		aktivitetService.insert(aktivitet)
 		secureLog.info("Melding for deltaker id=$aktivitetId arenaId=${deltaker.tiltakdeltakerId} personId=${deltaker.personId} fnr=$personIdent er sendt")
-		log.info("Melding id=${kafkaMessage.id} arenaId=${deltaker.tiltakdeltakerId} type=${kafkaMessage.actionType} er sendt")
+		log.info("Melding id=${kafkaMessage.messageId} arenaId=${deltaker.tiltakdeltakerId} type=${kafkaMessage.actionType} er sendt")
 	}
 
 	//	Alle tiltaksaktiviteter hentes med unntak for tiltak av

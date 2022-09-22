@@ -32,7 +32,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
-			innsokBegrunnelse = "innsøkbegrunnelse"
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = "SIG123"
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
@@ -45,19 +46,18 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	private fun TiltakAktivitet.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
 		personIdent shouldBe "12345"
+		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn
-		tiltak.kode shouldBe gjennomforingInput.tiltakKode
-		status.type shouldBe AktivitetStatus.GJENNOMFORES
-		status.aarsak shouldBe null
+		aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
+		tiltaksKode shouldBe gjennomforingInput.tiltakKode
+		deltakelseStatus shouldBe null
 		startDato shouldBe deltakerInput.datoFra
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null
 		arrangorNavn shouldBe "virksomhetnavn"
-		deltakelseProsent shouldBe deltakerInput.prosentDeltid
-		dagerPerUke shouldBe deltakerInput.antallDagerPerUke
-		registrertDato shouldNotBe null
-		statusEndretDato shouldBe deltakerInput.datoStatusEndring.atStartOfDay()
-
+		detaljer["deltakelseProsent"] shouldBe deltakerInput.prosentDeltid.toString()
+		detaljer["dagerPerUke"] shouldBe deltakerInput.antallDagerPerUke.toString()
+		endretAv shouldBe deltakerInput.endretAv
 	}
 }
 

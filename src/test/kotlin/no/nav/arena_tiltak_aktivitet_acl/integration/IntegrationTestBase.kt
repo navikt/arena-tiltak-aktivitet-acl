@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.DeltakerTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.GjennomforingTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.TiltakTestExecutor
-import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAmtIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.SingletonKafkaProvider
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
@@ -72,7 +72,7 @@ abstract class IntegrationTestBase {
 open class IntegrationTestConfiguration(
 ) {
 
-	@Value("\${app.env.amtTopic}")
+	@Value("\${app.env.aktivitetskortTopic}")
 	lateinit var consumerTopic: String
 
 	@Bean
@@ -115,7 +115,7 @@ open class IntegrationTestConfiguration(
 	}
 
 	@Bean
-	open fun kafkaAmtIntegrationConsumer(properties: KafkaProperties): KafkaAmtIntegrationConsumer {
-		return KafkaAmtIntegrationConsumer(properties, consumerTopic)
+	open fun kafkaAmtIntegrationConsumer(properties: KafkaProperties): KafkaAktivitetskortIntegrationConsumer {
+		return KafkaAktivitetskortIntegrationConsumer(properties, consumerTopic)
 	}
 }

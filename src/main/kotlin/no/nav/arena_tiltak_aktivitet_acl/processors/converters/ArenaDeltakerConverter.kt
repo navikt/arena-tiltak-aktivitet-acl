@@ -31,20 +31,19 @@ object ArenaDeltakerConverter {
 		}
 	}
 
-	fun toStatusAarsak(status: String): StatusDto.AarsakType? {
+	fun toDeltakelseStatus(status: String): DeltakelseStatus? {
 		return when (status) {
-			"AKTUELL" -> StatusDto.AarsakType.SOKT_INN
-			"INFOMOETE" -> StatusDto.AarsakType.INFOMOETE
-			"JATAKK" -> StatusDto.AarsakType.TAKKET_JA
-			"TILBUD" -> StatusDto.AarsakType.FATT_PLASS
-			"VENTELISTE" -> StatusDto.AarsakType.VENTELISTE
-			"IKKAKTUELL" -> StatusDto.AarsakType.IKKE_AKTUELL
-			"AVSLAG" -> StatusDto.AarsakType.AVSLAG
-			"IKKEM" -> StatusDto.AarsakType.IKKE_MOETT
-			"NEITAKK" -> StatusDto.AarsakType.TAKKET_NEI
+			"AKTUELL" -> DeltakelseStatus.SOKT_INN
+			"INFOMOETE" -> DeltakelseStatus.INFOMOETE
+			"JATAKK" -> DeltakelseStatus.TAKKET_JA
+			"TILBUD" -> DeltakelseStatus.FATT_PLASS
+			"VENTELISTE" -> DeltakelseStatus.VENTELISTE
+			"IKKAKTUELL" -> DeltakelseStatus.IKKE_AKTUELL
+			"AVSLAG" -> DeltakelseStatus.AVSLAG
+			"IKKEM" -> DeltakelseStatus.IKKE_MOETT
+			"NEITAKK" -> DeltakelseStatus.TAKKET_NEI
 			else -> null
 		}
-
 	}
 
 	fun toTittel(gjennomforingNavn: String, tiltakKode: String): String {
@@ -64,30 +63,26 @@ object ArenaDeltakerConverter {
 		personIdent: String,
 		arrangorNavn: String?,
 		gjennomforingNavn: String,
-		tiltak: Tiltak
+		tiltak: Tiltak,
 	): TiltakAktivitet {
-		val status = toAktivitetStatus(deltaker.deltakerStatusKode)
-		val aarsak = toStatusAarsak(deltaker.deltakerStatusKode)
-
 		return TiltakAktivitet(
 			id = aktivitetId,
+			eksternReferanseId = deltaker.tiltakdeltakerId,
 			personIdent = personIdent,
 			tittel = toTittel(gjennomforingNavn, tiltak.kode),
-			status = StatusDto(
-				status,
-				aarsak
-			),
+			aktivitetStatus = toAktivitetStatus(deltaker.deltakerStatusKode),
 			startDato = deltaker.datoFra,
 			sluttDato = deltaker.datoTil,
+			avtaltMedNav = true, // Arenatiltak er alltid Avtalt med NAV
+			deltakelseStatus = toDeltakelseStatus(deltaker.deltakerStatusKode),
 			arrangorNavn = arrangorNavn,
-			deltakelseProsent = deltaker.prosentDeltid,
-			dagerPerUke = deltaker.dagerPerUke,
-			beskrivelse = if (tiltak.kode.equals(JOBBKLUBB)) gjennomforingNavn else null,
-			registrertDato = deltaker.regDato,
-			statusEndretDato = deltaker.datoStatusendring,
-			tiltak = TiltakDto(
-				navn = tiltak.navn,
-				kode = tiltak.kode
+			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
+			tiltaksNavn = tiltak.navn,
+			tiltaksKode = tiltak.kode,
+			endretAv = deltaker.modUser ?: deltaker.regUser,
+			detaljer = mapOf(
+				"deltakelseProsent" to deltaker.prosentDeltid.toString(),
+				"dagerPerUke" to deltaker.dagerPerUke.toString()
 			)
 		)
 	}
