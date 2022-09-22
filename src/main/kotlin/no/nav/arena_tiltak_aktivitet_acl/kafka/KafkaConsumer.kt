@@ -50,8 +50,7 @@ open class KafkaConsumer(
 	@EventListener
 	open fun onApplicationEvent(_event: ContextRefreshedEvent?) {
 		log.info("Starting kafka consumer...")
-		val erLokalt = System.getenv()["NAIS_CLUSTER_NAME"] == null
-		if(erLokalt) client.start()
+		client.start()
 	}
 
 }
