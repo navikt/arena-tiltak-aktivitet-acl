@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet
 
 //Subsett av arenastatuser
-enum class DeltakerStatus {
+enum class DeltakelseStatus {
 	SOKT_INN, //Aktuell
 	AVSLAG,
 	IKKE_AKTUELL, //IKKAKTUELL

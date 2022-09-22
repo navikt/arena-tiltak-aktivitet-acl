@@ -48,17 +48,15 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		personIdent shouldBe "12345"
 		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn
-		tiltak.kode shouldBe gjennomforingInput.tiltakKode
-		deltakerStatus.type shouldBe AktivitetStatus.GJENNOMFORES
-		deltakerStatus.aarsak shouldBe null
+		aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
+		tiltaksKode shouldBe gjennomforingInput.tiltakKode
+		deltakelseStatus shouldBe null
 		startDato shouldBe deltakerInput.datoFra
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null
 		arrangorNavn shouldBe "virksomhetnavn"
-		deltakelseProsent shouldBe deltakerInput.prosentDeltid
-		dagerPerUke shouldBe deltakerInput.antallDagerPerUke
-		registrertDato shouldNotBe null
-		statusEndretDato shouldBe deltakerInput.datoStatusEndring.atStartOfDay()
+		detaljer["deltakelseProsent"] shouldBe deltakerInput.prosentDeltid
+		detaljer["dagerPerUke"] shouldBe deltakerInput.antallDagerPerUke
 		endretAv shouldBe deltakerInput.endretAv
 	}
 }
