@@ -15,7 +15,7 @@ open class KafkaProducerService(
 
 	private val objectMapper = ObjectMapperFactory.get()
 
-	@Value("\${app.env.amtTopic}")
+	@Value("\${app.env.aktivitetskortTopic}")
 	lateinit var topic: String
 
 	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto<*>) {

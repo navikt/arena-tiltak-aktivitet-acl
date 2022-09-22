@@ -72,7 +72,7 @@ abstract class IntegrationTestBase {
 open class IntegrationTestConfiguration(
 ) {
 
-	@Value("\${app.env.amtTopic}")
+	@Value("\${app.env.aktivitetskortTopic}")
 	lateinit var consumerTopic: String
 
 	@Bean
