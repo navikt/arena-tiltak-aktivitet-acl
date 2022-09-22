@@ -13,6 +13,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGj
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
 import org.junit.jupiter.api.Test
 import java.util.*
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Ident
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
 
@@ -33,7 +34,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
-			endretAv = "SIG123"
+			endretAv = Ident(ident = "SIG123"),
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)

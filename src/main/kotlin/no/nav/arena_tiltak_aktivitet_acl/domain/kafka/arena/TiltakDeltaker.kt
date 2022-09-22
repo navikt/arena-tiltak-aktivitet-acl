@@ -17,4 +17,5 @@ data class TiltakDeltaker(
     val innsokBegrunnelse: String?,
 	val regUser: String?,
 	val modUser: String?,
+	val modDato: LocalDateTime?,
 )

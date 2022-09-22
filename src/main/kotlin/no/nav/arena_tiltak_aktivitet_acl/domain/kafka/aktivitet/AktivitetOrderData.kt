@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.*
 
 interface AktivitetOrderData {
@@ -11,6 +12,7 @@ interface AktivitetOrderData {
 	val startDato: LocalDate? // dobbelsjekk
 	val sluttDato: LocalDate? //
 	val beskrivelse: String? //alle, men annen oppførsel på tiltak(jobbklubb)
-	val endretAv: String?
+	val endretAv: Ident
+	val endretTidspunkt: LocalDateTime
 	val avtaltMedNav: Boolean
 }

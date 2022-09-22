@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker
 
 import java.time.LocalDate
 import java.time.LocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Ident
 
 data class DeltakerInput(
 	val tiltakDeltakerId: Long,
@@ -15,5 +16,6 @@ data class DeltakerInput(
 	val prosentDeltid: Float = 50.0f,
 	val antallDagerPerUke: Int = 5,
 	val innsokBegrunnelse: String? = null,
-	val endretAv: String
+	val endretAv: Ident,
+	val endretTidspunkt: LocalDateTime = LocalDateTime.now().minusDays(2)
 )

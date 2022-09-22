@@ -73,7 +73,8 @@ data class ArenaDeltaker(
 			regDato = regDato,
 			innsokBegrunnelse = BEGRUNNELSE_BESTILLING,
 			modUser = MOD_USER,
-			regUser = REG_USER
+			regUser = REG_USER,
+			modDato = MOD_DATO?.asValidatedLocalDateTime("MOD_DATO"),
 		)
 	}
 

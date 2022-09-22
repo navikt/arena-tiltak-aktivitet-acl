@@ -79,7 +79,9 @@ object ArenaDeltakerConverter {
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
 			tiltaksNavn = tiltak.navn,
 			tiltaksKode = tiltak.kode,
-			endretAv = deltaker.modUser ?: deltaker.regUser,
+			endretTidspunkt = deltaker.modDato ?: deltaker.regDato,
+			endretAv = Ident(ident = (deltaker.modUser ?: deltaker.regUser)
+				?: throw IllegalArgumentException("Missing both regUser and modUser")),
 			detaljer = mapOf(
 				"deltakelseProsent" to deltaker.prosentDeltid.toString(),
 				"dagerPerUke" to deltaker.dagerPerUke.toString()
