@@ -55,8 +55,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null
 		arrangorNavn shouldBe "virksomhetnavn"
-		detaljer["deltakelseProsent"] shouldBe deltakerInput.prosentDeltid
-		detaljer["dagerPerUke"] shouldBe deltakerInput.antallDagerPerUke
+		detaljer["deltakelseProsent"] shouldBe deltakerInput.prosentDeltid.toString()
+		detaljer["dagerPerUke"] shouldBe deltakerInput.antallDagerPerUke.toString()
 		endretAv shouldBe deltakerInput.endretAv
 	}
 }
