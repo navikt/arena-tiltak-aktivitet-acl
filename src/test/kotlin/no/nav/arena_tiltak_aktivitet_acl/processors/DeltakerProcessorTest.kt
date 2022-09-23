@@ -29,11 +29,9 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
-
+/*
 class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -181,3 +179,4 @@ class DeltakerProcessorTest : FunSpec({
 })
 
 
+*/
