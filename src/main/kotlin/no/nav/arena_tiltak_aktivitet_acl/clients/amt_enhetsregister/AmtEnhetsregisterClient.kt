@@ -1,14 +1,15 @@
 package no.nav.arena_tiltak_aktivitet_acl.clients.amt_enhetsregister
-import no.nav.common.json.JsonUtils
+
 import no.nav.common.rest.client.RestClient.baseClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.function.Supplier
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 
 class AmtEnhetsregisterClient(
-    private val baseUrl: String,
-    private val tokenProvider: Supplier<String>,
-    private val httpClient: OkHttpClient = baseClient(),
+	private val baseUrl: String,
+	private val tokenProvider: Supplier<String>,
+	private val httpClient: OkHttpClient = baseClient(),
 ) : EnhetsregisterClient {
 
 	override fun hentVirksomhet(organisasjonsnummer: String): Virksomhet? {
@@ -28,7 +29,7 @@ class AmtEnhetsregisterClient(
 			}
 
 			val body = response.body?.string() ?: throw RuntimeException("Body is missing")
-			val enhetDto = JsonUtils.fromJson(body, EnhetDto::class.java)
+			val enhetDto = ObjectMapper.get().readValue(body, EnhetDto::class.java)
 
 			return Virksomhet(
 				navn = enhetDto.navn,

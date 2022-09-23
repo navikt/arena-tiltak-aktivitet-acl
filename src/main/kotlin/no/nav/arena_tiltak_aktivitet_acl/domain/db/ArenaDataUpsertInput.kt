@@ -2,7 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
-import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import java.time.LocalDateTime
 
 data class ArenaDataUpsertInput(
@@ -18,7 +18,7 @@ data class ArenaDataUpsertInput(
 	val note: String? = null
 )
 
-private val objectMapper = ObjectMapperFactory.get()
+private val objectMapper = ObjectMapper.get()
 
 fun ArenaKafkaMessage<*>.toUpsertInput(arenaId: String, ingestStatus: IngestStatus, note: String? = null): ArenaDataUpsertInput {
 	return ArenaDataUpsertInput(

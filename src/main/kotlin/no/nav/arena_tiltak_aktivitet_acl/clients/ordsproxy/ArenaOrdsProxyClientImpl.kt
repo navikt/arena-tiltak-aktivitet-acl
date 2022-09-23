@@ -1,13 +1,12 @@
 package no.nav.arena_tiltak_aktivitet_acl.clients.ordsproxy
 
 import ArenaOrdsProxyClient
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import no.nav.common.rest.client.RestClient.baseClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.springframework.http.HttpStatus
 import java.util.function.Supplier
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 
 data class Arbeidsgiver(
 	val virksomhetsnummer: String,
@@ -18,8 +17,9 @@ open class ArenaOrdsProxyClientImpl(
 	private val baseUrl: String,
 	private val tokenProvider: Supplier<String>,
 	private val httpClient: OkHttpClient = baseClient(),
-	private val objectMapper: ObjectMapper = ObjectMapper().registerKotlinModule(),
 ) : ArenaOrdsProxyClient {
+
+	private val objectMapper = ObjectMapper.get()
 
 	override fun hentFnr(arenaPersonId: Long): String? {
 		val request = Request.Builder()

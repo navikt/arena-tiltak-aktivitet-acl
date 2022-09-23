@@ -4,6 +4,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 
 data class Ident(
 	val identType: String = "arenaIdent",
@@ -31,11 +32,12 @@ data class TiltakAktivitet(
 	val detaljer: Map<String, String>
 ) : AktivitetOrderData {
 
-	fun toDbo(data: String) = AktivitetDbo(
+	private val objectMapper = ObjectMapper.get()
+	fun toDbo() = AktivitetDbo(
 		id = id,
 		personIdent = personIdent,
 		kategori = AktivitetKategori.TILTAKSAKTIVITET,
-		data = data
+		data = objectMapper.writeValueAsString(this)
 	)
 }
 

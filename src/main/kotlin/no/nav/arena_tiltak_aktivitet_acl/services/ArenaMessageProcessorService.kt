@@ -30,7 +30,7 @@ open class ArenaMessageProcessorService(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	private val mapper = ObjectMapperFactory.get()
+	private val mapper = ObjectMapper.get()
 
 	fun handleArenaGoldenGateRecord(record: ConsumerRecord<String, String>) {
 		val recordValue = record.value().removeNullCharacters()

@@ -1,7 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.configuration
 
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import no.nav.common.json.JsonUtils
 import no.nav.common.token_client.builder.AzureAdTokenClientBuilder
 import no.nav.common.token_client.client.MachineToMachineTokenClient
 import no.nav.security.token.support.spring.api.EnableJwtTokenValidation
@@ -13,10 +11,6 @@ import org.springframework.context.annotation.Profile
 @EnableJwtTokenValidation
 @Configuration
 open class ApplicationConfig {
-
-	init {
-		JsonUtils.getMapper().registerKotlinModule()
-	}
 
 	@Bean
 	open fun machineToMachineTokenClient(): MachineToMachineTokenClient {

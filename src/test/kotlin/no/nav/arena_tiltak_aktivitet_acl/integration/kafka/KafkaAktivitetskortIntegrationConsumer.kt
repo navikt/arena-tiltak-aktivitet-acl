@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
 import no.nav.arena_tiltak_aktivitet_acl.utils.JsonUtils
-import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.common.kafka.consumer.KafkaConsumerClient
 import no.nav.common.kafka.consumer.util.KafkaConsumerClientBuilder
 import no.nav.common.kafka.consumer.util.deserializer.Deserializers.stringDeserializer
@@ -61,7 +61,7 @@ class KafkaAktivitetskortIntegrationConsumer(
 		when (unknownMessageWrapper.actionType) {
 			ActionType.UPSERT_TILTAK_AKTIVITET_V1 -> {
 				val deltakerPayload =
-					ObjectMapperFactory.get().treeToValue(unknownMessageWrapper.payload, TiltakAktivitet::class.java)
+					ObjectMapper.get().treeToValue(unknownMessageWrapper.payload, TiltakAktivitet::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
 				aktivitetSubscriptions.values.forEach { it.invoke(message) }
 

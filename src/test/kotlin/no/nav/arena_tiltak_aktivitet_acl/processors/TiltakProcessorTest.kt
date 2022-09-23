@@ -18,7 +18,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
-import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
@@ -28,7 +28,7 @@ class TiltakProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
 
-	val mapper = ObjectMapperFactory.get()
+	val mapper = ObjectMapper.get()
 
 	lateinit var arenaDataRepository: ArenaDataRepository
 	lateinit var tiltakRepository: TiltakRepository

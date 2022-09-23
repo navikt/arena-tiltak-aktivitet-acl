@@ -24,7 +24,7 @@ open class RetryArenaMessageProcessorService(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	private val mapper = ObjectMapperFactory.get()
+	private val mapper = ObjectMapper.get()
 
 	companion object {
 		private const val MAX_INGEST_ATTEMPTS = 10

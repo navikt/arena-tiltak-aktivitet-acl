@@ -1,6 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands
 
-import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapperFactory
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import java.time.format.DateTimeFormatter
 
 abstract class Command {
@@ -15,7 +15,7 @@ abstract class Command {
 		val opTsFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
 		val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-		val objectMapper = ObjectMapperFactory.get()
+		val objectMapper = ObjectMapper.get()
 	}
 
 }
