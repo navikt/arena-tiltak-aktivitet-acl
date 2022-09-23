@@ -33,6 +33,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
+
 class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -102,13 +103,10 @@ class DeltakerProcessorTest : FunSpec({
 		return arenaDataRepositoryEntry
 	}
 
-
-	test("Insert Deltaker on non-ignored Gjennomforing") {
+	test("DeltakerProcessor should get a translation on non-ignored Gjennomforing") {
 		val position = UUID.randomUUID().toString()
 
-
 		val newDeltaker = createArenaDeltakerKafkaMessage(
-			position = position,
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L
 		)
@@ -125,12 +123,19 @@ class DeltakerProcessorTest : FunSpec({
 	test("Skal kaste ignored exception for ignorerte statuser") {
 		val statuser = listOf("VENTELISTE", "AKTUELL", "JATAKK", "INFOMOETE")
 
+		shouldThrowExactly<IgnoredException> {
+			deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
+				tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
+				deltakerArenaId = 1,
+				deltakerStatusKode = "AKTUELL"
+			))
+		}
+
 		statuser.forEachIndexed { idx, status ->
 			shouldThrowExactly<IgnoredException> {
 				deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
-					position = UUID.randomUUID().toString(),
 					tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
-					deltakerArenaId = idx.toLong(),
+					deltakerArenaId = idx.toLong() + 1,
 					deltakerStatusKode = status
 				))
 			}
@@ -138,12 +143,9 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Insert Deltaker with gjennomføring not processed should throw exception") {
-		val position = UUID.randomUUID().toString()
-
 		shouldThrowExactly<DependencyNotIngestedException> {
 			deltakerProcessor.handleArenaMessage(
 				createArenaDeltakerKafkaMessage(
-					position,
 					2348790L,
 					1L
 				)
@@ -152,12 +154,9 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Insert Deltaker on Ignored Gjennomføring sets Deltaker to Ingored") {
-		val position = UUID.randomUUID().toString()
-
 		shouldThrowExactly<IgnoredException> {
 			deltakerProcessor.handleArenaMessage(
 				createArenaDeltakerKafkaMessage(
-					position,
 					ignoredGjennomforingArenaId,
 					1L
 				)
@@ -170,7 +169,6 @@ class DeltakerProcessorTest : FunSpec({
 
 		deltakerProcessor.handleArenaMessage(
 			createArenaDeltakerKafkaMessage(
-				position = position,
 				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 				deltakerArenaId = 1L,
 				operation = Operation.DELETED

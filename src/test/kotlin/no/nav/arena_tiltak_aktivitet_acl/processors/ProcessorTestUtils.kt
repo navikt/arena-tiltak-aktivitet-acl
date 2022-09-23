@@ -9,8 +9,15 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+
+private var operationPos = 0L
+
+private fun incrementAndGetPos(): Long {
+	operationPos++
+	return operationPos
+}
+
 fun createArenaDeltakerKafkaMessage(
-	position: String,
 	tiltakGjennomforingArenaId: Long,
 	deltakerArenaId: Long,
 	arenaPersonId: Long = 100L,
@@ -21,6 +28,7 @@ fun createArenaDeltakerKafkaMessage(
 	dagerPerUke: Int? = null,
 	prosentDeltid: Float = 0.0f,
 	registrertDato: LocalDateTime = LocalDateTime.now(),
+	endretTidspunkt: LocalDateTime = LocalDateTime.now(),
 	operation: Operation = Operation.CREATED
 ): ArenaDeltakerKafkaMessage {
 	val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -35,6 +43,7 @@ fun createArenaDeltakerKafkaMessage(
 		DATO_STATUSENDRING = statusEndringDato?.format(formatter),
 		ANTALL_DAGER_PR_UKE = dagerPerUke,
 		PROSENT_DELTID = prosentDeltid,
+		MOD_DATO = endretTidspunkt.format(formatter),
 		REG_DATO = registrertDato.format(formatter)
 	)
 
@@ -42,7 +51,7 @@ fun createArenaDeltakerKafkaMessage(
 		arenaTableName = ARENA_DELTAKER_TABLE_NAME,
 		operationType = operation,
 		operationTimestamp = LocalDateTime.now(),
-		operationPosition = position,
+		operationPosition = incrementAndGetPos().toString(),
 		after = if (operation != Operation.DELETED) deltaker else null,
 		before = if (operation != Operation.CREATED) deltaker else null
 	)
