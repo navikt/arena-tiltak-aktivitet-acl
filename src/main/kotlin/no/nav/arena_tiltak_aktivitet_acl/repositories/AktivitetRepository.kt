@@ -1,5 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
+import java.sql.ResultSet
+import java.util.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
@@ -35,4 +37,24 @@ open class AktivitetRepository(
 
 		template.update(sql, parameters)
 	}
+
+	private val rowMapper = RowMapper { rs, _ -> rs.toAktivitetDbo() }
+
+	fun getAktivitet(aktivitetId: UUID): AktivitetDbo? {
+		@Language("SQL")
+		val sql = """
+			SELECT * FROM aktivitet WHERE id = :id
+		""".trimIndent()
+		val parameters = mapOf("id" to aktivitetId)
+
+		return template.query(sql, parameters, rowMapper).firstOrNull()
+	}
 }
+
+fun ResultSet.toAktivitetDbo() =
+	AktivitetDbo(
+		id = this.getUUID("id"),
+		personIdent = this.getString("person_ident"),
+		kategori = AktivitetKategori.valueOf(this.getString("kategori_type")),
+		data = this.getString("data")
+	)
