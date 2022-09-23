@@ -1,6 +1,38 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
-/*
+import ArenaOrdsProxyClient
+import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrowExactly
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import java.util.*
+import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
+import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.services.AktivitetService
+import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
+import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
+import no.nav.arena_tiltak_aktivitet_acl.services.TranslationService
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+
 class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -12,7 +44,7 @@ class DeltakerProcessorTest : FunSpec({
 	val kafkaProducerService = mock<KafkaProducerService>()
 
 	lateinit var arenaDataRepository: ArenaDataRepository
-	lateinit var idTranslationRepository: ArenaDataTranslationRepository
+	lateinit var idTranslationRepository: TranslationRepository
 
 	lateinit var deltakerProcessor: DeltakerProcessor
 
@@ -20,22 +52,23 @@ class DeltakerProcessorTest : FunSpec({
 	val ignoredGjennomforingArenaId = 2L
 
 	beforeEach {
-		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
-		rootLogger.level = Level.WARN
+		// val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
+		// rootLogger.level = Level.WARN
 
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
-		idTranslationRepository = ArenaDataTranslationRepository(template)
+		idTranslationRepository = TranslationRepository(template)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
 
 		deltakerProcessor = DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
-			arenaDataIdTranslationService = ArenaDataIdTranslationService(idTranslationRepository),
+			arenaIdTranslationService = TranslationService(idTranslationRepository),
 			ordsClient = ordsClient,
-			meterRegistry = SimpleMeterRegistry(),
 			kafkaProducerService = kafkaProducerService,
-			metrics = DeltakerMetricHandler(SimpleMeterRegistry())
+			aktivitetService = AktivitetService(AktivitetRepository(template)),
+			gjennomforingRepository = GjennomforingRepository(template),
+			tiltakService = TiltakService(TiltakRepository(template))
 		)
 	}
 
@@ -73,6 +106,7 @@ class DeltakerProcessorTest : FunSpec({
 	test("Insert Deltaker on non-ignored Gjennomforing") {
 		val position = UUID.randomUUID().toString()
 
+
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			position = position,
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
@@ -83,7 +117,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, position)
 
-		val translationEntry = idTranslationRepository.get("1")
+		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
 
 		translationEntry shouldNotBe null
 	}
@@ -147,5 +181,5 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 })
-*/
+
 
