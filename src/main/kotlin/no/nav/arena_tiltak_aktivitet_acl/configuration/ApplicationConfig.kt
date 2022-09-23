@@ -1,8 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.configuration
 
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import no.nav.arena_tiltak_aktivitet_acl.utils.token_provider.ScopedTokenProvider
-import no.nav.arena_tiltak_aktivitet_acl.utils.token_provider.azure_ad.AzureAdScopedTokenProviderBuilder
 import no.nav.common.json.JsonUtils
 import no.nav.common.token_client.builder.AzureAdTokenClientBuilder
 import no.nav.common.token_client.client.MachineToMachineTokenClient

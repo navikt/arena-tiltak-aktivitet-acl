@@ -20,13 +20,20 @@ open class TranslationService(
 		if (deltakerId == null) {
 			val nyDeltakerIdId = UUID.randomUUID()
 			log.info("Opprettet ny id for deltaker, id=$nyDeltakerIdId arenaId=$deltakerArenaId")
+
+			insertTranslation(
+				deltakerArenaId,
+				nyDeltakerIdId,
+				aktivitetType
+			)
+
 			return nyDeltakerIdId
 		}
 
 		return deltakerId
 	}
 
-	fun upsertTranslation(arenaId: Long, aktivitetId: UUID, kategori: AktivitetKategori) {
+	private fun insertTranslation(arenaId: Long, aktivitetId: UUID, kategori: AktivitetKategori) {
 		val translation = TranslationDbo(
 			aktivitetId = aktivitetId,
 			arenaId = arenaId,

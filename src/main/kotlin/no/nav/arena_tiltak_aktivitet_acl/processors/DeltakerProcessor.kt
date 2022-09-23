@@ -64,12 +64,6 @@ open class DeltakerProcessor(
 				tiltak = tiltak
 			)
 
-		arenaIdTranslationService.upsertTranslation(
-			arenaId = deltaker.tiltakdeltakerId,
-			aktivitetId = aktivitetId,
-			kategori = AktivitetKategori.TILTAKSAKTIVITET
-		)
-
 		val kafkaMessage = KafkaMessageDto(
 			messageId = UUID.randomUUID(),
 			sendt = LocalDateTime.now(),
