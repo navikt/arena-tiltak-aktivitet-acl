@@ -15,22 +15,22 @@ open class TranslationService(
 	private val log = LoggerFactory.getLogger(javaClass)
 
 	fun hentEllerOpprettAktivitetId(deltakerArenaId: Long, aktivitetType: AktivitetKategori): UUID {
-		val deltakerId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
+		val aktivitetId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
 
-		if (deltakerId == null) {
-			val nyDeltakerIdId = UUID.randomUUID()
-			log.info("Opprettet ny id for deltaker, id=$nyDeltakerIdId arenaId=$deltakerArenaId")
+		if (aktivitetId == null) {
+			val nyAktivitetsId = UUID.randomUUID()
+			log.info("Opprettet ny id for deltaker, id=$nyAktivitetsId arenaId=$deltakerArenaId")
 
 			insertTranslation(
 				deltakerArenaId,
-				nyDeltakerIdId,
+				nyAktivitetsId,
 				aktivitetType
 			)
 
-			return nyDeltakerIdId
+			return nyAktivitetsId
 		}
 
-		return deltakerId
+		return aktivitetId
 	}
 
 	private fun insertTranslation(arenaId: Long, aktivitetId: UUID, kategori: AktivitetKategori) {

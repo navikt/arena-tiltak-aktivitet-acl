@@ -12,7 +12,7 @@ class DeltakerProcessorTest : FunSpec({
 	val kafkaProducerService = mock<KafkaProducerService>()
 
 	lateinit var arenaDataRepository: ArenaDataRepository
-	lateinit var idTranslationRepository: ArenaDataTranslationRepository
+	lateinit var idTranslationRepository: TranslationRepository
 
 	lateinit var deltakerProcessor: DeltakerProcessor
 
@@ -20,22 +20,23 @@ class DeltakerProcessorTest : FunSpec({
 	val ignoredGjennomforingArenaId = 2L
 
 	beforeEach {
-		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
-		rootLogger.level = Level.WARN
+		// val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
+		// rootLogger.level = Level.WARN
 
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
-		idTranslationRepository = ArenaDataTranslationRepository(template)
+		idTranslationRepository = TranslationRepository(template)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
 
 		deltakerProcessor = DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
-			arenaDataIdTranslationService = ArenaDataIdTranslationService(idTranslationRepository),
+			arenaIdTranslationService = TranslationService(idTranslationRepository),
 			ordsClient = ordsClient,
-			meterRegistry = SimpleMeterRegistry(),
 			kafkaProducerService = kafkaProducerService,
-			metrics = DeltakerMetricHandler(SimpleMeterRegistry())
+			aktivitetService = AktivitetService(AktivitetRepository(template)),
+			gjennomforingRepository = GjennomforingRepository(template),
+			tiltakService = TiltakService(TiltakRepository(template))
 		)
 	}
 
@@ -69,12 +70,10 @@ class DeltakerProcessorTest : FunSpec({
 		return arenaDataRepositoryEntry
 	}
 
-
-	test("Insert Deltaker on non-ignored Gjennomforing") {
+	test("DeltakerProcessor should get a translation on non-ignored Gjennomforing") {
 		val position = UUID.randomUUID().toString()
 
 		val newDeltaker = createArenaDeltakerKafkaMessage(
-			position = position,
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L
 		)
@@ -83,7 +82,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, position)
 
-		val translationEntry = idTranslationRepository.get("1")
+		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
 
 		translationEntry shouldNotBe null
 	}
@@ -91,12 +90,19 @@ class DeltakerProcessorTest : FunSpec({
 	test("Skal kaste ignored exception for ignorerte statuser") {
 		val statuser = listOf("VENTELISTE", "AKTUELL", "JATAKK", "INFOMOETE")
 
+		shouldThrowExactly<IgnoredException> {
+			deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
+				tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
+				deltakerArenaId = 1,
+				deltakerStatusKode = "AKTUELL"
+			))
+		}
+
 		statuser.forEachIndexed { idx, status ->
 			shouldThrowExactly<IgnoredException> {
 				deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
-					position = UUID.randomUUID().toString(),
 					tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
-					deltakerArenaId = idx.toLong(),
+					deltakerArenaId = idx.toLong() + 1,
 					deltakerStatusKode = status
 				))
 			}
@@ -104,12 +110,9 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Insert Deltaker with gjennomføring not processed should throw exception") {
-		val position = UUID.randomUUID().toString()
-
 		shouldThrowExactly<DependencyNotIngestedException> {
 			deltakerProcessor.handleArenaMessage(
 				createArenaDeltakerKafkaMessage(
-					position,
 					2348790L,
 					1L
 				)
@@ -118,12 +121,9 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Insert Deltaker on Ignored Gjennomføring sets Deltaker to Ingored") {
-		val position = UUID.randomUUID().toString()
-
 		shouldThrowExactly<IgnoredException> {
 			deltakerProcessor.handleArenaMessage(
 				createArenaDeltakerKafkaMessage(
-					position,
 					ignoredGjennomforingArenaId,
 					1L
 				)
@@ -136,7 +136,6 @@ class DeltakerProcessorTest : FunSpec({
 
 		deltakerProcessor.handleArenaMessage(
 			createArenaDeltakerKafkaMessage(
-				position = position,
 				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 				deltakerArenaId = 1L,
 				operation = Operation.DELETED
@@ -147,5 +146,6 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 })
-*/
 
+
+*/
