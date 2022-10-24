@@ -11,7 +11,7 @@ interface AktivitetOrderData {
 	val aktivitetStatus: AktivitetStatus
 	val startDato: LocalDate? // dobbelsjekk
 	val sluttDato: LocalDate? //
-	val beskrivelse: String? //alle, men annen oppførsel på tiltak(jobbklubb)
+	val beskrivelse: Beskrivelse? //alle, men annen oppførsel på tiltak(jobbklubb)
 	val endretAv: Ident
 	val endretTidspunkt: LocalDateTime
 	val avtaltMedNav: Boolean

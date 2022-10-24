@@ -22,9 +22,9 @@ class KafkaAktivitetskortIntegrationConsumer(
 
 
 	companion object {
-		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<TiltakAktivitet>) -> Unit>()
+		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Aktivitetskort>) -> Unit>()
 
-		fun subscribeAktivitet(handler: (record: KafkaMessageDto<TiltakAktivitet>) -> Unit): UUID {
+		fun subscribeAktivitet(handler: (record: KafkaMessageDto<Aktivitetskort>) -> Unit): UUID {
 			val id = UUID.randomUUID()
 			aktivitetSubscriptions[id] = handler
 
@@ -61,7 +61,7 @@ class KafkaAktivitetskortIntegrationConsumer(
 		when (unknownMessageWrapper.actionType) {
 			ActionType.UPSERT_TILTAK_AKTIVITET_V1 -> {
 				val deltakerPayload =
-					ObjectMapper.get().treeToValue(unknownMessageWrapper.payload, TiltakAktivitet::class.java)
+					ObjectMapper.get().treeToValue(unknownMessageWrapper.payload, Aktivitetskort::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
 				aktivitetSubscriptions.values.forEach { it.invoke(message) }
 

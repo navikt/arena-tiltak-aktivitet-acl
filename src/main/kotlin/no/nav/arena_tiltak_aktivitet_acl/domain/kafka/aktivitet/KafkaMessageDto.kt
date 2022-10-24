@@ -26,10 +26,17 @@ enum class ActionType {
 	UPSERT_GRUPPE_AKTIVITET_V1
 }
 
-data class KafkaMessageDto<D>(
+enum class AktivitetsKortType {
+	ARENA_TILTAK,
+	ARENA_UTDANNING,
+	ARENA_GRUPPE,
+}
+
+data class KafkaMessageDto(
 	val messageId: UUID,
 	val source: String = "ARENA_TILTAK_AKTIVITET_ACL",
 	val sendt: LocalDateTime,
 	val actionType: ActionType,
-	val payload: D // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
+	var aktivitetskortType: String, // Arena tiltakskoder (105 forskjellige!)?
+	val aktivitetskort: Aktivitetskort // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
 )

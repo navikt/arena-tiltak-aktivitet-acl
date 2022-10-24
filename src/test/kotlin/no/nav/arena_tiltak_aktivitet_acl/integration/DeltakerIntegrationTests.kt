@@ -4,7 +4,7 @@ import io.kotest.matchers.shouldBe
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.ActionType
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.TiltakAktivitet
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
@@ -81,7 +81,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
 
-	private fun TiltakAktivitet.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
+	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
 		personIdent shouldBe "12345"
 		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn

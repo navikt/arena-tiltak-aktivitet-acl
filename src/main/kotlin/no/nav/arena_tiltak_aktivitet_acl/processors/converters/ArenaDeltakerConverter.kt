@@ -64,8 +64,8 @@ object ArenaDeltakerConverter {
 		arrangorNavn: String?,
 		gjennomforingNavn: String,
 		tiltak: Tiltak,
-	): TiltakAktivitet {
-		return TiltakAktivitet(
+	): Aktivitetskort {
+		return Aktivitetskort(
 			id = aktivitetId,
 			eksternReferanseId = deltaker.tiltakdeltakerId,
 			personIdent = personIdent,
