@@ -81,7 +81,7 @@ object ArenaDeltakerConverter {
 			endretAv = Ident(ident = (deltaker.modUser ?: deltaker.regUser)
 				?: throw IllegalArgumentException("Missing both regUser and modUser")),
 			detaljer = listOfNotNull(
-				if (arrangorNavn != null) Attributt("Arrangor", arrangorNavn) else null,
+				if (arrangorNavn != null) Attributt("Arrangør", arrangorNavn) else null,
 				if (deltaker.prosentDeltid != null) Attributt("Deltakelse", "${deltaker.prosentDeltid}%") else null,
 				if (deltaker.dagerPerUke != null) Attributt("Antall dager per uke", deltaker.dagerPerUke.toString()) else null,
 			)
