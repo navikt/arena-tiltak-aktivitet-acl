@@ -57,15 +57,15 @@ object ArenaDeltakerConverter {
 
 	}
 
-	fun convertToAktivitet(
+	fun convertToTiltaksaktivitet(
 		deltaker: TiltakDeltaker,
 		aktivitetId: UUID,
 		personIdent: String,
 		arrangorNavn: String?,
 		gjennomforingNavn: String,
 		tiltak: Tiltak,
-	): TiltakAktivitet {
-		return TiltakAktivitet(
+	): Aktivitetskort {
+		return Aktivitetskort(
 			id = aktivitetId,
 			eksternReferanseId = deltaker.tiltakdeltakerId,
 			personIdent = personIdent,
@@ -74,17 +74,17 @@ object ArenaDeltakerConverter {
 			startDato = deltaker.datoFra,
 			sluttDato = deltaker.datoTil,
 			avtaltMedNav = true, // Arenatiltak er alltid Avtalt med NAV
-			deltakelseStatus = toDeltakelseStatus(deltaker.deltakerStatusKode),
-			arrangorNavn = arrangorNavn,
-			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
-			tiltaksNavn = tiltak.navn,
-			tiltaksKode = tiltak.kode,
+			etiketter = listOfNotNull(
+				toDeltakelseStatus(deltaker.deltakerStatusKode)
+				?.let { deltakelseStatus -> Etikett(deltakelseStatus.toString()) }),
+			beskrivelse = if (tiltak.kode == JOBBKLUBB) Beskrivelse(verdi = gjennomforingNavn) else null,
 			endretTidspunkt = deltaker.modDato ?: deltaker.regDato,
 			endretAv = Ident(ident = (deltaker.modUser ?: deltaker.regUser)
 				?: throw IllegalArgumentException("Missing both regUser and modUser")),
-			detaljer = mapOf(
-				"deltakelseProsent" to deltaker.prosentDeltid.toString(),
-				"dagerPerUke" to deltaker.dagerPerUke.toString()
+			detaljer = listOfNotNull(
+				if (arrangorNavn != null) Attributt("Arrangor", arrangorNavn) else null,
+				if (deltaker.prosentDeltid != null) Attributt("Deltakelse", "${deltaker.prosentDeltid}%") else null,
+				if (deltaker.dagerPerUke != null) Attributt("Antall dager per uke", deltaker.dagerPerUke.toString()) else null,
 			)
 		)
 	}

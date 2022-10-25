@@ -21,15 +21,14 @@ enum class Operation {
 }
 
 enum class ActionType {
-	UPSERT_TILTAK_AKTIVITET_V1,
-	UPSERT_UTDANNING_AKTIVITET_V1,
-	UPSERT_GRUPPE_AKTIVITET_V1
+	UPSERT_V1,
 }
 
-data class KafkaMessageDto<D>(
+data class KafkaMessageDto(
 	val messageId: UUID,
 	val source: String = "ARENA_TILTAK_AKTIVITET_ACL",
 	val sendt: LocalDateTime,
 	val actionType: ActionType,
-	val payload: D // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
+	var aktivitetskortType: String, // Arena tiltakskoder (105 forskjellige!)?
+	val aktivitetskort: Aktivitetskort // f.eks UpsertTiltakAktivitetV1/TiltakAktivitet
 )

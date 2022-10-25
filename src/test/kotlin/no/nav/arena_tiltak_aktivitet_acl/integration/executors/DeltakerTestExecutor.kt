@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.TiltakAktivitet
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
@@ -25,7 +25,7 @@ class DeltakerTestExecutor(
 ) {
 
 	private val topic = "deltaker"
-	private val outputMessages = mutableListOf<KafkaMessageDto<TiltakAktivitet>>()
+	private val outputMessages = mutableListOf<KafkaMessageDto>()
 
 	init {
 		KafkaAktivitetskortIntegrationConsumer.subscribeAktivitet { outputMessages.add(it) }
@@ -62,10 +62,10 @@ class DeltakerTestExecutor(
 		)
 	}
 
-	private fun getOutputMessage(id: UUID): KafkaMessageDto<TiltakAktivitet>? {
+	private fun getOutputMessage(id: UUID): KafkaMessageDto? {
 		var attempts = 0
 		while (attempts < 5) {
-			val data = outputMessages.firstOrNull { it.payload != null && (it.payload as TiltakAktivitet).id == id }
+			val data = outputMessages.firstOrNull { it.aktivitetskort.id == id }
 
 			if (data != null) {
 				outputMessages.remove(data)
