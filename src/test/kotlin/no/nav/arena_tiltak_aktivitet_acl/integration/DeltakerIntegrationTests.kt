@@ -45,7 +45,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val result = deltakerExecutor.execute(deltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.output { it.actionType shouldBe ActionType.UPSERT_V1 }
+			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
@@ -73,14 +73,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val updatedResult = deltakerExecutor.execute(deltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.output { it.actionType shouldBe ActionType.UPSERT_V1 }
+			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
 
 	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
 		personIdent shouldBe "12345"
-		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn
 		aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
 		etiketter.size shouldBe 0
