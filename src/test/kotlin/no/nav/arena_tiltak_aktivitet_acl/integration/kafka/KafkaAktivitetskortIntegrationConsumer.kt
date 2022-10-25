@@ -59,9 +59,9 @@ class KafkaAktivitetskortIntegrationConsumer(
 		val unknownMessageWrapper = JsonUtils.fromJson(record.value(), UnknownMessageWrapper::class.java)
 
 		when (unknownMessageWrapper.actionType) {
-			ActionType.UPSERT_TILTAK_AKTIVITET_V1 -> {
+			ActionType.UPSERT_V1 -> {
 				val deltakerPayload =
-					ObjectMapper.get().treeToValue(unknownMessageWrapper.payload, Aktivitetskort::class.java)
+					ObjectMapper.get().treeToValue(unknownMessageWrapper.aktivitetskort, Aktivitetskort::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
 				aktivitetSubscriptions.values.forEach { it.invoke(message) }
 
@@ -88,6 +88,6 @@ class KafkaAktivitetskortIntegrationConsumer(
 		val sendt: LocalDateTime,
 		val actionType: ActionType,
 		val aktivitetskortType: String,
-		val payload: JsonNode
+		val aktivitetskort: JsonNode
 	)
 }

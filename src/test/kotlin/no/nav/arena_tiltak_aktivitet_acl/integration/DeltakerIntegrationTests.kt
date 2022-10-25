@@ -45,7 +45,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val result = deltakerExecutor.execute(deltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.output { it.actionType shouldBe ActionType.UPSERT_TILTAK_AKTIVITET_V1 }
+			.output { it.actionType shouldBe ActionType.UPSERT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
@@ -73,7 +73,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val updatedResult = deltakerExecutor.execute(deltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.output { it.actionType shouldBe ActionType.UPSERT_TILTAK_AKTIVITET_V1 }
+			.output { it.actionType shouldBe ActionType.UPSERT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
@@ -88,7 +88,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null
 		detaljer[0].verdi shouldBe "virksomhetnavn"
-		detaljer[1].verdi shouldBe deltakerInput.prosentDeltid.toString()
+		detaljer[1].verdi shouldBe "${deltakerInput.prosentDeltid}%"
 		detaljer[2].verdi shouldBe deltakerInput.antallDagerPerUke.toString()
 		endretAv shouldBe deltakerInput.endretAv
 	}

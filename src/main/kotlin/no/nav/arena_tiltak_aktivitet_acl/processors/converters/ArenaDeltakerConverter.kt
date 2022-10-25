@@ -57,7 +57,7 @@ object ArenaDeltakerConverter {
 
 	}
 
-	fun convertToAktivitet(
+	fun convertToTiltaksaktivitet(
 		deltaker: TiltakDeltaker,
 		aktivitetId: UUID,
 		personIdent: String,
@@ -74,7 +74,9 @@ object ArenaDeltakerConverter {
 			startDato = deltaker.datoFra,
 			sluttDato = deltaker.datoTil,
 			avtaltMedNav = true, // Arenatiltak er alltid Avtalt med NAV
-			etiketter = listOf(Etikett(toDeltakelseStatus(deltaker.deltakerStatusKode).toString())),
+			etiketter = listOfNotNull(
+				toDeltakelseStatus(deltaker.deltakerStatusKode)
+				?.let { deltakelseStatus -> Etikett(deltakelseStatus.toString()) }),
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) Beskrivelse(verdi = gjennomforingNavn) else null,
 			endretTidspunkt = deltaker.modDato ?: deltaker.regDato,
 			endretAv = Ident(ident = (deltaker.modUser ?: deltaker.regUser)

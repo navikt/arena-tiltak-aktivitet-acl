@@ -21,15 +21,7 @@ enum class Operation {
 }
 
 enum class ActionType {
-	UPSERT_TILTAK_AKTIVITET_V1,
-	UPSERT_UTDANNING_AKTIVITET_V1,
-	UPSERT_GRUPPE_AKTIVITET_V1
-}
-
-enum class AktivitetsKortType {
-	ARENA_TILTAK,
-	ARENA_UTDANNING,
-	ARENA_GRUPPE,
+	UPSERT_V1,
 }
 
 data class KafkaMessageDto(
