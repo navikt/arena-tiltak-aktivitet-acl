@@ -42,7 +42,7 @@ open class KafkaConsumer(
 
 		client = KafkaConsumerClientBuilder.builder()
 			.withProperties(kafkaProperties.consumer())
-			.withToggle { unleashClient.isEnabled("aktivitet-arena-acl.kafka.consumer.disabled") }
+			.withToggle { !unleashClient.isEnabled("aktivitet-arena-acl.kafka.consumer.disabled") }
 			.withTopicConfigs(topicConfigs)
 			.build()
 	}
