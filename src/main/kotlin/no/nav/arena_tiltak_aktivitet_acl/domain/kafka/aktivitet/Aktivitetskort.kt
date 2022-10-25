@@ -24,32 +24,8 @@ data class Etikett(
 	val kode: String,
 )
 
-data class Oppgave(
-	val ekstern: OppgaveLenke,
-	val intern: OppgaveLenke,
-)
-
-data class Url(
-	// Should probably be an env-variable instead?
-	val baseUrl: String,
-	val path: String,
-	val params: Map<String, String>,
-)
-data class OppgaveLenke(
-	val tekst: String,
-	val substekst: String,
-	val url: Url
-)
-data class HandlingsLenke(
-	val tekst: String,
-	val substekst: String,
-	val url: Url,
-	val lenkeType: String
-)
-
 data class Aktivitetskort(
 	val id: UUID,
-	val eksternReferanseId: Long,
 	val personIdent: String, // Må alltid være fnr/dnr
 	val tittel: String,
 	val aktivitetStatus: AktivitetStatus,

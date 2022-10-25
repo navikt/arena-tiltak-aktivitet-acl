@@ -67,7 +67,6 @@ object ArenaDeltakerConverter {
 	): Aktivitetskort {
 		return Aktivitetskort(
 			id = aktivitetId,
-			eksternReferanseId = deltaker.tiltakdeltakerId,
 			personIdent = personIdent,
 			tittel = toTittel(gjennomforingNavn, tiltak.kode),
 			aktivitetStatus = toAktivitetStatus(deltaker.deltakerStatusKode),

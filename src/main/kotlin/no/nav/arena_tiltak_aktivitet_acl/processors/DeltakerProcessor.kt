@@ -67,12 +67,12 @@ open class DeltakerProcessor(
 		val kafkaMessage = KafkaMessageDto(
 			messageId = UUID.randomUUID(),
 			sendt = LocalDateTime.now(),
-			actionType = ActionType.UPSERT_V1,
+			actionType = ActionType.UPSERT_AKTIVITETSKORT_V1,
 			aktivitetskort = aktivitet,
-			aktivitetskortType = tiltak.kode
+			aktivitetskortType = AktivitetskortType.ARENA_TILTAK
 		)
 
-		kafkaProducerService.sendTilAktivitetskortTopic(aktivitet.id, kafkaMessage)
+		kafkaProducerService.sendTilAktivitetskortTopic(aktivitet.id, kafkaMessage, tiltak.kode, deltaker.tiltakdeltakerId.toString())
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltaker.tiltakdeltakerId))
 
 
