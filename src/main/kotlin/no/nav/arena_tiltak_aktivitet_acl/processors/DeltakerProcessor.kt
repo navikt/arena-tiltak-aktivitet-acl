@@ -68,7 +68,8 @@ open class DeltakerProcessor(
 			messageId = UUID.randomUUID(),
 			sendt = LocalDateTime.now(),
 			actionType = ActionType.UPSERT_TILTAK_AKTIVITET_V1,
-			payload = aktivitet
+			aktivitetskort = aktivitet,
+			aktivitetskortType = tiltak.kode
 		)
 
 		kafkaProducerService.sendTilAktivitetskortTopic(aktivitet.id, kafkaMessage)

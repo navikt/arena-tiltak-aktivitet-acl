@@ -22,9 +22,9 @@ class KafkaAktivitetskortIntegrationConsumer(
 
 
 	companion object {
-		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto<Aktivitetskort>) -> Unit>()
+		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto) -> Unit>()
 
-		fun subscribeAktivitet(handler: (record: KafkaMessageDto<Aktivitetskort>) -> Unit): UUID {
+		fun subscribeAktivitet(handler: (record: KafkaMessageDto) -> Unit): UUID {
 			val id = UUID.randomUUID()
 			aktivitetSubscriptions[id] = handler
 
@@ -70,13 +70,14 @@ class KafkaAktivitetskortIntegrationConsumer(
 		}
 	}
 
-	private fun <T> toKnownMessageWrapper(payload: T, unknownMessageWrapper: UnknownMessageWrapper): KafkaMessageDto<T> {
+	private fun  toKnownMessageWrapper(aktivitetkort: Aktivitetskort, unknownMessageWrapper: UnknownMessageWrapper): KafkaMessageDto {
 		return KafkaMessageDto(
 			messageId = unknownMessageWrapper.messageId,
 			source = unknownMessageWrapper.utsender,
 			sendt = unknownMessageWrapper.sendt,
 			actionType = unknownMessageWrapper.actionType,
-			payload = payload
+			aktivitetskort = aktivitetkort,
+			aktivitetskortType = unknownMessageWrapper.aktivitetskortType
 		)
 	}
 
@@ -86,6 +87,7 @@ class KafkaAktivitetskortIntegrationConsumer(
 		val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
 		val sendt: LocalDateTime,
 		val actionType: ActionType,
+		val aktivitetskortType: String,
 		val payload: JsonNode
 	)
 }

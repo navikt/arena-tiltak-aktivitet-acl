@@ -2,9 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.matchers.shouldBe
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.ActionType
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
@@ -12,7 +10,6 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGj
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
 import org.junit.jupiter.api.Test
 import java.util.*
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Ident
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
 
@@ -49,7 +46,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_TILTAK_AKTIVITET_V1 }
-			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.payload.id }
+			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
 
@@ -77,7 +74,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_TILTAK_AKTIVITET_V1 }
-			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.payload.id }
+			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
 	}
 
@@ -86,14 +83,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		eksternReferanseId shouldBe deltakerInput.tiltakDeltakerId
 		tittel shouldBe gjennomforingInput.navn
 		aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
-		tiltaksKode shouldBe gjennomforingInput.tiltakKode
-		deltakelseStatus shouldBe null
+		etiketter.size shouldBe 0
 		startDato shouldBe deltakerInput.datoFra
 		sluttDato shouldBe deltakerInput.datoTil
 		beskrivelse shouldBe null
-		arrangorNavn shouldBe "virksomhetnavn"
-		detaljer["deltakelseProsent"] shouldBe deltakerInput.prosentDeltid.toString()
-		detaljer["dagerPerUke"] shouldBe deltakerInput.antallDagerPerUke.toString()
+		detaljer[0].verdi shouldBe "virksomhetnavn"
+		detaljer[1].verdi shouldBe deltakerInput.prosentDeltid.toString()
+		detaljer[2].verdi shouldBe deltakerInput.antallDagerPerUke.toString()
 		endretAv shouldBe deltakerInput.endretAv
 	}
 }

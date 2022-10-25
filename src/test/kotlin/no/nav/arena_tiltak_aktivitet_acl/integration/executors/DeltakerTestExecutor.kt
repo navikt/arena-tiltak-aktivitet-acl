@@ -25,7 +25,7 @@ class DeltakerTestExecutor(
 ) {
 
 	private val topic = "deltaker"
-	private val outputMessages = mutableListOf<KafkaMessageDto<Aktivitetskort>>()
+	private val outputMessages = mutableListOf<KafkaMessageDto>()
 
 	init {
 		KafkaAktivitetskortIntegrationConsumer.subscribeAktivitet { outputMessages.add(it) }
@@ -62,10 +62,10 @@ class DeltakerTestExecutor(
 		)
 	}
 
-	private fun getOutputMessage(id: UUID): KafkaMessageDto<Aktivitetskort>? {
+	private fun getOutputMessage(id: UUID): KafkaMessageDto? {
 		var attempts = 0
 		while (attempts < 5) {
-			val data = outputMessages.firstOrNull { it.payload != null && (it.payload as Aktivitetskort).id == id }
+			val data = outputMessages.firstOrNull { it.aktivitetskort.id == id }
 
 			if (data != null) {
 				outputMessages.remove(data)

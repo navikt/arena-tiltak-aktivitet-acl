@@ -3,7 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
-
+/*
 interface AktivitetOrderData {
 	val id: UUID
 	val personIdent: String
@@ -15,4 +15,4 @@ interface AktivitetOrderData {
 	val endretAv: Ident
 	val endretTidspunkt: LocalDateTime
 	val avtaltMedNav: Boolean
-}
+}*/

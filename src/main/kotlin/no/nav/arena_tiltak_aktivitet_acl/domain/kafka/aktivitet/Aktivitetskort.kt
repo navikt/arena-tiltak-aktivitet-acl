@@ -12,13 +12,16 @@ data class Ident(
 )
 
 data class Beskrivelse(
-	val label: String?,
+	val label: String? = null,
 	val verdi: String
 )
 
 data class Attributt(
 	val label: String,
 	val verdi: String
+)
+data class Etikett(
+	val kode: String,
 )
 
 data class Oppgave(
@@ -40,24 +43,25 @@ data class OppgaveLenke(
 data class HandlingsLenke(
 	val tekst: String,
 	val substekst: String,
-	val url: Url
+	val url: Url,
+	val lenkeType: String
 )
+
 data class Aktivitetskort(
-	override val id: UUID,
+	val id: UUID,
 	val eksternReferanseId: Long,
-	override val personIdent: String, // Må alltid være fnr/dnr
-	override val tittel: String,
-	override val aktivitetStatus: AktivitetStatus,
-	override val startDato: LocalDate?,
-	override val sluttDato: LocalDate?,
-	override val beskrivelse: Beskrivelse?, // alle, men annen oppførsel på tiltak(jobbklubb)
-	override val endretAv: Ident,
-	override val endretTidspunkt: LocalDateTime,
-	override val avtaltMedNav: Boolean,
-	val handlinger: List<HandlingsLenke?> = emptyList(),
-	val oppgave: Oppgave? = null,
+	val personIdent: String, // Må alltid være fnr/dnr
+	val tittel: String,
+	val aktivitetStatus: AktivitetStatus,
+	val etiketter: List<Etikett>,
+	val startDato: LocalDate?,
+	val sluttDato: LocalDate?,
+	val beskrivelse: Beskrivelse?, // alle, men annen oppførsel på tiltak(jobbklubb)
+	val endretAv: Ident,
+	val endretTidspunkt: LocalDateTime,
+	val avtaltMedNav: Boolean,
 	val detaljer: List<Attributt>
-) : AktivitetOrderData {
+) {
 	private val objectMapper = ObjectMapper.get()
 	fun toDbo() = AktivitetDbo(
 		id = id,

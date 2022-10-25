@@ -18,7 +18,7 @@ open class KafkaProducerService(
 	@Value("\${app.env.aktivitetskortTopic}")
 	lateinit var topic: String
 
-	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto<*>) {
+	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto) {
 		val record = ProducerRecord(topic, messageKey.toString(), objectMapper.writeValueAsString(data))
 		kafkaProducer.sendSync(record)
 	}

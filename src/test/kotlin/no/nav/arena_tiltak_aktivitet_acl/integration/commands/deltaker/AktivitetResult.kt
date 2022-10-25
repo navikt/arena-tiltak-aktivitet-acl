@@ -10,7 +10,7 @@ data class AktivitetResult(
 	val position: String,
 	val arenaDataDbo: ArenaDataDbo,
 	val translation: TranslationDbo?,
-	val output: KafkaMessageDto<Aktivitetskort>?
+	val output: KafkaMessageDto?
 ) {
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
 		check.invoke(arenaDataDbo)
@@ -26,7 +26,7 @@ data class AktivitetResult(
 		return this
 	}
 
-	fun output(check: (data: KafkaMessageDto<Aktivitetskort>) -> Unit): AktivitetResult {
+	fun output(check: (data: KafkaMessageDto) -> Unit): AktivitetResult {
 		if (output == null) {
 			fail("Trying to get output, but it is null")
 		}
@@ -35,17 +35,17 @@ data class AktivitetResult(
 		return this
 	}
 
-	fun result(check: (arenaDataDbo: ArenaDataDbo, translation: TranslationDbo?, output: KafkaMessageDto<Aktivitetskort>?) -> Unit): AktivitetResult {
+	fun result(check: (arenaDataDbo: ArenaDataDbo, translation: TranslationDbo?, output: KafkaMessageDto?) -> Unit): AktivitetResult {
 		check.invoke(arenaDataDbo, translation, output)
 		return this
 	}
 
-	fun outgoingPayload(check: (payload: Aktivitetskort) -> Unit): AktivitetResult {
-		if (output?.payload == null) {
+	fun outgoingPayload(check: (aktivitetskort: Aktivitetskort) -> Unit): AktivitetResult {
+		if (output?.aktivitetskort == null) {
 			fail("Forsøker å hente payload på en outgoing melding som er null")
 		}
 
-		check.invoke(output.payload)
+		check.invoke(output.aktivitetskort)
 		return this
 	}
 }
