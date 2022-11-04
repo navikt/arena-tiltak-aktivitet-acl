@@ -16,7 +16,6 @@ import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
 import java.util.*
 
 @Component
@@ -66,7 +65,6 @@ open class DeltakerProcessor(
 
 		val kafkaMessage = KafkaMessageDto(
 			messageId = UUID.randomUUID(),
-			sendt = LocalDateTime.now(),
 			actionType = ActionType.UPSERT_AKTIVITETSKORT_V1,
 			aktivitetskort = aktivitet,
 			aktivitetskortType = AktivitetskortType.ARENA_TILTAK

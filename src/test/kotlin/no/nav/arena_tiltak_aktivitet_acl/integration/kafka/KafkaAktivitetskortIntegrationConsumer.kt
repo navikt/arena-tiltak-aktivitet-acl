@@ -74,7 +74,6 @@ class KafkaAktivitetskortIntegrationConsumer(
 		return KafkaMessageDto(
 			messageId = unknownMessageWrapper.messageId,
 			source = unknownMessageWrapper.utsender,
-			sendt = unknownMessageWrapper.sendt,
 			actionType = unknownMessageWrapper.actionType,
 			aktivitetskort = aktivitetkort,
 			aktivitetskortType = unknownMessageWrapper.aktivitetskortType
