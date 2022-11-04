@@ -74,7 +74,6 @@ class KafkaAktivitetskortIntegrationConsumer(
 		return KafkaMessageDto(
 			messageId = unknownMessageWrapper.messageId,
 			source = unknownMessageWrapper.utsender,
-			sendt = unknownMessageWrapper.sendt,
 			actionType = unknownMessageWrapper.actionType,
 			aktivitetskort = aktivitetkort,
 			aktivitetskortType = unknownMessageWrapper.aktivitetskortType
@@ -85,7 +84,6 @@ class KafkaAktivitetskortIntegrationConsumer(
 	data class UnknownMessageWrapper(
 		val messageId: UUID,
 		val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
-		val sendt: LocalDateTime,
 		val actionType: ActionType,
 		val aktivitetskortType: AktivitetskortType,
 		val aktivitetskort: JsonNode
