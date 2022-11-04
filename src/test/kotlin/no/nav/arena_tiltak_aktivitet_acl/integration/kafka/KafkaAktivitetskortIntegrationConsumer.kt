@@ -84,7 +84,6 @@ class KafkaAktivitetskortIntegrationConsumer(
 	data class UnknownMessageWrapper(
 		val messageId: UUID,
 		val utsender: String = "ARENA_TILTAK_AKTIVITET_ACL",
-		val sendt: LocalDateTime,
 		val actionType: ActionType,
 		val aktivitetskortType: AktivitetskortType,
 		val aktivitetskort: JsonNode
