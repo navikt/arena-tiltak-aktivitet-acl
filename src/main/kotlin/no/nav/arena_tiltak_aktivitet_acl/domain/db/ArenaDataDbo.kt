@@ -9,7 +9,8 @@ enum class IngestStatus {
 	RETRY,
 	FAILED,
 	IGNORED,
-	INVALID
+	INVALID,
+	QUEUED
 }
 
 data class ArenaDataDbo(

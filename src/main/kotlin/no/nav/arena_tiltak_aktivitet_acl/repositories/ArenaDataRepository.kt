@@ -5,9 +5,11 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -134,7 +136,7 @@ open class ArenaDataRepository(
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
 			AND id >= :fromId
-			ORDER BY id ASC
+			ORDER BY id, POS ASC
 			LIMIT :limit
 		""".trimIndent()
 
@@ -180,6 +182,35 @@ open class ArenaDataRepository(
 		""".trimIndent()
 
 		return template.update(sql, EmptySqlParameterSource())
+	}
+
+	fun hasUnhandledDeltakelse(deltakelseArenaId: Long): Boolean {
+		//language=PostgreSQL
+		val sql = """
+			SELECT count(*) as antall FROM arena_data
+			where arena_id = :arena_id
+				AND arena_table_name = :deltakerTableName
+				AND ingest_status != 'HANDLED'
+		""".trimIndent()
+		val params = sqlParameters(
+			"arena_id" to deltakelseArenaId,
+			"deltakerTableName" to ARENA_DELTAKER_TABLE_NAME
+		)
+		return template.queryForObject(sql, params) { a, _ -> a.getInt("antall") }
+			?.let { it > 0 } ?: false
+	}
+
+	fun moveQueueForward() {
+		//language=PostgreSQL
+		val sql = """
+			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.id in (
+				SELECT MIN(id) FROM arena_data a2
+				WHERE ingest_status == 'QUEUED' AND NOT EXISTS(
+					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status != 'RETRY' AND a3.arena_id = a2.arena_id)
+				GROUP BY arena_id
+			)
+		""".trimIndent()
+		template.update(sql, MapSqlParameterSource())
 	}
 
 }

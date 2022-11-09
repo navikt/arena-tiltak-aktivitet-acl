@@ -7,10 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.ValidationException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
 import no.nav.arena_tiltak_aktivitet_acl.processors.*
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.*
@@ -68,6 +65,9 @@ open class ArenaMessageProcessorService(
 				is DependencyNotIngestedException -> {
 					log.info("Dependency for $arenaId in table $arenaTableName is not ingested: '${e.message}'")
 					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.RETRY, note = e.message))
+				}
+				is  OutOfOrderException -> {
+					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.QUEUED, note = e.message))
 				}
 				is ValidationException -> {
 					log.info("$arenaId in table $arenaTableName is not valid: '${e.message}'")
