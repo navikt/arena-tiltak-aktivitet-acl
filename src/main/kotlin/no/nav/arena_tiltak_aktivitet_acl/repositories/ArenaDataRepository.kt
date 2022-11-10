@@ -193,7 +193,7 @@ open class ArenaDataRepository(
 				AND ingest_status != 'HANDLED'
 		""".trimIndent()
 		val params = sqlParameters(
-			"arena_id" to deltakelseArenaId,
+			"arena_id" to deltakelseArenaId.toString(),
 			"deltakerTableName" to ARENA_DELTAKER_TABLE_NAME
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antall") }
