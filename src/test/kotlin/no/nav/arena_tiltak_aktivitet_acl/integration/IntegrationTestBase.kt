@@ -65,6 +65,10 @@ abstract class IntegrationTestBase {
 	fun processMessages() {
 		retryArenaMessageProcessorService.processMessages()
 	}
+
+	fun processFailedMessages() {
+		retryArenaMessageProcessorService.processFailedMessages()
+	}
 }
 
 @Profile("integration")
