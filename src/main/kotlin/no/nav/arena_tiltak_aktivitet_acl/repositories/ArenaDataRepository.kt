@@ -200,17 +200,20 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
-	fun moveQueueForward() {
+	fun moveQueueForward(): Int {
+		// For en deltakelse (arena_id)
+		// Sett QUEUED til RETRY kun hvis det ikke finnes noen RETRY eller FAILED
+		// Alt som er RETRY eller FAILED er alltid først i køen
 		//language=PostgreSQL
 		val sql = """
 			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.id in (
 				SELECT MIN(id) FROM arena_data a2
 				WHERE ingest_status = 'QUEUED' AND NOT EXISTS(
-					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status = 'RETRY' AND a3.arena_id = a2.arena_id)
+					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id)
 				GROUP BY arena_id
 			)
 		""".trimIndent()
-		template.update(sql, MapSqlParameterSource())
+		return template.update(sql, MapSqlParameterSource())
 	}
 
 }

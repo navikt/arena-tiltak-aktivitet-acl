@@ -50,7 +50,8 @@ open class DeltakerProcessor(
 		}.getOrNull()
 
 		val hasUnhandled = arenaDataRepository.hasUnhandledDeltakelse(arenaDeltaker.TILTAKDELTAKER_ID)
-		if (hasUnhandled && ingestStatus != IngestStatus.RETRY) throw OutOfOrderException("Venter på at tidligere deltakelse med id=${arenaDeltaker.TILTAKDELTAKER_ID} skal bli håndtert")
+		val isFirstInQueue =  ingestStatus == IngestStatus.RETRY || ingestStatus == IngestStatus.FAILED
+		if (hasUnhandled && !isFirstInQueue) throw OutOfOrderException("Venter på at tidligere deltakelse med id=${arenaDeltaker.TILTAKDELTAKER_ID} skal bli håndtert")
 
 		val gjennomforing = gjennomforingRepository.get(arenaGjennomforingId)
 			?: throw DependencyNotIngestedException("Venter på at gjennomføring med id=$arenaGjennomforingId skal bli håndtert")

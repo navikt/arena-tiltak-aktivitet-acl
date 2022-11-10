@@ -15,6 +15,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGj
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
@@ -25,6 +26,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Autowired
 	lateinit var aktivitetRepository: AktivitetRepository
+
+	@Autowired
+	lateinit var arenaDataRepository: ArenaDataRepository
 
 	@Autowired
 	lateinit var translationRepository: TranslationRepository
@@ -124,6 +128,66 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		aktivitetskort3.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 	}
 
+	@Test
+	fun `process deltakelse in the correct order also when failed`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = TestData()
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			deltakerStatusKode = "INFOMOETE", // Aktivitetstatus: Planlagt
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result: AktivitetResult = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+
+		// Fail first message after 10 retries
+		(1..10).forEach{ processMessages() }
+		val resultDbo = arenaDataRepository.get(result.arenaDataDbo.arenaTableName, result.arenaDataDbo.operation, result.arenaDataDbo.operationPosition )
+		resultDbo.ingestStatus shouldBe IngestStatus.FAILED
+
+		val deltakerCommand2 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "GJENN"))
+		val result2: AktivitetResult = deltakerExecutor.execute(deltakerCommand2)
+
+		result2.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+
+		tiltakExecutor.execute(NyttTiltakCommand())
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		val deltakerCommand3 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "FULLF"))
+		val result3: AktivitetResult = deltakerExecutor.execute(deltakerCommand3)
+
+		result3.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+
+		// Cron-job
+		processFailedMessages()
+
+		val aktivitetId = translationRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
+		aktivitetId shouldNotBe null
+
+		val mapper = ObjectMapper.get()
+		val data = aktivitetRepository.getAktivitet(aktivitetId!!)!!.data
+		val aktivitetskort = mapper.readValue(data, Aktivitetskort::class.java)
+		aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+
+		processMessages()
+
+		val data2 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
+		val aktivitetskort2 = mapper.readValue(data2, Aktivitetskort::class.java)
+		aktivitetskort2.aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
+
+		processMessages()
+
+		val data3 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
+		val aktivitetskort3 = mapper.readValue(data3, Aktivitetskort::class.java)
+		aktivitetskort3.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
+	}
 	@Test
 	fun `ingest existing deltaker`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
