@@ -1,8 +1,8 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import ArenaOrdsProxyClient
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusQueued
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
@@ -39,8 +39,18 @@ open class DeltakerProcessor(
 		val arenaDeltaker = message.getData()
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
 
-		val shouldBeQueued = arenaDataRepository.hasUnhandledDeltakelse(arenaDeltaker.TILTAKDELTAKER_ID)
-		if (shouldBeQueued) throw OutOfOrderException("Venter på at tidligere deltakelse med id=${arenaDeltaker.TILTAKDELTAKER_ID} skal bli håndtert")
+
+
+		val ingestStatus: IngestStatus? = runCatching {
+			arenaDataRepository.get(
+				message.arenaTableName,
+				message.operationType,
+				message.operationPosition
+			).ingestStatus
+		}.getOrNull()
+
+		val hasUnhandled = arenaDataRepository.hasUnhandledDeltakelse(arenaDeltaker.TILTAKDELTAKER_ID)
+		if (hasUnhandled && ingestStatus != IngestStatus.RETRY) throw OutOfOrderException("Venter på at tidligere deltakelse med id=${arenaDeltaker.TILTAKDELTAKER_ID} skal bli håndtert")
 
 		val gjennomforing = gjennomforingRepository.get(arenaGjennomforingId)
 			?: throw DependencyNotIngestedException("Venter på at gjennomføring med id=$arenaGjennomforingId skal bli håndtert")

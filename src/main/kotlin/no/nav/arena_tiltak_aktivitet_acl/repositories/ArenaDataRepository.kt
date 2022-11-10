@@ -136,7 +136,7 @@ open class ArenaDataRepository(
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
 			AND id >= :fromId
-			ORDER BY id, POS ASC
+			ORDER BY id ASC
 			LIMIT :limit
 		""".trimIndent()
 
@@ -205,8 +205,8 @@ open class ArenaDataRepository(
 		val sql = """
 			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.id in (
 				SELECT MIN(id) FROM arena_data a2
-				WHERE ingest_status == 'QUEUED' AND NOT EXISTS(
-					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status != 'RETRY' AND a3.arena_id = a2.arena_id)
+				WHERE ingest_status = 'QUEUED' AND NOT EXISTS(
+					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status = 'RETRY' AND a3.arena_id = a2.arena_id)
 				GROUP BY arena_id
 			)
 		""".trimIndent()

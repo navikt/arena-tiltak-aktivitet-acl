@@ -1,17 +1,33 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.jayway.jsonpath.internal.filter.ValueNode.createJsonNode
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import java.util.*
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
+
+	@Autowired
+	lateinit var aktivitetRepository: AktivitetRepository
+
+	@Autowired
+	lateinit var translationRepository: TranslationRepository
 
 	data class TestData (
 		val gjennomforingId: Long = Random().nextLong(),
@@ -48,6 +64,64 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+	}
+
+
+	@Test
+	fun `process deltakelse in the correct order`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = TestData()
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			deltakerStatusKode = "INFOMOETE", // Aktivitetstatus: Planlagt
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result: AktivitetResult = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+
+
+		val deltakerCommand2 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "GJENN"))
+		val result2: AktivitetResult = deltakerExecutor.execute(deltakerCommand2)
+
+		result2.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+
+		tiltakExecutor.execute(NyttTiltakCommand())
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		val deltakerCommand3 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "FULLF"))
+		val result3: AktivitetResult = deltakerExecutor.execute(deltakerCommand3)
+
+		result3.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+
+		// Cron-job
+		processMessages()
+
+		val aktivitetId = translationRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
+		aktivitetId shouldNotBe null
+
+		val mapper = ObjectMapper.get()
+		val data = aktivitetRepository.getAktivitet(aktivitetId!!)!!.data
+		val aktivitetskort = mapper.readValue(data, Aktivitetskort::class.java)
+		aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+
+		processMessages()
+
+		val data2 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
+		val aktivitetskort2 = mapper.readValue(data2, Aktivitetskort::class.java)
+		aktivitetskort2.aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
+
+		processMessages()
+
+		val data3 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
+		val aktivitetskort3 = mapper.readValue(data3, Aktivitetskort::class.java)
+		aktivitetskort3.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 	}
 
 	@Test

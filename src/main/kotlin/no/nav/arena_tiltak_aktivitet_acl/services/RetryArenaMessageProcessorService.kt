@@ -56,10 +56,10 @@ open class RetryArenaMessageProcessorService(
 			data.forEach { process(it) }
 			totalHandled += data.size
 			fromId = data.maxOfOrNull { it.id.plus(1) } ?: Int.MAX_VALUE
-			// Sette QUEUED med lavest ID til RETRY
-			arenaDataRepository.moveQueueForward()
-
 		} while (data.isNotEmpty())
+
+		// Sette QUEUED med lavest ID til RETRY
+		arenaDataRepository.moveQueueForward()
 
 		val duration = Duration.between(start, Instant.now())
 
