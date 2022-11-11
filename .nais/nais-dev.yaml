@@ -52,7 +52,7 @@ spec:
       value: https://poao-gcp-proxy.dev-fss-pub.nais.io
     # Kafka topics
     - name: AKTIVITETSKORT_TOPIC
-      value: dab.aktivitetskort-test-v2
+      value: dab.aktivitetskort-test-v3
     - name: ARENA_TILTAK_TOPIC
       value: teamarenanais.aapen-arena-tiltakendret-v1-q2
     - name: ARENA_TILTAKGJENNOMFORING_TOPIC
