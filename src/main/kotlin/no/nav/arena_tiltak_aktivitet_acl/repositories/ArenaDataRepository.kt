@@ -38,6 +38,7 @@ open class ArenaDataRepository(
 	}
 
 	fun upsert(upsertData: ArenaDataUpsertInput) {
+		//language=PostgreSQL
 		val sql = """
 			INSERT INTO arena_data(arena_table_name, arena_id, operation_type, operation_pos, operation_timestamp, ingest_status,
 								   ingested_timestamp, before, after, note)
@@ -74,6 +75,7 @@ open class ArenaDataRepository(
 	}
 
 	fun updateIngestStatus(id: Int, ingestStatus: IngestStatus) {
+		//language=PostgreSQL
 		val sql = """
 			UPDATE arena_data SET ingest_status = :ingest_status WHERE id = :id
 		""".trimIndent()
@@ -87,6 +89,7 @@ open class ArenaDataRepository(
 	}
 
 	fun updateIngestAttempts(id: Int, ingestAttempts: Int, note: String?) {
+		//language=PostgreSQL
 		val sql = """
 			UPDATE arena_data SET
 				ingest_attempts = :ingest_attempts,
@@ -106,6 +109,7 @@ open class ArenaDataRepository(
 	}
 
 	fun get(tableName: String, operation: Operation, position: String): ArenaDataDbo {
+		//language=PostgreSQL
 		val sql = """
 			SELECT *
 			FROM arena_data
@@ -124,12 +128,32 @@ open class ArenaDataRepository(
 			?: throw NoSuchElementException("Element from table $tableName, operation: $operation, position: $position does not exist")
 	}
 
+	fun exists(tableName: String, operation: Operation, position: String): Boolean {
+		//language=PostgreSQL
+		val sql = """
+			SELECT *
+			FROM arena_data
+			WHERE arena_table_name = :arena_table_name
+				AND operation_type = :operation_type
+				AND operation_pos = :operation_pos
+		""".trimIndent()
+
+		val parameters = sqlParameters(
+			"arena_table_name" to tableName,
+			"operation_type" to operation.name,
+			"operation_pos" to position,
+		)
+
+		return template.query(sql, parameters, rowMapper).firstOrNull() != null
+	}
+
 	fun getByIngestStatus(
 		tableName: String,
 		status: IngestStatus,
 		fromId: Int,
 		limit: Int = 500
 	): List<ArenaDataDbo> {
+		//language=PostgreSQL
 		val sql = """
 			SELECT *
 			FROM arena_data
@@ -151,6 +175,7 @@ open class ArenaDataRepository(
 	}
 
 	fun getStatusCount(): List<LogStatusCountDto> {
+		//language=PostgreSQL
 		val sql = """
 			SELECT ingest_status, count(*)
 			FROM arena_data
@@ -168,6 +193,7 @@ open class ArenaDataRepository(
 	}
 
 	fun getAll(): List<ArenaDataDbo> {
+		//language=PostgreSQL
 		val sql = """
 			SELECT *
 			FROM arena_data
@@ -177,6 +203,7 @@ open class ArenaDataRepository(
 	}
 
 	fun deleteAllIgnoredData(): Int {
+		//language=PostgreSQL
 		val sql = """
 			DELETE FROM arena_data WHERE ingest_status = 'IGNORED'
 		""".trimIndent()
@@ -204,6 +231,7 @@ open class ArenaDataRepository(
 		// For en deltakelse (arena_id)
 		// Sett QUEUED til RETRY kun hvis det ikke finnes noen RETRY eller FAILED
 		// Alt som er RETRY eller FAILED er alltid først i køen
+
 		//language=PostgreSQL
 		val sql = """
 			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.id in (

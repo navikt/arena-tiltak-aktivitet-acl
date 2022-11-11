@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Tag
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation.Companion.fromArenaOperationString
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
@@ -32,7 +33,11 @@ open class ArenaMessageProcessorService(
 	fun handleArenaGoldenGateRecord(record: ConsumerRecord<String, String>) {
 		val recordValue = record.value().removeNullCharacters()
 		val messageDto = mapper.readValue(recordValue, ArenaKafkaMessageDto::class.java)
-
+		val messageAlreadyInStore = arenaDataRepository.exists(messageDto!!.table, fromArenaOperationString(messageDto.opType), messageDto.pos)
+		if (messageAlreadyInStore) {
+			log.warn("Ignorerer melding topic:${record.topic()} partition:${record.partition()} offset:${record.offset()} allerede lagret under table:${messageDto.table} optype:${messageDto.opType} pos:${messageDto.pos}")
+			return
+		}
 		processArenaKafkaMessage(messageDto)
 	}
 

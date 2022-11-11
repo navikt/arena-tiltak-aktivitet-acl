@@ -67,6 +67,10 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 			deltakerProcessor.handleArenaMessage(any())
 		} returns Unit
 
+		every {
+			arenaDataRepository.exists(any(), any(), any())
+		} returns false
+
 		messageProcessor.handleArenaGoldenGateRecord(
 			ConsumerRecord("test", 1, 1, "123456", deltakerJson)
 		)
@@ -86,6 +90,10 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 			gjennomforingProcessor.handleArenaMessage(any())
 		} returns Unit
 
+		every {
+			arenaDataRepository.exists(any(), any(), any())
+		} returns false
+
 		messageProcessor.handleArenaGoldenGateRecord(
 			ConsumerRecord("test", 1, 1, "123456", tiltakgjennomforingJson)
 		)
@@ -104,6 +112,10 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		every {
 			tiltakProcessor.handleArenaMessage(any())
 		} returns Unit
+
+		every {
+			arenaDataRepository.exists(any(), any(), any())
+		} returns false
 
 		messageProcessor.handleArenaGoldenGateRecord(
 			ConsumerRecord("test", 1, 1, "123456", tiltakJson)
@@ -125,6 +137,10 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 			gjennomforingProcessor.handleArenaMessage(any())
 		} returns Unit
 
+		every {
+			arenaDataRepository.exists(any(), any(), any())
+		} returns false
+
 		messageProcessor.handleArenaGoldenGateRecord(
 			ConsumerRecord("test", 1, 1, "123456", tiltakgjennomforingJson)
 		)
@@ -138,6 +154,30 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		val capturedData = capturingSlot.captured
 
 		capturedData.after?.VURDERING_GJENNOMFORING shouldBe "Vurdering"
+	}
+
+	"should skip messages already stored in arenadata table" {
+		val tiltakJsonFileContent =
+			javaClass.classLoader.getResource("data/arena-tiltakendret-v1.json").readText()
+		val tiltakList: List<JsonNode> = mapper.readValue(tiltakJsonFileContent)
+		val tiltakJson = tiltakList.toList()[0].toString()
+
+		every {
+			tiltakProcessor.handleArenaMessage(any())
+		} returns Unit
+
+		every {
+			arenaDataRepository.exists(any(), any(), any())
+		} returns true
+
+		messageProcessor.handleArenaGoldenGateRecord(
+			ConsumerRecord("test", 1, 1, "123456", tiltakJson)
+		)
+
+
+		verify(exactly = 0) {
+			tiltakProcessor.handleArenaMessage(any())
+		}
 	}
 
 })
