@@ -18,6 +18,8 @@ import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.time.Month
 import java.util.*
 
 @Component
@@ -31,6 +33,10 @@ open class DeltakerProcessor(
 	private val tiltakService: TiltakService
 
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
+
+	companion object {
+		val AKTIVITETSPLAN_LANSERINGSDATO: LocalDateTime = LocalDateTime.of(2017, Month.DECEMBER, 4, 0,0)
+	}
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
@@ -62,6 +68,10 @@ open class DeltakerProcessor(
 
 		if (skalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)) {
 			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
+		}
+
+		if(deltaker.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
+			throw IgnoredException("Deltakeren registrert=${deltaker.regDato} opprettet før aktivitetsplan skal ikke håndteres")
 		}
 
 		val personIdent = ordsClient.hentFnr(deltaker.personId)
@@ -101,5 +111,6 @@ open class DeltakerProcessor(
 		return arenaDeltakerStatusKode == "AKTUELL"
 			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
 	}
+
 
 }

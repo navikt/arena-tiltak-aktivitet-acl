@@ -1,8 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.jayway.jsonpath.internal.filter.ValueNode.createJsonNode
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
@@ -13,13 +10,14 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltake
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
-import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalDate
 import java.util.*
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
@@ -196,6 +194,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(10),
 			endretAv = Ident(ident = "SIG123"),
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
@@ -205,15 +204,38 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoTil = LocalDate.now().plusDays(30),
 			endretAv = Ident(ident = "SIG123"),
 		)
-		val updatedDeltakerCommand = NyDeltakerCommand(deltakerInput)
-		val updatedResult = deltakerExecutor.execute(deltakerCommand)
+		val updatedDeltakerCommand = NyDeltakerCommand(deltakerInputUpdated)
+		val updatedResult = deltakerExecutor.execute(updatedDeltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+
+		updatedResult.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
+			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
+			.outgoingPayload { it.isSame(deltakerInputUpdated, gjennomforingInput) }
+	}
+
+	@Test
+	fun `ignore deltaker before aktivitetsplan launch`() {
+		val (gjennomforingId, deltakerId) = setup()
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = DeltakerProcessor.AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1)
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.IGNORED }
 	}
 
 	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
