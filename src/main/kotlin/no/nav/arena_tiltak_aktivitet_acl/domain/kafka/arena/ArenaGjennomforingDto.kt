@@ -51,7 +51,7 @@ data class ArenaGjennomforingDto(
 			arenaId = TILTAKGJENNOMFORING_ID,
 			tiltakKode = TILTAKSKODE,
 			arbgivIdArrangor = ARBGIV_ID_ARRANGOR,
-			lokaltNavn = LOKALTNAVN ?: throw ValidationException("LOKALTNAVN er null"),
+			lokaltNavn = LOKALTNAVN,
 			datoFra = DATO_FRA?.asValidatedLocalDate("DATO_FRA"),
 			datoTil = DATO_TIL?.asValidatedLocalDate("DATO_TIL"),
 			statusKode = TILTAKSTATUSKODE
