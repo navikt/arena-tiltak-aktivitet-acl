@@ -35,6 +35,12 @@ spec:
     pool: nav-prod
   secureLogs:
     enabled: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: amt-enhetsregister
+          namespace: amt
+          cluster: prod-gcp
   env:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
       value: api://prod-fss.amt.amt-arena-ords-proxy/.default
