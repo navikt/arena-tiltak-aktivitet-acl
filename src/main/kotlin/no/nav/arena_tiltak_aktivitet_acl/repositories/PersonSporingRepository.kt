@@ -6,11 +6,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 
 @Component
-open class PersonTranslationRepository(
+open class PersonSporingRepository(
 	private val template: NamedParameterJdbcTemplate
 ) {
 	private val rowMapper = RowMapper { rs, _ ->
-		PersonTranslationDbo(
+		PersonSporingDbo(
 			personIdent = rs.getLong("person_id"),
 			fodselsnummer = rs.getString("fodselsnummer"),
 			tiltakgjennomforingId = rs.getLong("tiltakgjennomforing_id")
@@ -18,10 +18,10 @@ open class PersonTranslationRepository(
 	}
 
 
-	fun insert(entry: PersonTranslationDbo) {
+	fun upsert(entry: PersonSporingDbo) {
 		//language=PostgreSQL
 		val sql = """
-			INSERT INTO persontranslation(person_id, fodselsnummer, tiltakgjennomforing_id)
+			INSERT INTO personsporing(person_id, fodselsnummer, tiltakgjennomforing_id)
 			VALUES (:person_id, :fodselsnummer, :tiltakgjennomforing_id)
 			ON CONFLICT (person_id, tiltakgjennomforing_id) DO UPDATE SET fodselsnummer = :fodselsnummer
 		""".trimIndent()
@@ -29,10 +29,10 @@ open class PersonTranslationRepository(
 		template.update(sql, entry.asParameterSource())
 	}
 
-	fun get(personId: Long, gjennomforingId: Long): PersonTranslationDbo? {
+	fun get(personId: Long, gjennomforingId: Long): PersonSporingDbo? {
 		val sql = """
 			SELECT *
-				FROM persontranslation
+				FROM personsporing
 				WHERE person_id = :person_id
 				AND tiltakgjennomforing_id = :tiltakgjennomforing_id
 		""".trimIndent()
@@ -46,7 +46,7 @@ open class PersonTranslationRepository(
 			.firstOrNull()
 	}
 
-	private fun PersonTranslationDbo.asParameterSource() = DatabaseUtils.sqlParameters(
+	private fun PersonSporingDbo.asParameterSource() = DatabaseUtils.sqlParameters(
 		"person_id" to personIdent,
 		"fodselsnummer" to fodselsnummer,
 		"tiltakgjennomforing_id" to tiltakgjennomforingId

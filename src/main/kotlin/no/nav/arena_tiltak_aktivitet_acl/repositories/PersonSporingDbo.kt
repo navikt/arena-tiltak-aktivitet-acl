@@ -1,8 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-
-class PersonTranslationDbo(
+class PersonSporingDbo(
 	val personIdent: Long,
 	val fodselsnummer: String,
 	val tiltakgjennomforingId: Long) {
