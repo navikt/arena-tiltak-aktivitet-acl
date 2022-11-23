@@ -11,10 +11,8 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.services.AktivitetService
-import no.nav.arena_tiltak_aktivitet_acl.services.TranslationService
-import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
-import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
+import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
+import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -30,7 +28,8 @@ open class DeltakerProcessor(
 	private val kafkaProducerService: KafkaProducerService,
 	private val gjennomforingRepository: GjennomforingRepository,
 	private val aktivitetService: AktivitetService,
-	private val tiltakService: TiltakService
+	private val tiltakService: TiltakService,
+	private val personsporingService: PersonsporingService
 
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
 
@@ -76,6 +75,8 @@ open class DeltakerProcessor(
 
 		val personIdent = ordsClient.hentFnr(deltaker.personId)
 			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
+
+		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
 
 		val aktivitetId = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
 
