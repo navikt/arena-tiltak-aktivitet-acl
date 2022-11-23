@@ -7,7 +7,7 @@ data class ArenaGjennomforing(
 	val arenaId: Long,
 	val tiltakKode: String,
 	val arbgivIdArrangor: Long?,
-	val lokaltNavn: String,
+	val lokaltNavn: String?,
 	val datoFra: LocalDate?,
 	val datoTil: LocalDate?,
 	val statusKode: String,

@@ -50,7 +50,7 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `Konsumer gjennomføring - lokaltnavn er null - status settes til INVALID`() {
+	fun `Konsumer gjennomføring - lokaltnavn er null - gjennomføringsnavn blir satt til tiltaksnavn i deltakerprocessor`() {
 		tiltakExecutor.execute(NyttTiltakCommand())
 
 		val input = GjennomforingInput(
@@ -59,8 +59,7 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 		)
 
 		gjennomforingExecutor.execute(NyGjennomforingCommand(input))
-			.arenaData { it.ingestStatus shouldBe IngestStatus.INVALID }
-			.arenaData { it.note shouldBe "LOKALTNAVN er null" }
-			.result { _, output -> output shouldBe null }
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.result { _, output -> output?.navn shouldBe null }
 	}
 }

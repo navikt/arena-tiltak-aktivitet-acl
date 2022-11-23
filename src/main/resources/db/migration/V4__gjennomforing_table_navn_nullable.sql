@@ -1,0 +1,1 @@
+ALTER TABLE gjennomforing ALTER column navn DROP NOT NULL;
