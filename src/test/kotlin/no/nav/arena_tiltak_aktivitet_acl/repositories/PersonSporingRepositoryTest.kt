@@ -51,7 +51,7 @@ class PersonSporingRepositoryTest : FunSpec({
 		stored?.tiltakgjennomforingId shouldBe data.tiltakgjennomforingId
 		stored?.fodselsnummer shouldBe data.fodselsnummer
 
-		val data2 = data.copy(fodselsnummer = "40108031570")
+		val data2 = data.copy(fodselsnummer = "10108031570")
 
 		repository.upsert(data2)
 
@@ -60,6 +60,6 @@ class PersonSporingRepositoryTest : FunSpec({
 		stored2 shouldNotBe null
 		stored2?.personIdent shouldBe data.personIdent
 		stored2?.tiltakgjennomforingId shouldBe data.tiltakgjennomforingId
-		stored2?.fodselsnummer shouldBe data2.fodselsnummer
+		stored2?.fodselsnummer shouldBe "10108031570"
 	}
 })
