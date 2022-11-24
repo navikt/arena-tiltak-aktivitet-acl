@@ -45,6 +45,7 @@ open class DeltakerProcessor(
 		val deltaker = arenaDeltaker.mapTiltakDeltaker()
 		val personIdent = ordsClient.hentFnr(deltaker.personId)
 			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
+		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
 
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
@@ -64,7 +65,6 @@ open class DeltakerProcessor(
 		val tiltak = tiltakService.getByKode(gjennomforing.tiltakKode)
 			?: throw DependencyNotIngestedException("Venter på at tiltak med id=${gjennomforing.tiltakKode} skal bli håndtert")
 
-		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
 
 		if (skalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)) {
 			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
