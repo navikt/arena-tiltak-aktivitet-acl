@@ -238,6 +238,41 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.IGNORED }
 	}
 
+	@Test
+	fun `tittel should be set to tiltaksnavn when gjennomforing navn is null`() {
+		val TILTAKSNAVN_OVERRIDE = "Tiltaksnavn override"
+
+		val gjennomforingId: Long = Random().nextLong()
+		val deltakerId: Long = Random().nextLong()
+		val gjennomforingInput = GjennomforingInput(
+			gjennomforingId = gjennomforingId,
+			navn = null
+		)
+
+		tiltakExecutor.execute(NyttTiltakCommand(navn = TILTAKSNAVN_OVERRIDE))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123")
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
+			.result { _, _, output -> output?.aktivitetskort?.tittel shouldBe TILTAKSNAVN_OVERRIDE }
+			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput.copy(navn = TILTAKSNAVN_OVERRIDE)) }
+
+	}
+
 	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
 		personIdent shouldBe "12345"
 		tittel shouldBe gjennomforingInput.navn

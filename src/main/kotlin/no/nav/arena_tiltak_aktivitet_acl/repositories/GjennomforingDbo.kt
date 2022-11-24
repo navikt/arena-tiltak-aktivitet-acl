@@ -6,7 +6,7 @@ data class GjennomforingDbo(
 	val tiltakKode: String,
 	val arrangorVirksomhetsnummer: String?,
 	var arrangorNavn: String?,
-	val navn: String,
+	val navn: String?,
 	val startDato: LocalDate?,
 	val sluttDato: LocalDate?,
 	val status: String,
