@@ -6,7 +6,7 @@ on:
         required: true
       image-tag:
         type: string
-        required: true
+        required: false
     secrets:
       secrets:
         nais-deploy-secret:
@@ -34,6 +34,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
         with:
-          tag_name: release/${{ inputs.environment }}@${{ inputs.image-tag }}
+          tag_name: release/${{ inputs.environment }}@${{ env.IMAGE_TAG }}
           release_name: Release to ${{ inputs.cluster }}
           prerelease: true
