@@ -8,11 +8,10 @@ on:
         type: string
         required: false
     secrets:
-      secrets:
-        nais-deploy-secret:
-          required: true
-        github-token:
-          required: true
+      nais-deploy-secret:
+        required: true
+      github-token:
+        required: true
 
 jobs:
   deploy:
