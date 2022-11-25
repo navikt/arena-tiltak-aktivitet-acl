@@ -1,12 +1,6 @@
-name: Deploy application
+name: Deploy feature branch
 on:
-  push:
-    branches:
-      - main
-env:
-  IMAGE_TAG: ${{ github.sha }}
-  IMAGE: ghcr.io/${{ github.repository }}/aktivitet-arena-acl
-  PRINT_PAYLOAD: true
+  workflow_dispatch: # This workflow can be triggered manually from: https://github.com/navikt/aktivitet-arena-acl/actions/workflows/deploy.yaml
 
 jobs:
   test-build-and-push:
@@ -41,16 +35,6 @@ jobs:
     uses: ./.github/workflows/naisdeploy
     with:
       environment: dev
-      image-tag: ${{ env.IMAGE_TAG }}
-    secrets:
-      nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-      github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  deploy-prod:
-    name: Deploy to prod
-    uses: ./.github/workflows/naisdeploy
-    with:
-      environment: prod
       image-tag: ${{ env.IMAGE_TAG }}
     secrets:
       nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
