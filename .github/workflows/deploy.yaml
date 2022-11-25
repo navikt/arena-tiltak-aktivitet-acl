@@ -38,7 +38,7 @@ jobs:
 
   deploy-dev:
     name: Deploy to dev
-    uses: ./.github/workflows/naisdeploy
+    uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: dev
       image-tag: ${{ env.IMAGE_TAG }}
@@ -48,7 +48,7 @@ jobs:
 
   deploy-prod:
     name: Deploy to prod
-    uses: ./.github/workflows/naisdeploy
+    uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: prod
       image-tag: ${{ env.IMAGE_TAG }}
