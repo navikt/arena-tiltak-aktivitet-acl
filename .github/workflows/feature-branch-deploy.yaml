@@ -32,6 +32,7 @@ jobs:
 
   deploy-dev:
     name: Deploy to dev
+    needs: test-build-and-push
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: dev

@@ -17,7 +17,6 @@ on:
 jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
-    needs: test-build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
