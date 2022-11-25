@@ -37,24 +37,21 @@ jobs:
           docker push ${IMAGE}:${IMAGE_TAG}
 
   deploy-dev:
-    name: Deploy application to dev
-    needs: test-build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Deploy application
-        uses: nais/deploy/actions/deploy@v1
-        env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
-          RESOURCE: .nais/nais-dev.yaml
-          VAR: version=${{ env.IMAGE_TAG }}
-      - name: Create release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: release/dev@${{ env.IMAGE_TAG }}
-          release_name: Release to dev
-          prerelease: true
+    name: Deploy to dev
+    uses: ./.github/workflows/naisdeploy
+    with:
+      environment: dev
+      image-tag: ${{ env.IMAGE_TAG }}
+    secrets:
+      nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-prod:
+    name: Deploy to prod
+    uses: ./.github/workflows/naisdeploy
+    with:
+      environment: prod
+      image-tag: ${{ env.IMAGE_TAG }}
+    secrets:
+      nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}

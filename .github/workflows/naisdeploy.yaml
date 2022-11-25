@@ -1,0 +1,40 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      image-tag:
+        type: string
+        required: true
+    secrets:
+      secrets:
+        nais-deploy-secret:
+          required: true
+        github-token:
+          required: true
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    needs: test-build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Deploy application to ${{ inputs.environment }}
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.nais-deploy-secret }}
+          CLUSTER: ${{ inputs.environment }}-gcp
+          RESOURCE: .nais/nais-${{ inputs.environment }}.yaml
+          VAR: version=${{ inputs.image-tag }}
+      - name: Create release-tag for prod
+        if: ${{ inputs.environment }} == 'prod'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+        with:
+          tag_name: release/${{ inputs.environment }}@${{ inputs.image-tag }}
+          release_name: Release to ${{ inputs.cluster }}
+          prerelease: true
