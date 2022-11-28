@@ -26,7 +26,7 @@ jobs:
           VAR: version=${{ github.sha }}
       - name: Create release for prod
         uses: softprops/action-gh-release@v1
-        if: ${{ inputs.environment }} == 'prod'
+        if: inputs.environment == 'prod'
         with:
           name: Release to prod
           tag_name: release/prod@${{ github.sha }}
