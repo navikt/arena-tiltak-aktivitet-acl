@@ -29,5 +29,5 @@ jobs:
         if: ${{ inputs.environment }} == 'prod'
         with:
           name: Release to prod
-          tag_name: release/prod@${{ env.IMAGE_TAG }}
+          tag_name: release/prod@${{ github.sha }}
           prerelease: false
