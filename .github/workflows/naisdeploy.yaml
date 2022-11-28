@@ -4,9 +4,6 @@ on:
       environment:
         type: string
         required: true
-      image-tag:
-        type: string
-        required: true
     secrets:
       nais-deploy-secret:
         required: true
@@ -26,13 +23,13 @@ jobs:
           APIKEY: ${{ secrets.nais-deploy-secret }}
           CLUSTER: ${{ inputs.environment }}-gcp
           RESOURCE: .nais/nais-${{ inputs.environment }}.yaml
-          VAR: version=${{ inputs.image-tag }}
+          VAR: version=${{ github.sha }}
       - name: Create release-tag for prod
         if: ${{ inputs.environment }} == 'prod'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
         with:
-          tag_name: release/${{ inputs.environment }}@${{ inputs.IMAGE_TAG }}
+          tag_name: release/${{ inputs.environment }}@${{ github.sha }}
           release_name: Release to ${{ inputs.cluster }}
           prerelease: true
