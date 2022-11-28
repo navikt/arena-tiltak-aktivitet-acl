@@ -24,12 +24,10 @@ jobs:
           CLUSTER: ${{ inputs.environment }}-gcp
           RESOURCE: .nais/nais-${{ inputs.environment }}.yaml
           VAR: version=${{ github.sha }}
-      - name: Create release-tag for prod
+      - name: Create release for prod
+        uses: softprops/action-gh-release@v1
         if: ${{ inputs.environment }} == 'prod'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
         with:
-          tag_name: release/${{ inputs.environment }}@${{ github.sha }}
-          release_name: Release to ${{ inputs.cluster }}
-          prerelease: true
+          name: Release to prod
+          tag_name: release/prod@${{ env.IMAGE_TAG }}
+          prerelease: false
