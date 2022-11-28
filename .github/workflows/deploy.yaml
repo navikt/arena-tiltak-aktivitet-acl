@@ -38,6 +38,7 @@ jobs:
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: dev
+      image-tag: ${{ env.IMAGE_TAG }}
     secrets:
       nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -48,6 +49,7 @@ jobs:
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: prod
+      image-tag: ${{ env.IMAGE_TAG }}
     secrets:
       nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
