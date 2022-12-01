@@ -45,7 +45,7 @@ spec:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
       value: api://dev-fss.amt.amt-arena-ords-proxy/.default
     - name: AMT_ARENA_ORDS_PROXY_URL
-      value: https://amt-arena-ords-proxy.dev-fss-pub.nais.io
+      value: https://amt-arena-ords-proxy-q1.dev-fss-pub.nais.io
     - name: POAO_GCP_PROXY_SCOPE
       value: api://dev-fss.pto.poao-gcp-proxy/.default
     - name: POAO_GCP_PROXY_URL
