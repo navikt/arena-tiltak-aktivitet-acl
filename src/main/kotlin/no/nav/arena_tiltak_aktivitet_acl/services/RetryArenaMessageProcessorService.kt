@@ -1,5 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.services
 
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
@@ -8,7 +10,10 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.*
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_GJENNOMFORING_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -20,6 +25,7 @@ open class RetryArenaMessageProcessorService(
 	private val tiltakProcessor: TiltakProcessor,
 	private val gjennomforingProcessor: GjennomforingProcessor,
 	private val deltakerProcessor: DeltakerProcessor,
+	private val meterRegistry: MeterRegistry
 ) {
 
 	private val log = LoggerFactory.getLogger(javaClass)
@@ -70,26 +76,29 @@ open class RetryArenaMessageProcessorService(
 
 
 	private fun process(arenaDataDbo: ArenaDataDbo) {
-		try {
-			when (arenaDataDbo.arenaTableName) {
-				ARENA_TILTAK_TABLE_NAME -> tiltakProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
-				ARENA_GJENNOMFORING_TABLE_NAME -> gjennomforingProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
-				ARENA_DELTAKER_TABLE_NAME -> deltakerProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
-			}
-		} catch (e: Exception) {
-			val currentIngestAttempts = arenaDataDbo.ingestAttempts + 1
-			val hasReachedMaxRetries = currentIngestAttempts >= MAX_INGEST_ATTEMPTS
+		withTimer(arenaDataDbo.arenaTableName) {
+			try {
+				when (arenaDataDbo.arenaTableName) {
+					ARENA_TILTAK_TABLE_NAME -> tiltakProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
+					ARENA_GJENNOMFORING_TABLE_NAME -> gjennomforingProcessor.handleArenaMessage(
+						toArenaKafkaMessage(
+							arenaDataDbo
+						)
+					)
+					ARENA_DELTAKER_TABLE_NAME -> deltakerProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
+				}
+			} catch (e: Exception) {
+				val currentIngestAttempts = arenaDataDbo.ingestAttempts + 1
+				val hasReachedMaxRetries = currentIngestAttempts >= MAX_INGEST_ATTEMPTS
 
-			if(e is IgnoredException) {
-				log.info("${arenaDataDbo.id} in table ${arenaDataDbo.arenaTableName}: '${e.message}'")
-				arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.IGNORED)
+				if (e is IgnoredException) {
+					log.info("${arenaDataDbo.id} in table ${arenaDataDbo.arenaTableName}: '${e.message}'")
+					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.IGNORED)
+				} else if (arenaDataDbo.ingestStatus == IngestStatus.RETRY && hasReachedMaxRetries) {
+					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.FAILED)
+				}
+				arenaDataRepository.updateIngestAttempts(arenaDataDbo.id, currentIngestAttempts, e.message)
 			}
-			else if (arenaDataDbo.ingestStatus == IngestStatus.RETRY && hasReachedMaxRetries) {
-				arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.FAILED)
-			}
-
-
-			arenaDataRepository.updateIngestAttempts(arenaDataDbo.id, currentIngestAttempts, e.message)
 		}
 	}
 
@@ -102,6 +111,16 @@ open class RetryArenaMessageProcessorService(
 			before = arenaDataDbo.before?.let { mapper.readValue(it, D::class.java) },
 			after = arenaDataDbo.after?.let { mapper.readValue(it, D::class.java) }
 		)
+	}
+
+	private fun withTimer(tableName: String, runnable: () -> Unit) {
+		val timer = Timer.builder("batchProcessor")
+			.publishPercentiles(0.5, 0.95) // median and 95th percentile
+			.publishPercentileHistogram()
+			.tag("tableName", tableName)
+			.register(meterRegistry)
+
+		timer.record { runnable.invoke() }
 	}
 
 }
