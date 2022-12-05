@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
+import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
@@ -211,6 +212,7 @@ open class ArenaDataRepository(
 		return template.update(sql, EmptySqlParameterSource())
 	}
 
+	@Timed(value = "acl.query.hasUnhandledDeltakelse")
 	fun hasUnhandledDeltakelse(deltakelseArenaId: Long): Boolean {
 		//language=PostgreSQL
 		val sql = """

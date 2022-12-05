@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.kafka
 
+import io.micrometer.core.instrument.MeterRegistry
 import no.nav.arena_tiltak_aktivitet_acl.services.ArenaMessageProcessorService
 import no.nav.common.featuretoggle.UnleashClient
 import no.nav.common.kafka.consumer.KafkaConsumerClient
@@ -16,6 +17,7 @@ open class KafkaConsumer(
 	kafkaProperties: KafkaProperties,
 	private val arenaMessageProcessorService: ArenaMessageProcessorService,
 	unleashClient: UnleashClient,
+	private val meterRegistry: MeterRegistry
 ) {
 
 	private val client: KafkaConsumerClient
@@ -32,6 +34,7 @@ open class KafkaConsumer(
 		val topicConfigs = topics.map { topic ->
 			KafkaConsumerClientBuilder.TopicConfig<String, String>()
 				.withLogging()
+				.withMetrics(meterRegistry)
 				.withConsumerConfig(
 					topic,
 					stringDeserializer(),

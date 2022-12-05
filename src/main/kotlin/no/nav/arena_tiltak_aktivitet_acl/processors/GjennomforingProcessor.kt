@@ -1,9 +1,9 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import ArenaOrdsProxyClient
+import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.clients.amt_enhetsregister.EnhetsregisterClient
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusQueued
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforingKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
@@ -20,6 +20,7 @@ open class GjennomforingProcessor(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
+	@Timed(value="tiltakProcessor")
 	override fun handleArenaMessage(message: ArenaGjennomforingKafkaMessage) {
 		val gjennomforing = message.getData().mapTiltakGjennomforing()
 
