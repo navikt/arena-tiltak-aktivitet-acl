@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.clients.ordsproxy
 
 import ArenaOrdsProxyClient
+import io.micrometer.core.annotation.Timed
 import no.nav.common.rest.client.RestClient.baseClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -21,6 +22,7 @@ open class ArenaOrdsProxyClientImpl(
 
 	private val objectMapper = ObjectMapper.get()
 
+	@Timed(value = "acl.hentFnr")
 	override fun hentFnr(arenaPersonId: Long): String? {
 		val request = Request.Builder()
 			.url("$baseUrl/api/ords/fnr?personId=$arenaPersonId")

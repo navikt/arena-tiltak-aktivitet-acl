@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
+import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
@@ -18,6 +19,7 @@ open class TiltakProcessor(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
+	@Timed(value="tiltakProcessor")
 	override fun handleArenaMessage(message: ArenaTiltakKafkaMessage) {
 		val data = message.getData()
 

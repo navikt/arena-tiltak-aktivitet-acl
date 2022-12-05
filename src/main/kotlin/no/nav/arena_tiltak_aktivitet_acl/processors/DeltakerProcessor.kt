@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import ArenaOrdsProxyClient
+import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
@@ -39,6 +40,7 @@ open class DeltakerProcessor(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
+	@Timed(value="tiltakProcessor")
 	override fun handleArenaMessage(message: ArenaDeltakerKafkaMessage) {
 		val arenaDeltaker = message.getData()
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
@@ -46,6 +48,10 @@ open class DeltakerProcessor(
 		val personIdent = ordsClient.hentFnr(deltaker.personId)
 			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
 		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
+
+		if(deltaker.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
+			throw IgnoredException("Deltakeren registrert=${deltaker.regDato} opprettet før aktivitetsplan skal ikke håndteres")
+		}
 
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
@@ -68,10 +74,6 @@ open class DeltakerProcessor(
 
 		if (skalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)) {
 			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
-		}
-
-		if(deltaker.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
-			throw IgnoredException("Deltakeren registrert=${deltaker.regDato} opprettet før aktivitetsplan skal ikke håndteres")
 		}
 
 
