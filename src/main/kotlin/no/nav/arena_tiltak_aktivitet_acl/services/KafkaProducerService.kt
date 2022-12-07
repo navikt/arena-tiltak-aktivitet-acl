@@ -22,11 +22,15 @@ open class KafkaProducerService(
 	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto, arenaTiltakskode: String, eksternReferanseId: String) {
 		val headers = listOf(
 			RecordHeader("arenaTiltakskode", arenaTiltakskode.toByteArray()),
-			RecordHeader("eksternReferanseId", eksternReferanseId.toByteArray()),
+			RecordHeader("eksternReferanseId", (TILTAK_ID_PREFIX + eksternReferanseId).toByteArray()),
 		)
 
 		val record = ProducerRecord(topic, null, messageKey.toString(), objectMapper.writeValueAsString(data), headers)
 		kafkaProducer.sendSync(record)
+	}
+
+	companion object {
+		const val TILTAK_ID_PREFIX = "TA"
 	}
 
 }
