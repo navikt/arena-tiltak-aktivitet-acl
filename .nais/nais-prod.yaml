@@ -18,8 +18,8 @@ spec:
     path: /internal/health/liveness
     initialDelay: 20
   replicas:
-    min: 1
-    max: 1
+    min: 4
+    max: 4
     cpuThresholdPercentage: 75
   resources:
     limits:
@@ -45,7 +45,7 @@ spec:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
       value: api://prod-fss.amt.amt-arena-ords-proxy/.default
     - name: AMT_ARENA_ORDS_PROXY_URL
-      value: https://amt-arena-ords-proxy.intern.nav.no
+      value: https://amt-arena-ords-proxy.prod-fss-pub.nais.io
     - name: POAO_GCP_PROXY_SCOPE
       value: api://prod-fss.pto.poao-gcp-proxy/.default
     - name: POAO_GCP_PROXY_URL
