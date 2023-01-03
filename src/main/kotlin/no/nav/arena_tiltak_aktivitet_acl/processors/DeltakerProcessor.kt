@@ -43,13 +43,15 @@ open class DeltakerProcessor(
 		val arenaDeltaker = message.getData()
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
 		val deltaker = arenaDeltaker.mapTiltakDeltaker()
-		val personIdent = ordsClient.hentFnr(deltaker.personId)
-			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
-		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
 
 		if(deltaker.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
 			throw IgnoredException("Deltakeren registrert=${deltaker.regDato} opprettet før aktivitetsplan skal ikke håndteres")
 		}
+
+		val personIdent = ordsClient.hentFnr(deltaker.personId)
+			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
+		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
+
 
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
