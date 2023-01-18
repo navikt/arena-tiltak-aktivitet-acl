@@ -25,7 +25,7 @@ abstract class DeltakerCommand : Command() {
 			BEGRUNNELSE_INNSOKT = GENERIC_STRING,
 			BEGRUNNELSE_PRIORITERING = GENERIC_STRING,
 			REG_DATO = dateFormatter.format(input.registrertDato),
-			REG_USER = GENERIC_STRING,
+			REG_USER = input.endretAv.ident,
 			MOD_DATO = dateFormatter.format(input.endretTidspunkt),
 			MOD_USER = input.endretAv.ident,
 			DATO_SVARFRIST = GENERIC_STRING,
