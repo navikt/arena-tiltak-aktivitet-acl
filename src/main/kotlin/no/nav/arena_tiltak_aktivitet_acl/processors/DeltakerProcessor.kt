@@ -77,7 +77,7 @@ open class DeltakerProcessor(
 		}
 
 
-		val aktivitetId = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+		val (aktivitetId, nyAktivitet) = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
 
 		val aktivitet = ArenaDeltakerConverter
 			.convertToTiltaksaktivitet(
@@ -86,7 +86,8 @@ open class DeltakerProcessor(
 				personIdent = personIdent,
 				arrangorNavn = gjennomforing.arrangorNavn,
 				gjennomforingNavn = gjennomforing.navn ?: tiltak.navn,
-				tiltak = tiltak
+				tiltak = tiltak,
+				nyAktivitet = nyAktivitet,
 			)
 
 		val kafkaMessage = KafkaMessageDto(

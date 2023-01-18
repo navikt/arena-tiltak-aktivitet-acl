@@ -14,7 +14,7 @@ open class TranslationService(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	fun hentEllerOpprettAktivitetId(deltakerArenaId: Long, aktivitetType: AktivitetKategori): UUID {
+	fun hentEllerOpprettAktivitetId(deltakerArenaId: Long, aktivitetType: AktivitetKategori): Pair<UUID, Boolean> {
 		val aktivitetId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
 
 		if (aktivitetId == null) {
@@ -27,10 +27,10 @@ open class TranslationService(
 				aktivitetType
 			)
 
-			return nyAktivitetsId
+			return Pair(nyAktivitetsId, true)
 		}
 
-		return aktivitetId
+		return Pair(aktivitetId, false)
 	}
 
 	private fun insertTranslation(arenaId: Long, aktivitetId: UUID, kategori: AktivitetKategori) {

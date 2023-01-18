@@ -2,7 +2,6 @@ package no.nav.arena_tiltak_aktivitet_acl.processors.converters
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.TiltakDeltaker
-import java.lang.IllegalArgumentException
 import java.util.*
 
 object ArenaDeltakerConverter {
@@ -64,6 +63,7 @@ object ArenaDeltakerConverter {
 		arrangorNavn: String?,
 		gjennomforingNavn: String,
 		tiltak: Tiltak,
+		nyAktivitet: Boolean,
 	): Aktivitetskort {
 		return Aktivitetskort(
 			id = aktivitetId,
@@ -77,9 +77,9 @@ object ArenaDeltakerConverter {
 				toDeltakelseStatus(deltaker.deltakerStatusKode)
 				?.let { deltakelseStatus -> Etikett(deltakelseStatus.toString()) }),
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) Beskrivelse(verdi = gjennomforingNavn) else null,
-			endretTidspunkt = deltaker.modDato ?: deltaker.regDato,
-			endretAv = Ident(ident = (deltaker.modUser ?: deltaker.regUser)
-				?: throw IllegalArgumentException("Missing both regUser and modUser")),
+			endretTidspunkt = if (nyAktivitet) deltaker.regDato else deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
+			endretAv = if (nyAktivitet) Ident(ident = deltaker.regUser ?: throw IllegalArgumentException("Missing regUser"))
+			           else Ident(ident = deltaker.modUser ?: throw IllegalArgumentException("Missing modUser")),
 			detaljer = listOfNotNull(
 				if (arrangorNavn != null) Attributt("Arrangør", arrangorNavn) else null,
 				if (deltaker.prosentDeltid != null) Attributt("Deltakelse", "${deltaker.prosentDeltid}%") else null,
