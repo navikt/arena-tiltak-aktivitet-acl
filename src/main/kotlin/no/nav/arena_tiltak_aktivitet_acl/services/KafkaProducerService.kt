@@ -13,7 +13,6 @@ import java.util.*
 open class KafkaProducerService(
 	private val kafkaProducer: KafkaProducerClient<String, String>
 ) {
-
 	private val objectMapper = ObjectMapper.get()
 
 	@Value("\${app.env.aktivitetskortTopic}")
@@ -24,12 +23,12 @@ open class KafkaProducerService(
 		data: KafkaMessageDto,
 		arenaTiltakskode: String,
 		eksternReferanseId: String,
-		oppfolgingsperiode: UUID?
+		oppfolgingsperiodeId: UUID?
 	) {
 		val headers = listOf(
 			RecordHeader("arenaTiltakskode", arenaTiltakskode.toByteArray()),
 			RecordHeader("eksternReferanseId", (TILTAK_ID_PREFIX + eksternReferanseId).toByteArray()),
-			RecordHeader("oppfolgingsperiode", oppfolgingsperiode?.toString()?.toByteArray()?: "".toByteArray()),
+			RecordHeader("oppfolgingsperiode", oppfolgingsperiodeId?.toString()?.toByteArray()?: "".toByteArray()),
 		)
 
 		val record = ProducerRecord(topic, null, messageKey.toString(), objectMapper.writeValueAsString(data), headers)

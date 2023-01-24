@@ -2,6 +2,7 @@ package no.nav.veilarbaktivitet.aktivitetskort
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

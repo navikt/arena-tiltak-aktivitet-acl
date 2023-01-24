@@ -1,4 +1,4 @@
-package no.nav.veilarbaktivitet.aktivitetskort
+package no.nav.arena_tiltak_aktivitet_acl.services
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode

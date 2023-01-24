@@ -3,15 +3,11 @@ package no.nav.arena_tiltak_aktivitet_acl.clients.enhetsregister
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
-import no.nav.arena_tiltak_aktivitet_acl.clients.amt_enhetsregister.AmtEnhetsregisterClient
-import no.nav.arena_tiltak_aktivitet_acl.clients.amt_enhetsregister.Virksomhet
-import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClientImpl
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 

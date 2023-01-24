@@ -33,6 +33,12 @@ open class TranslationService(
 		return Pair(aktivitetId, false)
 	}
 
+	fun aktivitetIdExists(deltakerArenaId: Long, aktivitetType: AktivitetKategori): Boolean {
+		val aktivitetId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
+
+		return aktivitetId != null
+	}
+
 	private fun insertTranslation(arenaId: Long, aktivitetId: UUID, kategori: AktivitetKategori) {
 		val translation = TranslationDbo(
 			aktivitetId = aktivitetId,
