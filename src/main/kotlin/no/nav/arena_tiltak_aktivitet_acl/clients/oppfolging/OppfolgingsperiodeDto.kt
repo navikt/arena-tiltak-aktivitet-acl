@@ -6,7 +6,7 @@ import java.util.*
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OppfolgingsperiodeDto (
-	val uuid: UUID? = null,
-	val startDato: ZonedDateTime? = null,
-	val sluttDato: ZonedDateTime? = null
+	val uuid: UUID,
+	val startDato: ZonedDateTime,
+	val sluttDato: ZonedDateTime?
 )

@@ -4,7 +4,7 @@ import java.time.ZonedDateTime
 import java.util.*
 
 data class Oppfolgingsperiode (
-	private val uuid: UUID? = null,
-	private val startDato: ZonedDateTime? = null,
-	private val sluttDato: ZonedDateTime? = null
+	val uuid: UUID,
+	val startDato: ZonedDateTime,
+	val sluttDato: ZonedDateTime?
 )
