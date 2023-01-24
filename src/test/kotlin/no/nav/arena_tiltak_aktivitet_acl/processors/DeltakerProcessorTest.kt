@@ -1,6 +1,32 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
-/*
+import ArenaOrdsProxyClient
+import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrowExactly
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
+import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.repositories.*
+import no.nav.arena_tiltak_aktivitet_acl.services.*
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.time.ZonedDateTime
+import java.util.*
+
 class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -9,10 +35,26 @@ class DeltakerProcessorTest : FunSpec({
 		on { hentFnr(anyLong()) } doReturn "01010051234"
 	}
 
+	val oppfolgingClient = mock<OppfolgingClient> {
+		on { hentOppfolgingsperioder(anyString()) } doReturn listOf(
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusMonths(2),
+				sluttDato = ZonedDateTime.now().minusMonths(1)
+			),
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusWeeks(2),
+				sluttDato = null
+			)
+		)
+	}
+
 	val kafkaProducerService = mock<KafkaProducerService>()
 
 	lateinit var arenaDataRepository: ArenaDataRepository
 	lateinit var idTranslationRepository: TranslationRepository
+	lateinit var personSporingRepository: PersonSporingRepository
 
 	lateinit var deltakerProcessor: DeltakerProcessor
 
@@ -26,6 +68,7 @@ class DeltakerProcessorTest : FunSpec({
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
 		idTranslationRepository = TranslationRepository(template)
+		personSporingRepository = PersonSporingRepository(template)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
 
@@ -36,7 +79,9 @@ class DeltakerProcessorTest : FunSpec({
 			kafkaProducerService = kafkaProducerService,
 			aktivitetService = AktivitetService(AktivitetRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
-			tiltakService = TiltakService(TiltakRepository(template))
+			tiltakService = TiltakService(TiltakRepository(template)),
+			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
+			personsporingService = PersonsporingService(personSporingRepository)
 		)
 	}
 
@@ -71,8 +116,6 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("DeltakerProcessor should get a translation on non-ignored Gjennomforing") {
-		val position = UUID.randomUUID().toString()
-
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L
@@ -80,7 +123,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		deltakerProcessor.handleArenaMessage(newDeltaker)
 
-		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, position)
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, "1")
 
 		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
 
@@ -147,5 +190,3 @@ class DeltakerProcessorTest : FunSpec({
 
 })
 
-
-*/
