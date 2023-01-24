@@ -6,16 +6,21 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.chrono.ChronoZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Comparator.comparingLong
 import kotlin.math.abs
 
 @Service
-open class MigreringService(
+open class OppfolgingsperiodeService(
 	private val oppfolgingClient: OppfolgingClient
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
+
+	fun innenEnUke(opprettetTidspunkt: LocalDateTime, periodeStartDato: ZonedDateTime ): Boolean {
+		return opprettetTidspunkt.plus(7, ChronoUnit.DAYS).isAfter(periodeStartDato.toLocalDateTime())
+	}
 
 	fun finnOppfolgingsperiode(fnr: String, opprettetTidspunkt: LocalDateTime): Oppfolgingsperiode? {
 		val oppfolgingsperioder = oppfolgingClient.hentOppfolgingsperioder(fnr)
@@ -50,10 +55,10 @@ open class MigreringService(
 				.filter { it.sluttDato == null || it.sluttDato.isAfter(opprettetTidspunktCZDT) }
 				.min(comparingLong { abs(ChronoUnit.MILLIS.between(opprettetTidspunktCZDT, it.startDato)) })
 				.filter {
-					val innenEnUke = opprettetTidspunkt.plus(7, ChronoUnit.DAYS).isAfter(it.startDato.toLocalDateTime())
+					val innenEnUke = innenEnUke(opprettetTidspunkt, it.startDato)
 					if (innenEnUke) {
 						log.info(
-							"Arenatiltak finn oppfølgingsperiode - opprettetdato innen 10 minutter oppfølging startdato) - aktorId={}, opprettetTidspunkt={}, oppfolgingsperioder={}",
+							"Arenatiltak finn oppfølgingsperiode - opprettetdato innen 1 uke oppfølging startdato) - fnr={}, opprettetTidspunkt={}, oppfolgingsperioder={}",
 							fnr,
 							opprettetTidspunkt,
 							oppfolgingsperioder
@@ -62,7 +67,7 @@ open class MigreringService(
 					innenEnUke
 				}.orElseGet {
 					log.info(
-						"Arenatiltak finn oppfølgingsperiode - opprettetTidspunkt har ingen god match på oppfølgingsperioder) - aktorId={}, opprettetTidspunkt={}, oppfolgingsperioder={}",
+						"Arenatiltak finn oppfølgingsperiode - opprettetTidspunkt har ingen god match på oppfølgingsperioder) - fnr={}, opprettetTidspunkt={}, oppfolgingsperioder={}",
 						fnr,
 						opprettetTidspunkt,
 						oppfolgingsperioder

@@ -14,6 +14,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
+import no.nav.veilarbaktivitet.aktivitetskort.OppfolgingsperiodeService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -29,7 +30,8 @@ open class DeltakerProcessor(
 	private val gjennomforingRepository: GjennomforingRepository,
 	private val aktivitetService: AktivitetService,
 	private val tiltakService: TiltakService,
-	private val personsporingService: PersonsporingService
+	private val personsporingService: PersonsporingService,
+	private val oppfolgingsperiodeService: OppfolgingsperiodeService
 
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
 
@@ -90,6 +92,8 @@ open class DeltakerProcessor(
 				nyAktivitet = nyAktivitet,
 			)
 
+		val oppfolgingsperiode = if (nyAktivitet) oppfolgingsperiodeService.finnOppfolgingsperiode(fnr = aktivitet.personIdent, opprettetTidspunkt = aktivitet.endretTidspunkt ) else null
+
 		val kafkaMessage = KafkaMessageDto(
 			messageId = UUID.randomUUID(),
 			actionType = ActionType.UPSERT_AKTIVITETSKORT_V1,
@@ -97,7 +101,13 @@ open class DeltakerProcessor(
 			aktivitetskortType = AktivitetskortType.ARENA_TILTAK
 		)
 
-		kafkaProducerService.sendTilAktivitetskortTopic(aktivitet.id, kafkaMessage, tiltak.kode, deltaker.tiltakdeltakerId.toString())
+		kafkaProducerService.sendTilAktivitetskortTopic(
+			aktivitet.id,
+			kafkaMessage,
+			tiltak.kode,
+			deltaker.tiltakdeltakerId.toString(),
+			null
+		)
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltaker.tiltakdeltakerId))
 
 

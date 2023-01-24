@@ -11,15 +11,14 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
-// la denne stå til vi har tatt inn tiltaksativitet, utdanningsaktivitet og gruppeaktivitet
-class MigreringServiceTest {
+class OppfolgingsperiodeServiceTest {
 	private lateinit var oppfolgingClient: OppfolgingClient
-	private lateinit var migreringService: MigreringService
+	private lateinit var oppfolgingsperiodeService: OppfolgingsperiodeService
 
 	@BeforeEach
 	fun setup() {
 		oppfolgingClient = Mockito.mock(OppfolgingClient::class.java)
-		migreringService = MigreringService(oppfolgingClient)
+		oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient)
 	}
 
 	@Test
@@ -148,7 +147,7 @@ class MigreringServiceTest {
 		Mockito.`when`(oppfolgingClient.hentOppfolgingsperioder(ArgumentMatchers.anyString()))
 			.thenReturn(perioder)
 
-		return migreringService.finnOppfolgingsperiode(FNR, opprettetTidspunkt)
+		return oppfolgingsperiodeService.finnOppfolgingsperiode(FNR, opprettetTidspunkt)
 	}
 
 	private fun oppfperiodeDTO(startDato: ZonedDateTime, sluttDato: ZonedDateTime?): Oppfolgingsperiode {

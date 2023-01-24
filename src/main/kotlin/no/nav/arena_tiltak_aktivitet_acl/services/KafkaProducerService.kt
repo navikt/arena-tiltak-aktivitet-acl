@@ -19,10 +19,17 @@ open class KafkaProducerService(
 	@Value("\${app.env.aktivitetskortTopic}")
 	lateinit var topic: String
 
-	fun sendTilAktivitetskortTopic(messageKey: UUID, data: KafkaMessageDto, arenaTiltakskode: String, eksternReferanseId: String) {
+	fun sendTilAktivitetskortTopic(
+		messageKey: UUID,
+		data: KafkaMessageDto,
+		arenaTiltakskode: String,
+		eksternReferanseId: String,
+		oppfolgingsperiode: UUID?
+	) {
 		val headers = listOf(
 			RecordHeader("arenaTiltakskode", arenaTiltakskode.toByteArray()),
 			RecordHeader("eksternReferanseId", (TILTAK_ID_PREFIX + eksternReferanseId).toByteArray()),
+			RecordHeader("oppfolgingsperiode", oppfolgingsperiode?.toString()?.toByteArray()?: "".toByteArray()),
 		)
 
 		val record = ProducerRecord(topic, null, messageKey.toString(), objectMapper.writeValueAsString(data), headers)
