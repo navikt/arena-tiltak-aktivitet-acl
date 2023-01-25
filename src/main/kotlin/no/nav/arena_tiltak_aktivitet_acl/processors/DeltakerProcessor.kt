@@ -6,10 +6,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.toAktivitetStatus
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
@@ -23,6 +20,7 @@ import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
+import java.time.ZonedDateTime
 import java.util.*
 
 @Component
@@ -48,6 +46,10 @@ open class DeltakerProcessor(
 		val arenaDeltaker = message.getData()
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
 		val deltaker = arenaDeltaker.mapTiltakDeltaker()
+
+		if (message.operationType == Operation.DELETED) {
+			throw IgnoredException("Skal ignorere deltakelse med operation type DELETE")
+		}
 
 		if (deltaker.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
 			throw IgnoredException("Deltakeren registrert=${deltaker.regDato} opprettet før aktivitetsplan skal ikke håndteres")

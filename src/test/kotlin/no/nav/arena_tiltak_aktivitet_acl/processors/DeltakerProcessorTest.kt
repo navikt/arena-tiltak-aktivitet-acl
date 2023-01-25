@@ -16,6 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
@@ -24,6 +25,7 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -35,21 +37,18 @@ class DeltakerProcessorTest : FunSpec({
 		on { hentFnr(anyLong()) } doReturn "01010051234"
 	}
 
-
-	val oppfolgingClient = mock<OppfolgingClient> {
-		on { hentOppfolgingsperioder(anyString()) } doReturn listOf(
-			Oppfolgingsperiode(
-				uuid = UUID.randomUUID(),
-				startDato = ZonedDateTime.now().minusMonths(2),
-				sluttDato = ZonedDateTime.now().minusMonths(1)
-			),
-			Oppfolgingsperiode(
-				uuid = UUID.randomUUID(),
-				startDato = ZonedDateTime.now().minusWeeks(2),
-				sluttDato = null
-			)
+	val defaultOppfolgingsperioder = listOf(
+		Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusMonths(2),
+			sluttDato = ZonedDateTime.now().minusMonths(1)
+		),
+		Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusWeeks(2),
+			sluttDato = null
 		)
-	}
+	)
 
 	val kafkaProducerService = mock<KafkaProducerService>()
 
@@ -57,23 +56,26 @@ class DeltakerProcessorTest : FunSpec({
 	lateinit var idTranslationRepository: TranslationRepository
 	lateinit var personSporingRepository: PersonSporingRepository
 
-	lateinit var deltakerProcessor: DeltakerProcessor
-
 	val nonIgnoredGjennomforingArenaId = 1L
 	val ignoredGjennomforingArenaId = 2L
 
 	beforeEach {
-		// val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
-		// rootLogger.level = Level.WARN
-
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
 		idTranslationRepository = TranslationRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
+	}
 
-		deltakerProcessor = DeltakerProcessor(
+	fun createDeltakerProcessor(oppfolgingsperioder: List<Oppfolgingsperiode> = defaultOppfolgingsperioder): DeltakerProcessor {
+		val template = NamedParameterJdbcTemplate(dataSource)
+
+		val oppfolgingClient = mock<OppfolgingClient> {
+			on { hentOppfolgingsperioder(anyString()) } doReturn oppfolgingsperioder
+		}
+
+		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
 			arenaIdTranslationService = TranslationService(idTranslationRepository),
 			ordsClient = ordsClient,
@@ -122,7 +124,7 @@ class DeltakerProcessorTest : FunSpec({
 			deltakerArenaId = 1L
 		)
 
-		deltakerProcessor.handleArenaMessage(newDeltaker)
+		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 
 
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
@@ -136,7 +138,7 @@ class DeltakerProcessorTest : FunSpec({
 		val statuser = listOf("VENTELISTE", "AKTUELL", "JATAKK", "INFOMOETE")
 
 		shouldThrowExactly<IgnoredException> {
-			deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
+			createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
 				tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
 				deltakerArenaId = 1,
 				deltakerStatusKode = "AKTUELL"
@@ -145,7 +147,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		statuser.forEachIndexed { idx, status ->
 
-			deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
+			createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
 				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 				deltakerArenaId = idx.toLong() + 1,
 				deltakerStatusKode = status
@@ -157,7 +159,7 @@ class DeltakerProcessorTest : FunSpec({
 
 	test("Insert Deltaker with gjennomføring not processed should throw exception") {
 		shouldThrowExactly<DependencyNotIngestedException> {
-			deltakerProcessor.handleArenaMessage(
+			createDeltakerProcessor().handleArenaMessage(
 				createArenaDeltakerKafkaMessage(
 					2348790L,
 					1L
@@ -167,18 +169,104 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Should process deleted deltaker") {
-		val position = UUID.randomUUID().toString()
+		shouldThrowExactly<IgnoredException> {
+			createDeltakerProcessor().handleArenaMessage(
+				createArenaDeltakerKafkaMessage(
+					tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+					deltakerArenaId = 1L,
+					operation = Operation.DELETED
+				)
+			)
+		}
+	}
 
-		deltakerProcessor.handleArenaMessage(
-			createArenaDeltakerKafkaMessage(
-				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
-				deltakerArenaId = 1L,
-				operation = Operation.DELETED
+	test("Skal opprette translation hvis regDato (opprettetTidspunkt) er innen en oppfølgingsperiode") {
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1)
+
+		val newDeltaker = createArenaDeltakerKafkaMessage(
+			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+			deltakerArenaId = 1L,
+			registrertDato = opprettetTidspunkt
+		)
+
+		createDeltakerProcessor().handleArenaMessage(newDeltaker)
+
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
+
+		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
+
+		translationEntry shouldNotBe null
+	}
+
+	test("Skal kaste OppfolgingsperiodeNotFoundException hvis ingen perioder") {
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+
+		val opprettetTidspunkt = LocalDateTime.now().minusDays(8)
+
+		val newDeltaker = createArenaDeltakerKafkaMessage(
+			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+			deltakerArenaId = 1L,
+			registrertDato = opprettetTidspunkt
+		)
+
+		shouldThrowExactly<OppfolgingsperiodeNotFoundException> {
+			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
+		}
+	}
+
+	test("Skal kaste OppfolgingsperiodeNotFoundException hvis ingen passende perioder") {
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>(
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusMonths(2),
+				sluttDato = ZonedDateTime.now().minusMonths(1)
+			),
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusWeeks(2),
+				sluttDato = null
 			)
 		)
 
-		getAndCheckArenaDataRepositoryEntry(Operation.DELETED, position, IngestStatus.HANDLED)
+		val opprettetTidspunkt = LocalDateTime.now().minusMonths(3)
+
+		val newDeltaker = createArenaDeltakerKafkaMessage(
+			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+			deltakerArenaId = 1L,
+			registrertDato = opprettetTidspunkt
+		)
+
+		shouldThrowExactly<OppfolgingsperiodeNotFoundException> {
+			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
+		}
 	}
 
+	test("skal permanent ignorere deltakelser som er avsluttet hvis de ikke har noen passende oppfølgingsperioder") {
+		val oppfolgingsperioder = listOf(
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusMonths(2),
+				sluttDato = ZonedDateTime.now().minusMonths(1)
+			),
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusWeeks(2),
+				sluttDato = null
+			)
+		)
+
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(3)
+
+		val newDeltaker = createArenaDeltakerKafkaMessage(
+			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+			deltakerArenaId = 1L,
+			registrertDato = opprettetTidspunkt,
+			deltakerStatusKode = "FULLF"
+		)
+
+		shouldThrowExactly<IgnoredException> {
+			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
+		}
+	}
 })
 

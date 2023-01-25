@@ -4,6 +4,7 @@ import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
@@ -24,8 +25,7 @@ open class TiltakProcessor(
 		val data = message.getData()
 
 		if (message.operationType == Operation.DELETED) {
-			log.error("Implementation for delete elements are not implemented. Cannot handle arena id ${data.TILTAKSKODE} from table ${message.arenaTableName} at position ${message.operationPosition}")
-			throw OperationNotImplementedException("Kan ikke håndtere tiltak med operation type DELETE")
+			throw IgnoredException("Skal ignorere tiltak med operation type DELETE")
 		}
 
 		val id = UUID.randomUUID()
