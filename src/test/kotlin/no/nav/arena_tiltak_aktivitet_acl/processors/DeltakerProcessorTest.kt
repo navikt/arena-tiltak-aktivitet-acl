@@ -35,6 +35,7 @@ class DeltakerProcessorTest : FunSpec({
 		on { hentFnr(anyLong()) } doReturn "01010051234"
 	}
 
+
 	val oppfolgingClient = mock<OppfolgingClient> {
 		on { hentOppfolgingsperioder(anyString()) } doReturn listOf(
 			Oppfolgingsperiode(
@@ -123,7 +124,8 @@ class DeltakerProcessorTest : FunSpec({
 
 		deltakerProcessor.handleArenaMessage(newDeltaker)
 
-		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, "1")
+
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
 
 		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
 
@@ -142,13 +144,14 @@ class DeltakerProcessorTest : FunSpec({
 		}
 
 		statuser.forEachIndexed { idx, status ->
-			shouldThrowExactly<IgnoredException> {
-				deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
-					tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
-					deltakerArenaId = idx.toLong() + 1,
-					deltakerStatusKode = status
-				))
-			}
+
+			deltakerProcessor.handleArenaMessage(createArenaDeltakerKafkaMessage(
+				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+				deltakerArenaId = idx.toLong() + 1,
+				deltakerStatusKode = status
+			))
+
+			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
 		}
 	}
 
@@ -157,17 +160,6 @@ class DeltakerProcessorTest : FunSpec({
 			deltakerProcessor.handleArenaMessage(
 				createArenaDeltakerKafkaMessage(
 					2348790L,
-					1L
-				)
-			)
-		}
-	}
-
-	test("Insert Deltaker on Ignored Gjennomføring sets Deltaker to Ingored") {
-		shouldThrowExactly<IgnoredException> {
-			deltakerProcessor.handleArenaMessage(
-				createArenaDeltakerKafkaMessage(
-					ignoredGjennomforingArenaId,
 					1L
 				)
 			)

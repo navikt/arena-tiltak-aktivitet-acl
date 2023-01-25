@@ -5,16 +5,17 @@ import io.mockk.mockk
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.util.*
 
@@ -27,6 +28,8 @@ class ArenaGjennomforingProcessorTest {
 	private lateinit var ordsClient: ArenaOrdsProxyClient
 	private lateinit var kafkaProducerService: KafkaProducerService
 	private lateinit var gjennomforingProcessor: GjennomforingProcessor
+
+	private var mapper = ObjectMapper.get()
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
 	var tiltakKode = "INDOPPFAG"
@@ -146,7 +149,7 @@ class ArenaGjennomforingProcessorTest {
 			before = if (listOf(Operation.MODIFIED, Operation.DELETED).contains(operationType)) arenaGjennomforingDto else null,
 			after =  if (listOf(Operation.CREATED, Operation.MODIFIED).contains(operationType)) arenaGjennomforingDto else null,
 		)
-	}*/
+	}
 
 	private val arenaGjennomforingUgyldigJson = """
 		{
@@ -282,4 +285,6 @@ class ArenaGjennomforingProcessorTest {
 		  "MAALFORM_KRAVBREV": "NO"
 		}
 	""".trimIndent()
+ */
+
 }
