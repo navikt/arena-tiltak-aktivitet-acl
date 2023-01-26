@@ -88,7 +88,7 @@ open class ArenaMessageProcessorService(
 				}
 				is OppfolgingsperiodeNotFoundException -> {
 					log.info("Oppfolgingsperiode not found for $arenaId in table $arenaTableName: '${e.message}'")
-					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.FAILED, note = e.message))
+					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.RETRY, note = e.message))
 				}
 				else -> {
 					log.error("$arenaId in table $arenaTableName: ${e.message}", e)

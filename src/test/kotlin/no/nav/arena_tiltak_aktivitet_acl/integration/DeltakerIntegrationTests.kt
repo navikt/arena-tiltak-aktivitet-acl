@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
@@ -10,15 +11,20 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltake
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
+import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
-import org.junit.Ignore
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.*
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
@@ -271,6 +277,85 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, _, output -> output?.aktivitetskort?.tittel shouldBe TILTAKSNAVN_OVERRIDE }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput.copy(navn = TILTAKSNAVN_OVERRIDE)) }
+	}
+
+	@Test
+	fun `nye aktiviteter uten oppfolgingsperioder skal retries til en oppfolgingsperiode starter`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+		val fnr = "12345"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { oppfolgingsperioder }
+
+		val opprettetTidspunkt = LocalDateTime.now()
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			personId = 123L
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+
+		val gjeldendePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(1),
+			sluttDato = null
+		)
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { listOf(gjeldendePeriode) }
+
+		processMessages()
+
+		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
+
+		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
+	}
+
+
+	@Test
+	fun `sushi`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+		val fnr = "12345"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { oppfolgingsperioder }
+
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(60) // over en uke gammel aktivitet
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			personId = 123L
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+
+		val gjeldendePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(1),
+			sluttDato = null
+		)
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { listOf(gjeldendePeriode) }
+
+		processMessages()
+
+		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
+
+		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
 
 	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {

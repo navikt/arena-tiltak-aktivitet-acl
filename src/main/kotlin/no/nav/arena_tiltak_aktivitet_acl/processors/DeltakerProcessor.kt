@@ -94,7 +94,7 @@ open class DeltakerProcessor(
 				if ((listOf(AktivitetStatus.FULLFORT, AktivitetStatus.AVBRUTT).contains(aktivitetStatus)) || (deltaker.datoTil != null && LocalDate.now().isAfter(deltaker.datoTil))) {
 					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${arenaDeltaker.TILTAKDELTAKER_ID} og fodselsnummer=${personIdent}")
 				} else {
-					throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet, id=${arenaDeltaker.TILTAKDELTAKER_ID} og fodselsnummer=${personIdent}")
+					throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${arenaDeltaker.TILTAKDELTAKER_ID} og fodselsnummer=${personIdent}")
 				}
 			}
 		}
