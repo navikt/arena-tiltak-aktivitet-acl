@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
@@ -10,14 +11,21 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltake
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
+import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
+import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
+import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.*
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
@@ -66,8 +74,67 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+			.aktivitet {
+				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
+				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+				it.oppfolgingsperiodeUUID shouldNotBe null
+				it.historisk shouldBe false
+			}
 	}
 
+	@Test
+	fun `skal være historisk hvis opprettet i avsluttet periode`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(6)
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
+			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
+			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+			.aktivitet {
+				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
+				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+				it.oppfolgingsperiodeUUID shouldNotBe null
+				it.historisk shouldBe true
+			}
+	}
+
+
+	@Test
+	fun `historisk skal være null hvis ingen oppfølgingsperioder`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+
+		val opprettetTidspunkt = LocalDateTime.now().minusMonths(6)
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.aktivitet {
+				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
+				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+				it.oppfolgingsperiodeUUID shouldBe null
+				it.historisk shouldBe null
+			}
+	}
 
 	@Test
 	fun `process deltakelse in the correct order`() {
@@ -270,7 +337,86 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, _, output -> output?.aktivitetskort?.tittel shouldBe TILTAKSNAVN_OVERRIDE }
 			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput.copy(navn = TILTAKSNAVN_OVERRIDE)) }
+	}
 
+	@Test
+	fun `nye aktiviteter uten oppfolgingsperioder skal retries til en oppfolgingsperiode starter`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+		val fnr = "12345"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { oppfolgingsperioder }
+
+		val opprettetTidspunkt = LocalDateTime.now()
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			personId = 123L
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+
+		val gjeldendePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(1),
+			sluttDato = null
+		)
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { listOf(gjeldendePeriode) }
+
+		processMessages()
+
+		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
+
+		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
+	}
+
+
+	@Test
+	@Disabled
+	fun `sushi`() {
+		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+		val fnr = "12345"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { oppfolgingsperioder }
+
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(60) // over en uke gammel aktivitet
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			personId = 123L
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+
+		val gjeldendePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(1),
+			sluttDato = null
+		)
+		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { listOf(gjeldendePeriode) }
+
+		processMessages()
+
+		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
+
+		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
 
 	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {

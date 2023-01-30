@@ -63,6 +63,10 @@ spec:
       value: api://prod-gcp.amt.amt-enhetsregister/.default
     - name: AMT_ENHETSREGISTER_URL
       value: http://amt-enhetsregister.amt.svc.cluster.local
+    - name: VEILARBOPPFOLGING_SCOPE
+      value: api://prod-fss.pto.veilarboppfolging/.default
+    - name: VEILARBOPPFOLGING_URL
+      value: https://veilarboppfolging.prod-fss-pub.nais.io
   gcp:
     sqlInstances:
       - name: aktivitet-arena-acl-v1

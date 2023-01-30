@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 
-private var operationPos = 0L
+var operationPos = 0L
 
 private fun incrementAndGetPos(): Long {
 	operationPos++

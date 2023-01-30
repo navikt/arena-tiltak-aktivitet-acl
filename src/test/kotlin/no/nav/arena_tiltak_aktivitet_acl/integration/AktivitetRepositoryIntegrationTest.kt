@@ -21,7 +21,11 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			id = id,
 			personIdent = "123123123",
 			kategori = AktivitetKategori.TILTAKSAKTIVITET,
-			data = "{}"
+			data = "{}",
+			arenaId = "ARENATA-111",
+			tiltakKode = "MIDLONNTIL",
+			oppfolgingsperiodeUUID = null,
+			historisk = null
 		)
 		repository.upsert(aktivitet)
 		repository.getAktivitet(id) shouldBe aktivitet
@@ -32,7 +36,11 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			id = UUID.randomUUID(),
 			personIdent = "123123123",
 			kategori = AktivitetKategori.TILTAKSAKTIVITET,
-			data = "{}"
+			data = "{}",
+			arenaId = "ARENATA-111",
+			tiltakKode = "MIDLONNTIL",
+			oppfolgingsperiodeUUID = null,
+			historisk = null
 		)
 		repository.upsert(aktivitet)
 		repository.upsert(aktivitet)
@@ -44,7 +52,11 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			id = id,
 			personIdent = "123123123",
 			kategori = AktivitetKategori.TILTAKSAKTIVITET,
-			data = "{}"
+			data = "{}",
+			arenaId = "ARENATA-111",
+			tiltakKode = "MIDLONNTIL",
+			oppfolgingsperiodeUUID = null,
+			historisk = null
 		)
 		@Language("JSON")
 		val updatedData = """{"data": "newData"}""".trimIndent()

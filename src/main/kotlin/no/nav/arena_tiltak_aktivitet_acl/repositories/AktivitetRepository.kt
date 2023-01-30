@@ -1,15 +1,16 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
-import java.sql.ResultSet
-import java.util.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-
+import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableBoolean
+import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableUUID
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.intellij.lang.annotations.Language
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import java.sql.ResultSet
+import java.util.*
 
 @Component
 open class AktivitetRepository(
@@ -17,11 +18,15 @@ open class AktivitetRepository(
 ) {
 	fun upsert(aktivitet: AktivitetDbo) {
 		val sql = """
-			INSERT INTO aktivitet(id, person_ident, kategori_type, data)
+			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, historisk)
 			VALUES (:id,
 					:person_ident,
 					:kategori_type,
-					:data::jsonb)
+					:data::jsonb,
+					:arena_id,
+					:tiltak_kode,
+					:oppfolgingsperiode_uuid,
+					:historisk)
 			ON CONFLICT ON CONSTRAINT aktivitet_pkey
 			DO UPDATE SET data = :data::jsonb
 		""".trimIndent()
@@ -31,7 +36,11 @@ open class AktivitetRepository(
 				"id" to aktivitet.id,
 				"person_ident" to aktivitet.personIdent,
 				"kategori_type" to aktivitet.kategori.name,
-				"data" to aktivitet.data
+				"data" to aktivitet.data,
+				"arena_id" to aktivitet.arenaId,
+				"tiltak_kode" to aktivitet.tiltakKode,
+				"oppfolgingsperiode_uuid" to aktivitet.oppfolgingsperiodeUUID,
+				"historisk" to aktivitet.historisk
 			)
 		)
 
@@ -56,5 +65,9 @@ fun ResultSet.toAktivitetDbo() =
 		id = this.getUUID("id"),
 		personIdent = this.getString("person_ident"),
 		kategori = AktivitetKategori.valueOf(this.getString("kategori_type")),
-		data = this.getString("data")
+		data = this.getString("data"),
+		arenaId = this.getString("arena_id"),
+		tiltakKode = this.getString("tiltak_kode"),
+		oppfolgingsperiodeUUID = this.getNullableUUID("oppfolgingsperiode_uuid"),
+		historisk = this.getNullableBoolean("historisk")
 	)

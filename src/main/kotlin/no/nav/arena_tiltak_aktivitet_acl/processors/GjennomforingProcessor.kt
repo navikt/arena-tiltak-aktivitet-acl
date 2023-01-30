@@ -3,7 +3,9 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import ArenaOrdsProxyClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.amt_enhetsregister.EnhetsregisterClient
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforingKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import org.slf4j.LoggerFactory
@@ -21,6 +23,10 @@ open class GjennomforingProcessor(
 
 	override fun handleArenaMessage(message: ArenaGjennomforingKafkaMessage) {
 		val gjennomforing = message.getData().mapTiltakGjennomforing()
+
+		if (message.operationType == Operation.DELETED) {
+			throw IgnoredException("Skal ignorere gjennomforing med operation type DELETE")
+		}
 
 		val virksomhetsnummer = gjennomforing.arbgivIdArrangor?.let { ordsClient.hentVirksomhetsnummer(it) }
 		val virksomhet = virksomhetsnummer?.let { enhetsregisterClient.hentVirksomhet(virksomhetsnummer) }

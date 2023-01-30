@@ -4,13 +4,15 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import org.junit.jupiter.api.fail
 
 data class AktivitetResult(
 	val position: String,
 	val arenaDataDbo: ArenaDataDbo,
 	val translation: TranslationDbo?,
-	val output: KafkaMessageDto?
+	val output: KafkaMessageDto?,
+	val aktivitet: AktivitetDbo?
 ) {
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
 		check.invoke(arenaDataDbo)
@@ -46,6 +48,15 @@ data class AktivitetResult(
 		}
 
 		check.invoke(output.aktivitetskort)
+		return this
+	}
+
+	fun aktivitet(check: (aktivitet: AktivitetDbo) -> Unit): AktivitetResult {
+		if (aktivitet == null) {
+			fail("Forsøker å hente aktivitet, men er null")
+		}
+
+		check.invoke(aktivitet)
 		return this
 	}
 }

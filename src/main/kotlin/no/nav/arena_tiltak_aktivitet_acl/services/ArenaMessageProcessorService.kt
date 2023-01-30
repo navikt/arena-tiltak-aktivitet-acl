@@ -71,7 +71,7 @@ open class ArenaMessageProcessorService(
 					log.info("Dependency for $arenaId in table $arenaTableName is not ingested: '${e.message}'")
 					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.RETRY, note = e.message))
 				}
-				is  OutOfOrderException -> {
+				is OutOfOrderException -> {
 					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.QUEUED, note = e.message))
 				}
 				is ValidationException -> {
@@ -85,6 +85,10 @@ open class ArenaMessageProcessorService(
 				is OperationNotImplementedException -> {
 					log.info("Operation not supported for $arenaId in table $arenaTableName: '${e.message}'")
 					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.FAILED, note = e.message))
+				}
+				is OppfolgingsperiodeNotFoundException -> {
+					log.info("Oppfolgingsperiode not found for $arenaId in table $arenaTableName: '${e.message}'")
+					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.RETRY, note = e.message))
 				}
 				else -> {
 					log.error("$arenaId in table $arenaTableName: ${e.message}", e)
