@@ -6,22 +6,21 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.toAktivitetStatus
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.*
-import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
-import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
-import java.time.ZonedDateTime
-import java.util.*
 
 @Component
 open class DeltakerProcessor(
@@ -112,7 +111,14 @@ open class DeltakerProcessor(
 				nyAktivitet = nyAktivitet,
 			)
 
-		val kafkaMessage = KafkaMessageDto(
+		val aktivitetskortHeaders = AktivitetskortHeaders(
+			arenaId = (KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString()),
+			tiltakKode = tiltak.kode,
+			oppfolgingsperiode = maybeOppfolgingsperiode?.uuid,
+			historisk = maybeOppfolgingsperiode?.sluttDato != null
+		)
+
+/*		val kafkaMessage = KafkaMessageDto(
 			messageId = UUID.randomUUID(),
 			actionType = ActionType.UPSERT_AKTIVITETSKORT_V1,
 			aktivitetskort = aktivitet,
@@ -125,13 +131,13 @@ open class DeltakerProcessor(
 			tiltak.kode,
 			deltaker.tiltakdeltakerId.toString(),
 			maybeOppfolgingsperiode?.uuid
-		)
+		)*/
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltaker.tiltakdeltakerId))
 
 
-		aktivitetService.upsert(aktivitet)
-		secureLog.info("Melding for deltaker id=$aktivitetId arenaId=${deltaker.tiltakdeltakerId} personId=${deltaker.personId} fnr=$personIdent er sendt")
-		log.info("Melding id=${kafkaMessage.messageId} arenaId=${deltaker.tiltakdeltakerId} type=${kafkaMessage.actionType} er sendt")
+		aktivitetService.upsert(aktivitet, aktivitetskortHeaders)
+		//secureLog.info("Melding for deltaker id=$aktivitetId arenaId=${deltaker.tiltakdeltakerId} personId=${deltaker.personId} fnr=$personIdent er sendt")
+		//log.info("Melding id=${kafkaMessage.messageId} arenaId=${deltaker.tiltakdeltakerId} type=${kafkaMessage.actionType} er sendt")
 	}
 
 	//	Alle tiltaksaktiviteter hentes med unntak for tiltak av

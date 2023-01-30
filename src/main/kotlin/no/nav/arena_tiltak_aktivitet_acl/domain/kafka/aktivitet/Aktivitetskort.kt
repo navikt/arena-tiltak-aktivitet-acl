@@ -1,10 +1,10 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet
 
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
-import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 
 data class Ident(
 	val identType: String = "ARENAIDENT",
@@ -39,11 +39,15 @@ data class Aktivitetskort(
 	val detaljer: List<Attributt>
 ) {
 	private val objectMapper = ObjectMapper.get()
-	fun toDbo() = AktivitetDbo(
+	fun toDbo(headers: AktivitetskortHeaders) = AktivitetDbo(
 		id = id,
 		personIdent = personIdent,
 		kategori = AktivitetKategori.TILTAKSAKTIVITET,
-		data = objectMapper.writeValueAsString(this)
+		data = objectMapper.writeValueAsString(this),
+		arenaId = headers.arenaId,
+		tiltakKode = headers.tiltakKode,
+		oppfolgingsperiodeUUID = headers.oppfolgingsperiode,
+		historisk = headers.historisk
 	)
 }
 

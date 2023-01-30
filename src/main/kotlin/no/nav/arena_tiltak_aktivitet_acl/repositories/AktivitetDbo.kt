@@ -7,5 +7,9 @@ data class AktivitetDbo (
 	val id: UUID,
 	val personIdent: String,
 	val kategori: AktivitetKategori,
-	val data: String
+	val data: String,
+	val arenaId: String,
+	val tiltakKode: String,
+	val oppfolgingsperiodeUUID: UUID?,
+	val historisk: Boolean?
 )
