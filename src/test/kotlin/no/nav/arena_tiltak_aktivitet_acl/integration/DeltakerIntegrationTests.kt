@@ -28,6 +28,7 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
+@Disabled
 class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Autowired

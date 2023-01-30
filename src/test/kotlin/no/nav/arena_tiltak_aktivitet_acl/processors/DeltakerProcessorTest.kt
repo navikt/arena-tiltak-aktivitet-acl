@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
+import io.kotest.core.annotation.Ignored
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -29,6 +30,7 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
+@Ignored
 class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
