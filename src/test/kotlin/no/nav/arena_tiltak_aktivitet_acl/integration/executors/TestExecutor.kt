@@ -6,16 +6,19 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.asyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import org.apache.kafka.clients.producer.ProducerRecord
+import java.util.*
 
 abstract class TestExecutor(
 	private val kafkaProducer: KafkaProducerClientImpl<String, String>,
 	private val arenaDataRepository: ArenaDataRepository,
-	private val translationRepository: TranslationRepository
+	private val translationRepository: TranslationRepository,
 ) {
 
 	companion object {
@@ -45,4 +48,6 @@ abstract class TestExecutor(
 	fun getTranslation(arenaId: Long, aktivitetKategori: AktivitetKategori): TranslationDbo? {
 		return nullableAsyncRetryHandler({ translationRepository.get(arenaId, aktivitetKategori) })
 	}
+
+
 }

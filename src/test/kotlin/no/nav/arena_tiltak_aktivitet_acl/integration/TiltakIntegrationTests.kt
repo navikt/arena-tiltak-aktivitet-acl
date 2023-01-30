@@ -45,8 +45,8 @@ class TiltakIntegrationTests : IntegrationTestBase() {
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 
 		tiltakExecutor.execute(SlettTiltakCommand(kode, navn))
-			.arenaData { it.ingestStatus shouldBe IngestStatus.FAILED }
-			.arenaData { it.note shouldBe "Kan ikke håndtere tiltak med operation type DELETE" }
+			.arenaData { it.ingestStatus shouldBe IngestStatus.IGNORED }
+			.arenaData { it.note shouldBe "Skal ignorere tiltak med operation type DELETE" }
 			.tiltak { it.kode shouldBe kode }
 			.tiltak { it.navn shouldBe navn }
 	}

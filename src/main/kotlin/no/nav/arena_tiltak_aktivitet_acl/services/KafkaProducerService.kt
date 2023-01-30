@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.services
 
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.common.kafka.producer.KafkaProducerClient
@@ -21,14 +22,13 @@ open class KafkaProducerService(
 	fun sendTilAktivitetskortTopic(
 		messageKey: UUID,
 		data: KafkaMessageDto,
-		arenaTiltakskode: String,
-		eksternReferanseId: String,
-		oppfolgingsperiodeId: UUID?
+		aktivitetskortHeaders: AktivitetskortHeaders,
 	) {
 		val headers = listOf(
-			RecordHeader("arenaTiltakskode", arenaTiltakskode.toByteArray()),
-			RecordHeader("eksternReferanseId", (TILTAK_ID_PREFIX + eksternReferanseId).toByteArray()),
-			RecordHeader("oppfolgingsperiode", oppfolgingsperiodeId?.toString()?.toByteArray()?: "".toByteArray()),
+			RecordHeader("arenaTiltakskode", aktivitetskortHeaders.tiltakKode.toByteArray()),
+			RecordHeader("eksternReferanseId", aktivitetskortHeaders.arenaId.toByteArray()),
+			RecordHeader("oppfolgingsperiode", aktivitetskortHeaders.oppfolgingsperiode?.toString()?.toByteArray() ?: "".toByteArray()),
+			RecordHeader("historisk", aktivitetskortHeaders.historisk?.toString()?.toByteArray() ?: "".toByteArray())
 		)
 
 		val record = ProducerRecord(topic, null, messageKey.toString(), objectMapper.writeValueAsString(data), headers)

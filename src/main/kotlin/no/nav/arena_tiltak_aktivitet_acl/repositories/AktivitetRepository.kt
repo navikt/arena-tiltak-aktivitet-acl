@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableBoolean
 import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableUUID
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.intellij.lang.annotations.Language
@@ -68,5 +69,5 @@ fun ResultSet.toAktivitetDbo() =
 		arenaId = this.getString("arena_id"),
 		tiltakKode = this.getString("tiltak_kode"),
 		oppfolgingsperiodeUUID = this.getNullableUUID("oppfolgingsperiode_uuid"),
-		historisk = this.getBoolean("historisk")
+		historisk = this.getNullableBoolean("historisk")
 	)

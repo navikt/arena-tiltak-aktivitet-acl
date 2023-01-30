@@ -13,6 +13,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
@@ -145,7 +146,7 @@ class TiltakProcessorTest : FunSpec({
 			arenaTiltak = createArenaTiltak(tiltakNavn, tiltakKode)
 		)
 
-		shouldThrowExactly<OperationNotImplementedException> {
+		shouldThrowExactly<IgnoredException> {
 			tiltakProcessor.handleArenaMessage(kafkaMessageDeleteOp)
 		}
 	}

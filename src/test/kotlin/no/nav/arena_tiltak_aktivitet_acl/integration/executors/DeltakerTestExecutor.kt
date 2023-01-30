@@ -8,6 +8,9 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
@@ -17,11 +20,12 @@ import java.util.*
 class DeltakerTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	translationRepository: TranslationRepository
+	translationRepository: TranslationRepository,
+	private val aktivitetRepository: AktivitetRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
 	arenaDataRepository = arenaDataRepository,
-	translationRepository = translationRepository
+	translationRepository = translationRepository,
 ) {
 
 	private val topic = "deltaker"
@@ -53,13 +57,19 @@ class DeltakerTestExecutor(
 
 		val translation = getTranslation(arenaData.arenaId.toLong(), AktivitetKategori.TILTAKSAKTIVITET)
 		val message = if (translation != null) getOutputMessage(translation.aktivitetId) else null
+		val aktivitet = if (translation != null) getAktivitet(translation.aktivitetId) else null
 
 		return AktivitetResult(
 			arenaData.operationPosition,
 			arenaData,
 			translation,
-			message
+			message,
+			aktivitet
 		)
+	}
+
+	private fun getAktivitet(aktivitetId: UUID): AktivitetDbo? {
+		return nullableAsyncRetryHandler({ aktivitetRepository.getAktivitet(aktivitetId) })
 	}
 
 	private fun getOutputMessage(id: UUID): KafkaMessageDto? {
