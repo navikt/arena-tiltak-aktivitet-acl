@@ -11,7 +11,6 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltake
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
-import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
@@ -94,7 +93,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
-			endretTidspunkt = opprettetTidspunkt
+			registrertDato = opprettetTidspunkt
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
@@ -113,7 +112,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 
 	@Test
-	@Disabled
 	fun `historisk skal være null hvis ingen oppfølgingsperioder`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
 
@@ -124,7 +122,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
-			endretTidspunkt = opprettetTidspunkt
+			registrertDato = opprettetTidspunkt
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)

@@ -19,7 +19,7 @@ fun ResultSet.getNullableUUID(columnLabel: String): UUID? {
 
 fun ResultSet.getNullableBoolean(columnLabel: String): Boolean? {
 	return this.getNullableString(columnLabel)
-		?.let { it.toBoolean() }
+		?.let { it == "t" } // 't', 'f' eller null
 }
 
 fun ResultSet.getLocalDateTime(columnLabel: String): LocalDateTime {
