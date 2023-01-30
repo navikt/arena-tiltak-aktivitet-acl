@@ -16,7 +16,7 @@ class OppfolgingClientImpl(
 	override fun hentOppfolgingsperioder(fnr: String): List<Oppfolgingsperiode> {
 
 		val request = Request.Builder()
-			.url("$baseUrl/api/v2/oppfolging/perioder?fnr=${fnr}")
+			.url("$baseUrl/veilarboppfolging/api/v2/oppfolging/perioder?fnr=${fnr}")
 			.addHeader("Authorization", "Bearer ${tokenProvider.get()}")
 			.get()
 			.build()
