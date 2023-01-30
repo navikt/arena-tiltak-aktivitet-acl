@@ -37,7 +37,7 @@ class OppfolgingClientTest {
 		""".trimIndent()
 
 		WireMock.givenThat(
-			WireMock.get(WireMock.urlEqualTo("/api/v2/oppfolging/perioder?fnr=123"))
+			WireMock.get(WireMock.urlEqualTo("/veilarboppfolging/api/v2/oppfolging/perioder?fnr=123"))
 				.withHeader("Authorization", WireMock.equalTo("Bearer $proxyToken"))
 				.willReturn(
 					WireMock.aResponse()
