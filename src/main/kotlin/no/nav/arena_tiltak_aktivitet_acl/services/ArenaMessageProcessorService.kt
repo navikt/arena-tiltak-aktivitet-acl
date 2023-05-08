@@ -22,6 +22,7 @@ open class ArenaMessageProcessorService(
 	private val tiltakProcessor: TiltakProcessor,
 	private val gjennomforingProcessor: GjennomforingProcessor,
 	private val deltakerProcessor: DeltakerProcessor,
+	private val gruppeTiltakProcessor: GruppeTiltakProcessor,
 	private val arenaDataRepository: ArenaDataRepository,
 	private val meterRegistry: MeterRegistry
 ) {
@@ -49,6 +50,7 @@ open class ArenaMessageProcessorService(
 				ARENA_TILTAK_TABLE_NAME -> process(messageDto, tiltakProcessor) { it.TILTAKSKODE }
 				ARENA_GJENNOMFORING_TABLE_NAME -> process(messageDto, gjennomforingProcessor) { it.TILTAKGJENNOMFORING_ID.toString() }
 				ARENA_DELTAKER_TABLE_NAME -> process(messageDto, deltakerProcessor) { it.TILTAKDELTAKER_ID.toString() }
+				ARENA_GRUPPETILTAK_TABLE_NAME -> process(messageDto, gruppeTiltakProcessor) {it.AKTIVITET_ID.toString()}
 				else -> throw IllegalArgumentException("Kan ikke håndtere melding fra ukjent arena tabell: ${messageDto.table}")
 			}
 		}
@@ -114,6 +116,7 @@ open class ArenaMessageProcessorService(
 			ARENA_TILTAK_TABLE_NAME -> "tiltak"
 			ARENA_GJENNOMFORING_TABLE_NAME -> "gjennomforing"
 			ARENA_DELTAKER_TABLE_NAME -> "deltaker"
+			ARENA_GRUPPETILTAK_TABLE_NAME -> "gruppetiltak"
 			else -> "unknown"
 		}
 	}

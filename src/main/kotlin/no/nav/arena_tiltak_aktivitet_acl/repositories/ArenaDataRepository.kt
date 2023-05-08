@@ -6,7 +6,6 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource
@@ -213,17 +212,17 @@ open class ArenaDataRepository(
 	}
 
 	@Timed(value = "acl.query.hasUnhandledDeltakelse")
-	fun hasUnhandledDeltakelse(deltakelseArenaId: Long): Boolean {
+	fun hasUnhandledRow(arenaId: Long, tableName: String): Boolean {
 		//language=PostgreSQL
 		val sql = """
 			SELECT count(*) as antall FROM arena_data
 			where arena_id = :arena_id
-				AND arena_table_name = :deltakerTableName
+				AND arena_table_name = :arenaTableName
 				AND ingest_status != 'HANDLED'
 		""".trimIndent()
 		val params = sqlParameters(
-			"arena_id" to deltakelseArenaId.toString(),
-			"deltakerTableName" to ARENA_DELTAKER_TABLE_NAME
+			"arena_id" to arenaId.toString(),
+			"arenaTableName" to tableName
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antall") }
 			?.let { it > 0 } ?: false

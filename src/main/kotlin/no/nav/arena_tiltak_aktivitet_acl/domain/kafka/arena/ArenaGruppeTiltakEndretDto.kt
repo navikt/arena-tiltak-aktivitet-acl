@@ -10,7 +10,7 @@ data class ArenaGruppeTiltakEndretDto(
 	val AKTIVITET_ID: Long,
 	val VEILEDNINGAKTIVITET_ID: Long? = null,
 	val AKTIVITETID: String, // "GA" + AKTIVITET_ID
-	val AKTIVITETSTYPE: String?, // Kodeverk, f.eks "IGVAL", men ikke samme som tiltak,
+	val AKTIVITETSTYPE: String, // Kodeverk, f.eks "IGVAL", men ikke samme som tiltak,
 	val AKTIVITETSNAVN: String,
 	val MOTEPLAN_STARTDATO: String?, // dato-tid, eks "2023-05-23 00:00:00" , klokkeslett ikke relevant?
 	val MOTEPLAN_SLUTTDATO: String?, // dato-tid, eks "2023-05-23 00:00:00"
@@ -27,15 +27,16 @@ data class ArenaGruppeTiltakEndretDto(
 			arenaAktivitetId = AKTIVITETID,
 			aktivitetstype = AKTIVITETSTYPE,
 			aktivitetsnavn = AKTIVITETSNAVN,
+			beskrivelse = null,
 			datoFra = MOTEPLAN_STARTDATO?.asValidatedLocalDate("MOTEPLAN_STARTDATO"),
 			datoTil = MOTEPLAN_SLUTTDATO?.asValidatedLocalDate("MOTEPLAN_SLUTTDATO"),
+			motePlan = null,
 			personId = PERSON_ID,
 			personIdent = PERSONIDENT,
 			opprettetTid = OPPRETTET_DATO?.asValidatedLocalDateTime("OPPRETTET_DATO"),
 			opprettetAv = OPPRETTET_AV,
 			endretTid = ENDRET_DATO?.asValidatedLocalDateTime("ENDRET_DATO"),
 			endretAv = ENDRET_AV
-
 		)
 	}
 }
