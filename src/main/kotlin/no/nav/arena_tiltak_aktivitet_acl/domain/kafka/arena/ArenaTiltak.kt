@@ -36,5 +36,6 @@ data class ArenaTiltak(
     val STATUS_BEGRUNNELSE_INNSOKT: String,
     val STATUS_HENVISNING_BREV: String,
     val STATUS_KOPIBREV: String,
+	val EKSTERN_TILTAKSKODE: String? = null,
 )
 // @SONAR_STOP@
