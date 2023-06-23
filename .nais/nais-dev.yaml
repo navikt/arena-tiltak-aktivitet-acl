@@ -41,15 +41,14 @@ spec:
         - application: amt-enhetsregister
           namespace: amt
           cluster: dev-gcp
+      external:
+        - host: amt-arena-ords-proxy.dev-fss-pub.nais.io
+        - host: veilarboppfolging.dev-fss-pub.nais.io
   env:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
       value: api://dev-fss.amt.amt-arena-ords-proxy-q1/.default
     - name: AMT_ARENA_ORDS_PROXY_URL
       value: https://amt-arena-ords-proxy-q1.dev-fss-pub.nais.io
-    - name: POAO_GCP_PROXY_SCOPE
-      value: api://dev-fss.pto.poao-gcp-proxy/.default
-    - name: POAO_GCP_PROXY_URL
-      value: https://poao-gcp-proxy.dev-fss-pub.nais.io
     # Kafka topics
     - name: AKTIVITETSKORT_TOPIC
       value: dab.aktivitetskort-v1
