@@ -9,6 +9,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.OppdaterDeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
@@ -409,6 +410,44 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
 		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
+
+	@Test
+	fun `skal bruke samme oppfølgingsperiode på neste oppdatering`() {
+		val (gjennomforingId, deltakerId, _) = setup()
+		val gjeldendePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(1),
+			sluttDato = null
+		)
+		val fnr = "12345"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperiode[fnr] = listOf(gjeldendePeriode)
+		val opprettetTidspunkt = LocalDateTime.now()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			personId = 123L
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand)
+			.let {
+				it.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
+				it.aktivitet?.oppfolgingsperiodeUUID shouldBe gjeldendePeriode.uuid
+			}
+		// Skal ikke gjøre oppslag på periode men bruke eksiterende periode satt på aktiviteten
+		OppfolgingClientMock.oppfolgingsperiode[fnr] = emptyList()
+		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput)
+		deltakerExecutor.execute(oppdaterComand)
+			.let {
+				it.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
+				it.aktivitet?.oppfolgingsperiodeUUID shouldBe gjeldendePeriode.uuid
+			}
+	}
+
+
 
 	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
 		personIdent shouldBe "12345"
