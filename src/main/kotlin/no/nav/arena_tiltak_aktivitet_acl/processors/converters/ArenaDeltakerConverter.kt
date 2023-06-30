@@ -63,7 +63,7 @@ object ArenaDeltakerConverter {
 		arrangorNavn: String?,
 		gjennomforingNavn: String,
 		tiltak: Tiltak,
-		nyAktivitet: Boolean,
+		erNyAktivitet: Boolean,
 	): Aktivitetskort {
 		return Aktivitetskort(
 			id = aktivitetId,
@@ -77,8 +77,8 @@ object ArenaDeltakerConverter {
 				toDeltakelseStatus(deltaker.deltakerStatusKode)
 				?.let { deltakelseStatus -> Etikett(deltakelseStatus.toString()) }),
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) Beskrivelse(verdi = gjennomforingNavn) else null,
-			endretTidspunkt = if (nyAktivitet) deltaker.regDato else deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
-			endretAv = if (nyAktivitet) Ident(ident = deltaker.regUser ?: throw IllegalArgumentException("Missing regUser"))
+			endretTidspunkt = if (erNyAktivitet) deltaker.regDato else deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
+			endretAv = if (erNyAktivitet) Ident(ident = deltaker.regUser ?: throw IllegalArgumentException("Missing regUser"))
 			           else Ident(ident = deltaker.modUser ?: throw IllegalArgumentException("Missing modUser")),
 			detaljer = listOfNotNull(
 				if (arrangorNavn != null) Attributt("Arrangør", arrangorNavn) else null,

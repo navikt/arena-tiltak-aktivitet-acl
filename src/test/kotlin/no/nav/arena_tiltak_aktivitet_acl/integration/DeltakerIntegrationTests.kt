@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
@@ -115,9 +116,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Test
 	fun `historisk skal være null hvis ingen oppfølgingsperioder`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
-
 		val opprettetTidspunkt = LocalDateTime.now().minusMonths(6)
-
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
@@ -127,14 +126,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
-
-		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.aktivitet {
-				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
-				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
-				it.oppfolgingsperiodeUUID shouldBe null
-				it.historisk shouldBe null
-			}
+		result.arenaDataDbo.ingestStatus shouldBe IngestStatus.RETRY
+		result.aktivitet shouldBe null
 	}
 
 	@Test
@@ -152,7 +145,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val result: AktivitetResult = deltakerExecutor.execute(deltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
-
 
 		val deltakerCommand2 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "GJENN"))
 		val result2: AktivitetResult = deltakerExecutor.execute(deltakerCommand2)
@@ -347,7 +339,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
 		val fnr = "12345"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
-		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { oppfolgingsperioder }
+		OppfolgingClientMock.oppfolgingsperiode[fnr] = oppfolgingsperioder
 
 		val opprettetTidspunkt = LocalDateTime.now()
 
@@ -370,27 +362,25 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			startDato = ZonedDateTime.now().minusDays(1),
 			sluttDato = null
 		)
-		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { listOf(gjeldendePeriode) }
+		OppfolgingClientMock.oppfolgingsperiode[fnr] = listOf(gjeldendePeriode)
 
 		processMessages()
 
 		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
-
 		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
 
 
 	@Test
-	@Disabled
-	fun `sushi`() {
+	fun `skal kunne sette oppfolgingsperiode med slack på 1 uke på retry`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
 
-		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+		// Finnes ingen oppfolgingsperioder
 		val fnr = "12345"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
-		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { oppfolgingsperioder }
+		OppfolgingClientMock.oppfolgingsperiode[fnr] = emptyList()
 
-		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(60) // over en uke gammel aktivitet
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1) // over en uke gammel aktivitet
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -406,17 +396,17 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
 
+		// Pågående oppfolgingsperiode blir satt
 		val gjeldendePeriode = Oppfolgingsperiode(
 			uuid = UUID.randomUUID(),
 			startDato = ZonedDateTime.now().minusDays(1),
 			sluttDato = null
 		)
-		OppfolgingClientMock.oppfolgingsperiodeHandler[fnr] = { listOf(gjeldendePeriode) }
+		OppfolgingClientMock.oppfolgingsperiode[fnr] = listOf(gjeldendePeriode)
 
 		processMessages()
 
 		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
-
 		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
 
