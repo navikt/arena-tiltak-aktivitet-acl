@@ -90,7 +90,8 @@ open class DeltakerProcessor(
 				aktivitetId = aktivitetId,
 				personIdent = personIdent,
 				arrangorNavn = gjennomforing.arrangorNavn,
-				gjennomforingNavn = gjennomforing.navn ?: tiltak.navn,
+//				gjennomforingNavn = gjennomforing.navn ?: tiltak.navn,
+				gjennomforingNavn = tiltak.navn,
 				tiltak = tiltak,
 				erNyAktivitet = erNyAktivitet,
 			)
