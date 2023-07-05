@@ -56,7 +56,7 @@ data class AktivitetResult(
 			fail("Forsøker å hente aktivitet, men er null")
 		}
 
-		check.invoke(aktivitet)
+		check(aktivitet)
 		return this
 	}
 }

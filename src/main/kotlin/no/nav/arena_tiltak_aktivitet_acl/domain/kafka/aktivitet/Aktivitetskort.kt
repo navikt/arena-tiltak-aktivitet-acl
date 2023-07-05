@@ -49,5 +49,12 @@ data class Aktivitetskort(
 		oppfolgingsperiodeUUID = headers.oppfolgingsperiode,
 		historisk = headers.historisk
 	)
+
+	fun toKafkaMessage() = KafkaMessageDto(
+			messageId = UUID.randomUUID(),
+			actionType = ActionType.UPSERT_AKTIVITETSKORT_V1,
+			aktivitetskort = this,
+			aktivitetskortType = AktivitetskortType.ARENA_TILTAK
+		)
 }
 

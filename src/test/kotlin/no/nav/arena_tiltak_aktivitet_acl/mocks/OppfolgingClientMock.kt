@@ -11,7 +11,7 @@ import java.util.*
 open class OppfolgingClientMock {
 
 	companion object {
-		val oppfolgingsperiodeHandler = mutableMapOf<String, () -> List<Oppfolgingsperiode>>()
+		val oppfolgingsperiode = mutableMapOf<String, List<Oppfolgingsperiode>>()
 	}
 
 	@Bean
@@ -19,8 +19,8 @@ open class OppfolgingClientMock {
 
 		return object : OppfolgingClient {
 			override fun hentOppfolgingsperioder(fnr: String): List<Oppfolgingsperiode> {
-				if (oppfolgingsperiodeHandler[fnr] != null) {
-					return oppfolgingsperiodeHandler[fnr]!!.invoke()
+				if (oppfolgingsperiode[fnr] != null) {
+					return oppfolgingsperiode[fnr]!!
 				}
 				return listOf(
 					Oppfolgingsperiode(
