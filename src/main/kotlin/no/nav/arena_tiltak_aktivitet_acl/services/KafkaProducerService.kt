@@ -36,7 +36,7 @@ open class KafkaProducerService(
 
 		val record = ProducerRecord(topic, null, messageKey.toString(), objectMapper.writeValueAsString(data), headers)
 		kafkaProducer.sendSync(record)
-			.also { log.info("Sendt message to AKAAS: offset=${it.offset()} partition=${it.partition()} topic=${it.topic()}") }
+			.also { log.debug("Sendt message to AKAAS: offset=${it.offset()} partition=${it.partition()} topic=${it.topic()}") }
 	}
 
 	companion object {

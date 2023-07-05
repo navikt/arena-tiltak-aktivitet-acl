@@ -51,7 +51,7 @@ spec:
       value: https://amt-arena-ords-proxy.prod-fss-pub.nais.io
     # Kafka topics
     - name: AKTIVITETSKORT_TOPIC
-      value: dab.aktivitetskort-v1
+      value: dab.aktivitetskort-v1.1
     - name: ARENA_TILTAK_TOPIC
       value: teamarenanais.aapen-arena-tiltakendret-v1-p
     - name: ARENA_TILTAKGJENNOMFORING_TOPIC
