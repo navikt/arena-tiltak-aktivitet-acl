@@ -36,7 +36,7 @@ open class RetryArenaMessageProcessorService(
 		private const val MAX_INGEST_ATTEMPTS = 10
 	}
 
-	fun processMessages(batchSize: Int = 500) {
+	fun processMessages(batchSize: Int = 2000) {
 		processMessagesWithStatus(IngestStatus.RETRY, batchSize)
 	}
 
