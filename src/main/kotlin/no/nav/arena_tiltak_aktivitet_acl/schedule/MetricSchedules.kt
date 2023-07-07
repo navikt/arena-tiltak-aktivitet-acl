@@ -26,7 +26,7 @@ open class MetricSchedules(
 		it.name to createGauge(it.name)!!
 	}
 
-	@Scheduled(fixedDelay = ONE_MINUTE, initialDelay = ONE_MINUTE)
+	@Scheduled(fixedDelay = 10 * ONE_MINUTE, initialDelay = ONE_MINUTE)
 	fun logIngestStatus() {
 		log.debug("Collecting metrics for ingest status")
 
