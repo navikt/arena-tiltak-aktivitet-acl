@@ -46,18 +46,18 @@ spec:
         - host: veilarboppfolging.dev-fss-pub.nais.io
   env:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
-      value: api://dev-fss.amt.amt-arena-ords-proxy-q1/.default
+      value: api://dev-fss.amt.amt-arena-ords-proxy-q2/.default
     - name: AMT_ARENA_ORDS_PROXY_URL
-      value: https://amt-arena-ords-proxy-q1.dev-fss-pub.nais.io
+      value: https://amt-arena-ords-proxy-q2.dev-fss-pub.nais.io
     # Kafka topics
     - name: AKTIVITETSKORT_TOPIC
       value: dab.aktivitetskort-v1.1
     - name: ARENA_TILTAK_TOPIC
-      value: teamarenanais.aapen-arena-tiltakendret-v1-q1
+      value: teamarenanais.aapen-arena-tiltakendret-v1-q2
     - name: ARENA_TILTAKGJENNOMFORING_TOPIC
-      value: teamarenanais.aapen-arena-tiltakgjennomforingendret-v1-q1
+      value: teamarenanais.aapen-arena-tiltakgjennomforingendret-v1-q2
     - name: ARENA_TILTAK_DELTAKER_TOPIC
-      value: teamarenanais.aapen-arena-tiltakdeltakerendret-v1-q1
+      value: teamarenanais.aapen-arena-tiltakdeltakerendret-v1-q2
     - name: AMT_ENHETSREGISTER_SCOPE
       value: api://dev-gcp.amt.amt-enhetsregister/.default
     - name: AMT_ENHETSREGISTER_URL
