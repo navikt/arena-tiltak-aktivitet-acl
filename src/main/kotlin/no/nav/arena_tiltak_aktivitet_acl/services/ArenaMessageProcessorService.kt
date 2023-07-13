@@ -27,12 +27,16 @@ open class ArenaMessageProcessorService(
 ) {
 
 	private val log = LoggerFactory.getLogger(javaClass)
+	private val secureLogs = LoggerFactory.getLogger("SecureLog")
 
 	private val mapper = ObjectMapper.get()
 
 	fun handleArenaGoldenGateRecord(record: ConsumerRecord<String, String>) {
 		val recordValue = record.value().removeNullCharacters()
+
 		val messageDto = mapper.readValue(recordValue, ArenaKafkaMessageDto::class.java)
+		secureLogs.debug("Mottatt melding topic:${record.topic()} partition:${record.partition()} offset:${record.offset()} key: ${record.key()} pos:${messageDto.pos} mellding:$recordValue")
+
 		val messageAlreadyInStore = arenaDataRepository.exists(messageDto!!.table, fromArenaOperationString(messageDto.opType), messageDto.pos)
 		if (messageAlreadyInStore) {
 			log.warn("Ignorerer melding topic:${record.topic()} partition:${record.partition()} offset:${record.offset()} allerede lagret under table:${messageDto.table} optype:${messageDto.opType} pos:${messageDto.pos}")
