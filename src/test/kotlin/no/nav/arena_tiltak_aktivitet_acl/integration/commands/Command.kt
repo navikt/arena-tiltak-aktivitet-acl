@@ -3,7 +3,9 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.commands
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import java.time.format.DateTimeFormatter
 
-abstract class Command {
+abstract class Command (
+	val key: String
+) {
 
 	companion object {
 

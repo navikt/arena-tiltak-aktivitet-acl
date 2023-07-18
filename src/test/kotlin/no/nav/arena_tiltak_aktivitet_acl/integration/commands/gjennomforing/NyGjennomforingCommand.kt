@@ -3,18 +3,19 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaOperation
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_GJENNOMFORING_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import java.time.LocalDateTime
 
 class NyGjennomforingCommand(
 	private val input: GjennomforingInput
-) : GjennomforingCommand() {
+) : GjennomforingCommand(input.gjennomforingId) {
 
 	override fun execute(
 		position: String,
 		executor: (wrapper: ArenaKafkaMessageDto) -> GjennomforingResult
 	): GjennomforingResult {
 		val wrapper = ArenaKafkaMessageDto(
-			table = ARENA_GJENNOMFORING_TABLE_NAME,
+			table = ArenaTableName.GJENNOMFORING,
 			opType = ArenaOperation.I.name,
 			opTs = LocalDateTime.now().format(opTsFormatter),
 			pos = position,

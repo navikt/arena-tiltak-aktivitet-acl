@@ -2,11 +2,12 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import java.time.LocalDateTime
 
 data class ArenaDataUpsertInput(
-	val arenaTableName: String,
+	val arenaTableName: ArenaTableName,
 	val arenaId: String,
 	val operation: Operation,
 	val operationPosition: String,
@@ -37,9 +38,6 @@ fun ArenaKafkaMessage<*>.toUpsertInput(arenaId: String, ingestStatus: IngestStat
 
 fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: Long): ArenaDataUpsertInput {
 	return this.toUpsertInput(arenaId.toString(), IngestStatus.HANDLED, null)
-}
-fun ArenaKafkaMessage<*>.toUpsertInputWithStatusQueued(arenaId: Long): ArenaDataUpsertInput {
-	return this.toUpsertInput(arenaId.toString(), IngestStatus.QUEUED, null)
 }
 
 fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: String): ArenaDataUpsertInput {

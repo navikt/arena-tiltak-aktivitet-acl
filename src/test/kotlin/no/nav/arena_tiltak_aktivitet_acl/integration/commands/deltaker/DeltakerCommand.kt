@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
-abstract class DeltakerCommand : Command() {
+abstract class DeltakerCommand(key: Long) : Command(key.toString()) {
 
 	abstract fun execute(
 		position: String,

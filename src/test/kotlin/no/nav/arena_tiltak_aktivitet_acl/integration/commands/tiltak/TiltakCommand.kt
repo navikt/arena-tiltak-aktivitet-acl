@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
-abstract class TiltakCommand : Command() {
+abstract class TiltakCommand(key: String) : Command(key) {
 
 	abstract fun execute(
 		position: String,

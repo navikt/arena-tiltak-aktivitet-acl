@@ -21,6 +21,7 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundEx
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.kotlin.doReturn
@@ -30,7 +31,6 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
-@Ignored
 class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -96,7 +96,7 @@ class DeltakerProcessorTest : FunSpec({
 		expectedStatus: IngestStatus = IngestStatus.HANDLED
 	): ArenaDataDbo {
 		val arenaDataRepositoryEntry = shouldNotThrowAny {
-			arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, operation, position)
+			arenaDataRepository.get(ArenaTableName.DELTAKER, operation, position)
 		}
 
 		arenaDataRepositoryEntry shouldNotBe null

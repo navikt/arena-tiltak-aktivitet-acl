@@ -1,7 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
@@ -13,7 +12,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import java.util.*
 
@@ -36,21 +35,21 @@ class DeltakerTestExecutor(
 	}
 
 	fun execute(command: DeltakerCommand): AktivitetResult {
-		return command.execute(incrementAndGetPosition()) { sendAndCheck(it) }
+		return command.execute(incrementAndGetPosition()) { sendAndCheck(it, command.key) }
 	}
 
 	fun updateResults(position: String, command: DeltakerCommand): AktivitetResult {
 		return command.execute(position) { getResults(it) }
 	}
 
-	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto): AktivitetResult {
-		sendKafkaMessage(topic, objectMapper.writeValueAsString(wrapper))
+	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto, key: String): AktivitetResult {
+		sendKafkaMessage(topic, objectMapper.writeValueAsString(wrapper), key)
 		return getResults(wrapper)
 	}
 
 	private fun getResults(wrapper: ArenaKafkaMessageDto): AktivitetResult {
 		val arenaData = getArenaData(
-			ARENA_DELTAKER_TABLE_NAME,
+			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
 			wrapper.pos
 		)

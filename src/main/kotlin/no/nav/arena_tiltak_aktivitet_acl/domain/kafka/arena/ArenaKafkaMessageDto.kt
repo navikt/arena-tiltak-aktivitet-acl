@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 
 enum class ArenaOperation {
 	I,
@@ -12,7 +13,7 @@ enum class ArenaOperation {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ArenaKafkaMessageDto(
-	val table: String,
+	val table: ArenaTableName,
 
 	@JsonProperty("op_type")
 	val opType: String,
