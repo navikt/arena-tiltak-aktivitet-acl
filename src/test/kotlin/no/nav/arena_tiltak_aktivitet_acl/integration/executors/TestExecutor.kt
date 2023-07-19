@@ -6,14 +6,12 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.asyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
-import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
-import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import org.apache.kafka.clients.producer.ProducerRecord
-import java.util.*
 
 abstract class TestExecutor(
 	private val kafkaProducer: KafkaProducerClientImpl<String, String>,
@@ -31,11 +29,11 @@ abstract class TestExecutor(
 		return "${position++}"
 	}
 
-	fun sendKafkaMessage(topic: String, payload: String) {
-		kafkaProducer.send(ProducerRecord(topic, payload))
+	fun sendKafkaMessage(topic: String, payload: String, key: String) {
+		kafkaProducer.send(ProducerRecord(topic, key, payload))
 	}
 
-	fun getArenaData(table: String, operation: Operation, position: String): ArenaDataDbo {
+	fun getArenaData(table: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
 		return asyncRetryHandler({
 			arenaDataRepository.getAll().find {
 				it.arenaTableName == table

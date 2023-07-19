@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
+import com.fasterxml.jackson.databind.JsonNode
 import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
@@ -7,12 +8,14 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import java.sql.ResultSet
 import java.time.LocalDateTime
 
 @Component
@@ -23,7 +26,7 @@ open class ArenaDataRepository(
 	private val rowMapper = RowMapper { rs, _ ->
 		ArenaDataDbo(
 			id = rs.getInt("id"),
-			arenaTableName = rs.getString("arena_table_name"),
+			arenaTableName = ArenaTableName.fromValue(rs.getString("arena_table_name")),
 			arenaId = rs.getString("arena_id"),
 			operation = Operation.valueOf(rs.getString("operation_type")),
 			operationPosition = rs.getString("operation_pos"),
@@ -61,7 +64,7 @@ open class ArenaDataRepository(
 
 		template.update(
 			sql, sqlParameters(
-				"arena_table_name" to upsertData.arenaTableName,
+				"arena_table_name" to upsertData.arenaTableName.tableName,
 				"arena_id" to upsertData.arenaId,
 				"operation_type" to upsertData.operation.name,
 				"operation_pos" to upsertData.operationPosition,
@@ -109,7 +112,7 @@ open class ArenaDataRepository(
 		)
 	}
 
-	fun get(tableName: String, operation: Operation, position: String): ArenaDataDbo {
+	fun get(tableName: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
 		//language=PostgreSQL
 		val sql = """
 			SELECT *
@@ -120,36 +123,17 @@ open class ArenaDataRepository(
 		""".trimIndent()
 
 		val parameters = sqlParameters(
-			"arena_table_name" to tableName,
+			"arena_table_name" to tableName.tableName,
 			"operation_type" to operation.name,
 			"operation_pos" to position,
 		)
 
 		return template.query(sql, parameters, rowMapper).firstOrNull()
-			?: throw NoSuchElementException("Element from table $tableName, operation: $operation, position: $position does not exist")
-	}
-
-	fun exists(tableName: String, operation: Operation, position: String): Boolean {
-		//language=PostgreSQL
-		val sql = """
-			SELECT *
-			FROM arena_data
-			WHERE arena_table_name = :arena_table_name
-				AND operation_type = :operation_type
-				AND operation_pos = :operation_pos
-		""".trimIndent()
-
-		val parameters = sqlParameters(
-			"arena_table_name" to tableName,
-			"operation_type" to operation.name,
-			"operation_pos" to position,
-		)
-
-		return template.query(sql, parameters, rowMapper).firstOrNull() != null
+			?: throw NoSuchElementException("Element from table ${tableName.name}, operation: $operation, position: $position does not exist")
 	}
 
 	fun getByIngestStatus(
-		tableName: String,
+		tableName: ArenaTableName,
 		status: IngestStatus,
 		fromId: Int,
 		limit: Int = 500
@@ -167,7 +151,7 @@ open class ArenaDataRepository(
 
 		val parameters = sqlParameters(
 			"ingestStatus" to status.name,
-			"tableName" to tableName,
+			"tableName" to tableName.tableName,
 			"fromId" to fromId,
 			"limit" to limit
 		)
@@ -223,7 +207,7 @@ open class ArenaDataRepository(
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseArenaId.toString(),
-			"deltakerTableName" to ARENA_DELTAKER_TABLE_NAME
+			"deltakerTableName" to ArenaTableName.DELTAKER.tableName
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antall") }
 			?.let { it > 0 } ?: false
@@ -244,6 +228,29 @@ open class ArenaDataRepository(
 			)
 		""".trimIndent()
 		return template.update(sql, MapSqlParameterSource())
+	}
+
+	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, after: JsonNode?): Boolean {
+		if (after == null) return true // Should not reach this function but if it does, ignore it
+		//language=PostgreSQL
+		val sql = """
+			WITH latestRow AS (
+				SELECT arena_id, MAX(id) latestId
+				FROM arena_data WHERE
+					arena_id = :arenaId
+					AND arena_table_name = :tableName
+				GROUP BY arena_id)
+			SELECT EXISTS(
+				SELECT 1
+				FROM arena_data
+				JOIN latestRow ON arena_data.id = latestRow.latestId
+					AND after @> :after::jsonb
+			)
+		""".trimIndent()
+		return template.queryForObject(
+			sql,
+			mapOf("arenaId" to deltakelseArenaId, "tableName" to tableName.tableName, "after" to after.toString()),
+		) { row: ResultSet, _ -> row.getBoolean(1) }
 	}
 
 }

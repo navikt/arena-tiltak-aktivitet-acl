@@ -10,10 +10,7 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_GJENNOMFORING_TABLE_NAME
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
-import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
+import no.nav.arena_tiltak_aktivitet_acl.utils.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -45,12 +42,12 @@ open class RetryArenaMessageProcessorService(
 	}
 
 	private fun processMessagesWithStatus(status: IngestStatus, batchSize: Int) {
-		processMessages(ARENA_TILTAK_TABLE_NAME, status, batchSize)
-		processMessages(ARENA_GJENNOMFORING_TABLE_NAME, status, batchSize)
-		processMessages(ARENA_DELTAKER_TABLE_NAME, status, batchSize)
+		processMessages(ArenaTableName.TILTAK, status, batchSize)
+		processMessages(ArenaTableName.GJENNOMFORING, status, batchSize)
+		processMessages(ArenaTableName.DELTAKER, status, batchSize)
 	}
 
-	private fun processMessages(tableName: String, status: IngestStatus, batchSize: Int) {
+	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
 		var fromId = 0
 		var data: List<ArenaDataDbo>
 
@@ -76,16 +73,16 @@ open class RetryArenaMessageProcessorService(
 
 
 	private fun process(arenaDataDbo: ArenaDataDbo) {
-		withTimer(arenaDataDbo.arenaTableName) {
+		withTimer(arenaDataDbo.arenaTableName.tableName) {
 			try {
 				when (arenaDataDbo.arenaTableName) {
-					ARENA_TILTAK_TABLE_NAME -> tiltakProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
-					ARENA_GJENNOMFORING_TABLE_NAME -> gjennomforingProcessor.handleArenaMessage(
+					ArenaTableName.TILTAK -> tiltakProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
+					ArenaTableName.GJENNOMFORING -> gjennomforingProcessor.handleArenaMessage(
 						toArenaKafkaMessage(
 							arenaDataDbo
 						)
 					)
-					ARENA_DELTAKER_TABLE_NAME -> deltakerProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
+					ArenaTableName.DELTAKER -> deltakerProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
 				}
 			} catch (e: Exception) {
 				val currentIngestAttempts = arenaDataDbo.ingestAttempts + 1

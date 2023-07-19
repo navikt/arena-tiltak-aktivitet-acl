@@ -5,6 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -48,7 +49,7 @@ fun createArenaDeltakerKafkaMessage(
 	)
 
 	return ArenaDeltakerKafkaMessage(
-		arenaTableName = ARENA_DELTAKER_TABLE_NAME,
+		arenaTableName = ArenaTableName.DELTAKER,
 		operationType = operation,
 		operationTimestamp = LocalDateTime.now(),
 		operationPosition = incrementAndGetPos().toString(),

@@ -19,6 +19,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -62,7 +63,7 @@ class TiltakProcessorTest : FunSpec({
 		tiltakProcessor.handleArenaMessage(data)
 
 		val arenaDataRepositoryEntry = shouldNotThrowAny {
-			arenaDataRepository.get(ARENA_TILTAK_TABLE_NAME, Operation.CREATED, position)
+			arenaDataRepository.get(ArenaTableName.TILTAK, Operation.CREATED, position)
 		}
 
 		arenaDataRepositoryEntry.before shouldBe null
@@ -108,7 +109,7 @@ class TiltakProcessorTest : FunSpec({
 		tiltakProcessor.handleArenaMessage(kafkaMessageUpdateOp)
 
 		val arenaDataRepositoryEntry = shouldNotThrowAny {
-			arenaDataRepository.get(ARENA_TILTAK_TABLE_NAME, Operation.MODIFIED, updatedPosition)
+			arenaDataRepository.get(ArenaTableName.TILTAK, Operation.MODIFIED, updatedPosition)
 		}
 
 		arenaDataRepositoryEntry.operation shouldBe Operation.MODIFIED
@@ -195,7 +196,7 @@ private fun createArenaTiltakKafkaMessage(
 	arenaTiltak: ArenaTiltak,
 ): ArenaTiltakKafkaMessage {
 	return ArenaTiltakKafkaMessage(
-		arenaTableName =  ARENA_TILTAK_TABLE_NAME,
+		arenaTableName =  ArenaTableName.TILTAK,
 		operationType = operationType,
 		operationTimestamp = operationTimestamp,
 		operationPosition =  operationPosition,

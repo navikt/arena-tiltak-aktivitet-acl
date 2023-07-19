@@ -7,7 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.Gjen
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_GJENNOMFORING_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 
 class GjennomforingTestExecutor(
@@ -24,17 +24,17 @@ class GjennomforingTestExecutor(
 	private val topic = "gjennomforing"
 
 	fun execute(command: GjennomforingCommand): GjennomforingResult {
-		return command.execute(incrementAndGetPosition()) { sendAndCheck(it) }
+		return command.execute(incrementAndGetPosition()) { sendAndCheck(it, command.key) }
 	}
 
-	private fun sendAndCheck(arenaWrapper: ArenaKafkaMessageDto): GjennomforingResult {
-		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper))
+	private fun sendAndCheck(arenaWrapper: ArenaKafkaMessageDto, key: String): GjennomforingResult {
+		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper), key)
 		return getResults(arenaWrapper)
 	}
 
 	private fun getResults(arenaWrapper: ArenaKafkaMessageDto): GjennomforingResult {
 		val arenaData = getArenaData(
-			ARENA_GJENNOMFORING_TABLE_NAME,
+			ArenaTableName.GJENNOMFORING,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
 			arenaWrapper.pos
 		)

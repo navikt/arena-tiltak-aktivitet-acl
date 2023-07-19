@@ -10,7 +10,9 @@ import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DbUtils.isEqualTo
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
@@ -34,7 +36,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val after = "{\"test\": \"test\"}"
 
 		val data = ArenaDataUpsertInput(
-			arenaTableName = "Table",
+			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
 			operationPosition = "1",
@@ -53,9 +55,28 @@ class ArenaDataRepositoryTest : FunSpec({
 		stored.after shouldBe after
 	}
 
+	test("allreadyProcessed - skal være true hvis nyeste behandlede medling sin after er lik innkommende melding") {
+		val gammelAfter = "{\"test\":     \"test\"}"
+		val nyAfter = "{\"lol\": \"lol\"}"
+		val data = ArenaDataUpsertInput(
+			arenaTableName = ArenaTableName.TILTAK,
+			arenaId = "ARENA_ID",
+			operation = Operation.CREATED,
+			operationPosition = "1",
+			operationTimestamp = LocalDateTime.now(),
+			after = gammelAfter
+		)
+		repository.upsert(data)
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(gammelAfter)) shouldBe true
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(nyAfter)) shouldBe false
+		repository.upsert(data.copy(after = nyAfter, operationPosition = "2"))
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(nyAfter)) shouldBe true
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(gammelAfter)) shouldBe false
+	}
+
 	test("upsert - data finnes allerede - oppdaterer eksisterende") {
 		val data = ArenaDataUpsertInput(
-			arenaTableName = "Table",
+			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
 			operationPosition = "1",
@@ -89,7 +110,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		val afterData = "{\"test\": \"test\"}"
 
 		val data1 = ArenaDataUpsertInput(
-			arenaTableName = "Table",
+			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
 			operationPosition = "1",
@@ -98,7 +119,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		)
 
 		val data2 = ArenaDataUpsertInput(
-			arenaTableName = "Table",
+			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
 			operationPosition = "2",
@@ -108,7 +129,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		)
 
 		val data3 = ArenaDataUpsertInput(
-			arenaTableName = "Table",
+			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
 			operationPosition = "3",

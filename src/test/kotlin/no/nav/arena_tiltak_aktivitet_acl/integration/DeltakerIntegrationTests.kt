@@ -2,7 +2,6 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
@@ -18,11 +17,11 @@ import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.LocalDate
@@ -30,7 +29,6 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
-@Disabled
 class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Autowired
@@ -45,14 +43,16 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	data class TestData (
 		val gjennomforingId: Long = Random().nextLong(),
 		val deltakerId: Long = Random().nextLong(),
-		val gjennomforingInput: GjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId)
+		val gjennomforingInput: GjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId),
+		val tiltak: TiltakDbo = TiltakDbo(UUID.randomUUID(), "TILT", "Tiltak navn", "IND")
 	)
 
 	private fun setup(): TestData {
-		val testData = TestData()
-
-		tiltakExecutor.execute(NyttTiltakCommand())
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand())
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.tiltak
+
+		val testData = TestData(tiltak = tiltak)
 
 		gjennomforingExecutor.execute(NyGjennomforingCommand(testData.gjennomforingInput))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
@@ -62,7 +62,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `ingest deltaker`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -76,7 +76,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
-			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+			.outgoingPayload { it.isSame(deltakerInput, tiltak) }
 			.aktivitet {
 				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
 				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
@@ -87,7 +87,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `skal være historisk hvis opprettet i avsluttet periode`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 
 		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(6)
 
@@ -104,7 +104,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
-			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+			.outgoingPayload { it.isSame(deltakerInput, tiltak) }
 			.aktivitet {
 				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
 				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
@@ -249,7 +249,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 	@Test
 	fun `ingest existing deltaker`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -274,12 +274,12 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
-			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput) }
+			.outgoingPayload { it.isSame(deltakerInput, tiltak) }
 
 		updatedResult.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
-			.outgoingPayload { it.isSame(deltakerInputUpdated, gjennomforingInput) }
+			.outgoingPayload { it.isSame(deltakerInputUpdated, tiltak) }
 	}
 
 	@Test
@@ -310,8 +310,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			navn = null
 		)
 
-		tiltakExecutor.execute(NyttTiltakCommand(navn = TILTAKSNAVN_OVERRIDE))
-			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(navn = TILTAKSNAVN_OVERRIDE))
+			.let { result ->
+				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+				result.tiltak
+			}
 
 		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
@@ -330,7 +333,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, _, output -> output?.aktivitetskort?.tittel shouldBe TILTAKSNAVN_OVERRIDE }
-			.outgoingPayload { it.isSame(deltakerInput, gjennomforingInput.copy(navn = TILTAKSNAVN_OVERRIDE)) }
+			.outgoingPayload { it.isSame(deltakerInput, tiltak) }
 	}
 
 	@Test
@@ -367,7 +370,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		processMessages()
 
-		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
+		val arenaDataDbo = arenaDataRepository.get(ArenaTableName.DELTAKER, Operation.CREATED, result.position)
 		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
 
@@ -407,7 +410,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		processMessages()
 
-		val arenaDataDbo = arenaDataRepository.get(ARENA_DELTAKER_TABLE_NAME, Operation.CREATED, result.position)
+		val arenaDataDbo = arenaDataRepository.get(ArenaTableName.DELTAKER, Operation.CREATED, result.position)
 		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
 	}
 
@@ -439,7 +442,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			}
 		// Skal ikke gjøre oppslag på periode men bruke eksiterende periode satt på aktiviteten
 		OppfolgingClientMock.oppfolgingsperiode[fnr] = emptyList()
-		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput)
+		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput
+			.copy(deltakerStatusKode = "FULLF"))
 		deltakerExecutor.execute(oppdaterComand)
 			.let {
 				it.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
@@ -449,9 +453,12 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 
 
-	private fun Aktivitetskort.isSame(deltakerInput: DeltakerInput, gjennomforingInput: GjennomforingInput) {
+	private fun Aktivitetskort.isSame(
+		deltakerInput: DeltakerInput,
+		tiltak: TiltakDbo
+	) {
 		personIdent shouldBe "12345"
-		tittel shouldBe gjennomforingInput.navn
+		tittel shouldBe tiltak.navn
 		aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
 		etiketter.size shouldBe 0
 		startDato shouldBe deltakerInput.datoFra
