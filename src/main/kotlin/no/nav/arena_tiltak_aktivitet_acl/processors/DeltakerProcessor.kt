@@ -136,8 +136,8 @@ open class DeltakerProcessor(
 			log.info("Fant ikke oppfølgingsperiode for arenaId=${tiltakDeltakerId}")
 			when {
 				aktivitet.aktivitetStatus.erAvsluttet() || aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false ->
-					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId} og fodselsnummer=${personIdent}")
-				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId} og fodselsnummer=${personIdent}")
+					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
+				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId} ")
 			}
 		} else {
 			return oppfolgingsperiode
