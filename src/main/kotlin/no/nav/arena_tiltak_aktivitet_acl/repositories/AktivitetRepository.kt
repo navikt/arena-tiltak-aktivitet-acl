@@ -1,9 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableBoolean
-import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableUUID
-import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
+import no.nav.arena_tiltak_aktivitet_acl.utils.*
 import org.intellij.lang.annotations.Language
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -69,5 +67,6 @@ fun ResultSet.toAktivitetDbo() =
 		arenaId = this.getString("arena_id"),
 		tiltakKode = this.getString("tiltak_kode"),
 		oppfolgingsperiodeUUID = this.getNullableUUID("oppfolgingsperiode_uuid"),
-		historisk = this.getNullableBoolean("historisk")
+		oppfolgingsSluttDato = this.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt")
+		historisk = this.getNullableBoolean("historisk") ?: false,
 	)

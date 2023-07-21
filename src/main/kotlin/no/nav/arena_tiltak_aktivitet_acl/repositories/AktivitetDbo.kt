@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import java.time.ZonedDateTime
 import java.util.*
 
 data class AktivitetDbo (
@@ -11,5 +12,6 @@ data class AktivitetDbo (
 	val arenaId: String,
 	val tiltakKode: String,
 	val oppfolgingsperiodeUUID: UUID?,
-	val historisk: Boolean?
+	val historisk: Boolean,
+	val oppfolgingsSluttDato: ZonedDateTime?
 )
