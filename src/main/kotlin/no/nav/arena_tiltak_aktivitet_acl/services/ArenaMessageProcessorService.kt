@@ -1,6 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.services
 
-import com.fasterxml.jackson.databind.JsonNode
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
@@ -9,10 +8,15 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
-import no.nav.arena_tiltak_aktivitet_acl.processors.*
+import no.nav.arena_tiltak_aktivitet_acl.processors.ArenaMessageProcessor
+import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
+import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
+import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.*
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DateUtils.parseArenaDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
+import no.nav.arena_tiltak_aktivitet_acl.utils.removeNullCharacters
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -49,7 +53,6 @@ open class ArenaMessageProcessorService(
 				ArenaTableName.TILTAK -> process(messageDto, tiltakProcessor) { it.TILTAKSKODE }
 				ArenaTableName.GJENNOMFORING -> process(messageDto, gjennomforingProcessor) { it.TILTAKGJENNOMFORING_ID.toString() }
 				ArenaTableName.DELTAKER -> process(messageDto, deltakerProcessor) { it.TILTAKDELTAKER_ID.toString() }
-				else -> throw IllegalArgumentException("Kan ikke håndtere melding fra ukjent arena tabell: ${messageDto.table}")
 			}
 		}
 	}
@@ -114,7 +117,6 @@ open class ArenaMessageProcessorService(
 			ArenaTableName.TILTAK -> "tiltak"
 			ArenaTableName.GJENNOMFORING -> "gjennomforing"
 			ArenaTableName.DELTAKER -> "deltaker"
-			else -> "unknown"
 		}
 	}
 

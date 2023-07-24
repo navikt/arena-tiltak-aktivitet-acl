@@ -2,13 +2,13 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import java.util.*
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import org.intellij.lang.annotations.Language
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.util.*
 
 class AktivitetRepositoryIntegrationTest: StringSpec({
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -25,7 +25,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			arenaId = "ARENATA-111",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = null,
-			historisk = null
+			oppfolgingsSluttTidspunkt = null,
 		)
 		repository.upsert(aktivitet)
 		repository.getAktivitet(id) shouldBe aktivitet
@@ -40,7 +40,8 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			arenaId = "ARENATA-111",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = null,
-			historisk = null
+			oppfolgingsSluttTidspunkt = null,
+
 		)
 		repository.upsert(aktivitet)
 		repository.upsert(aktivitet)
@@ -56,7 +57,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			arenaId = "ARENATA-111",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = null,
-			historisk = null
+			oppfolgingsSluttTidspunkt = null,
 		)
 		@Language("JSON")
 		val updatedData = """{"data": "newData"}""".trimIndent()

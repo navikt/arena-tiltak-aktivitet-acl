@@ -12,6 +12,5 @@ data class AktivitetDbo (
 	val arenaId: String,
 	val tiltakKode: String,
 	val oppfolgingsperiodeUUID: UUID?,
-	val historisk: Boolean,
-	val oppfolgingsSluttDato: ZonedDateTime?
+	val oppfolgingsSluttTidspunkt: ZonedDateTime?
 )

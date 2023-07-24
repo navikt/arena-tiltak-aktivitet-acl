@@ -81,7 +81,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
 				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 				it.oppfolgingsperiodeUUID shouldNotBe null
-				it.historisk shouldBe false
+				it.oppfolgingsSluttTidspunkt shouldBe null
 			}
 	}
 
@@ -109,7 +109,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
 				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 				it.oppfolgingsperiodeUUID shouldNotBe null
-				it.historisk shouldBe true
+				it.oppfolgingsSluttTidspunkt shouldNotBe null
 			}
 	}
 
@@ -185,10 +185,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val data3 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
 		val aktivitetskort3 = mapper.readValue(data3, Aktivitetskort::class.java)
 		aktivitetskort3.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
-	}
-
-	fun `skal lagre oppfolgingsperiode slutt og historisk`() {
-		val data2 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
 	}
 
 	@Test

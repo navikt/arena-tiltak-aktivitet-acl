@@ -47,8 +47,7 @@ data class Aktivitetskort(
 		arenaId = headers.arenaId,
 		tiltakKode = headers.tiltakKode,
 		oppfolgingsperiodeUUID = headers.oppfolgingsperiode,
-		historisk = headers.oppfolgingsSluttDato != null,
-		oppfolgingsSluttDato = headers.oppfolgingsSluttDato
+		oppfolgingsSluttTidspunkt = headers.oppfolgingsSluttDato
 	)
 
 	fun toKafkaMessage() = KafkaMessageDto(

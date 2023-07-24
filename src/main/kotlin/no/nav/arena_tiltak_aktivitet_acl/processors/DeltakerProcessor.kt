@@ -91,7 +91,6 @@ open class DeltakerProcessor(
 				aktivitetId = aktivitetId,
 				personIdent = personIdent,
 				arrangorNavn = gjennomforing.arrangorNavn,
-//				gjennomforingNavn = gjennomforing.navn ?: tiltak.navn,
 				gjennomforingNavn = tiltak.navn,
 				tiltak = tiltak,
 				erNyAktivitet = erNyAktivitet,
@@ -147,5 +146,5 @@ open class DeltakerProcessor(
 }
 
 fun AktivitetDbo.oppfolgingsPeriode() =
-	DeltakerProcessor.AktivitetskortOppfolgingsperiode(this.id, this.oppfolgingsSluttDato)
+	DeltakerProcessor.AktivitetskortOppfolgingsperiode(this.id, this.oppfolgingsSluttTidspunkt)
 
