@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.kafka
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders.Companion.fromKafkaHeaders
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
 import no.nav.arena_tiltak_aktivitet_acl.utils.JsonUtils
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
@@ -10,7 +11,6 @@ import no.nav.common.kafka.consumer.KafkaConsumerClient
 import no.nav.common.kafka.consumer.util.KafkaConsumerClientBuilder
 import no.nav.common.kafka.consumer.util.deserializer.Deserializers.stringDeserializer
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import java.time.LocalDateTime
 import java.util.*
 
 class KafkaAktivitetskortIntegrationConsumer(
@@ -22,13 +22,10 @@ class KafkaAktivitetskortIntegrationConsumer(
 
 
 	companion object {
-		private val aktivitetSubscriptions = mutableMapOf<UUID, (wrapper: KafkaMessageDto) -> Unit>()
+		private val aktivitetSubscriptions =  mutableListOf<(wrapper: KafkaMessageDto, headers: AktivitetskortHeaders) -> Unit>()
 
-		fun subscribeAktivitet(handler: (record: KafkaMessageDto) -> Unit): UUID {
-			val id = UUID.randomUUID()
-			aktivitetSubscriptions[id] = handler
-
-			return id
+		fun subscribeAktivitet(handler: (record: KafkaMessageDto, headers: AktivitetskortHeaders) -> Unit): Unit {
+			aktivitetSubscriptions.add(handler)
 		}
 
 		fun reset() {
@@ -63,10 +60,9 @@ class KafkaAktivitetskortIntegrationConsumer(
 				val deltakerPayload =
 					ObjectMapper.get().treeToValue(unknownMessageWrapper.aktivitetskort, Aktivitetskort::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
-				aktivitetSubscriptions.values.forEach { it.invoke(message) }
+				aktivitetSubscriptions.forEach { handleMessage -> handleMessage(message, fromKafkaHeaders(record.headers())) }
 
 			}
-			else -> throw IllegalStateException("${unknownMessageWrapper.actionType} does not have a handler.")
 		}
 	}
 

@@ -100,6 +100,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
+		val fnr = result.aktivitet?.personIdent
+
+		val oppfolgingPerioder  = OppfolgingClientMock.oppfolgingsperioder.get(fnr)!!
+		val gammelPeriode = oppfolgingPerioder.first()
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
@@ -109,8 +113,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
 				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 				it.oppfolgingsperiodeUUID shouldNotBe null
+				it.oppfolgingsperiodeUUID shouldBe gammelPeriode.uuid
 				it.oppfolgingsSluttTidspunkt shouldNotBe null
+				it.oppfolgingsSluttTidspunkt shouldBe gammelPeriode.sluttDato
 			}
+
 	}
 
 
@@ -343,7 +350,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
 		val fnr = "12345"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
-		OppfolgingClientMock.oppfolgingsperiode[fnr] = oppfolgingsperioder
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = oppfolgingsperioder
 
 		val opprettetTidspunkt = LocalDateTime.now()
 
@@ -366,7 +373,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			startDato = ZonedDateTime.now().minusDays(1),
 			sluttDato = null
 		)
-		OppfolgingClientMock.oppfolgingsperiode[fnr] = listOf(gjeldendePeriode)
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(gjeldendePeriode)
 
 		processMessages()
 
@@ -382,7 +389,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		// Finnes ingen oppfolgingsperioder
 		val fnr = "12345"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
-		OppfolgingClientMock.oppfolgingsperiode[fnr] = emptyList()
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = emptyList()
 
 		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1) // over en uke gammel aktivitet
 
@@ -406,7 +413,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			startDato = ZonedDateTime.now().minusDays(1),
 			sluttDato = null
 		)
-		OppfolgingClientMock.oppfolgingsperiode[fnr] = listOf(gjeldendePeriode)
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(gjeldendePeriode)
 
 		processMessages()
 
@@ -424,7 +431,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val fnr = "12345"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
-		OppfolgingClientMock.oppfolgingsperiode[fnr] = listOf(gjeldendePeriode)
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(gjeldendePeriode)
 		val opprettetTidspunkt = LocalDateTime.now()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -441,7 +448,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				it.aktivitet?.oppfolgingsperiodeUUID shouldBe gjeldendePeriode.uuid
 			}
 		// Skal ikke gjøre oppslag på periode men bruke eksiterende periode satt på aktiviteten
-		OppfolgingClientMock.oppfolgingsperiode[fnr] = emptyList()
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = emptyList()
 		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput
 			.copy(deltakerStatusKode = "FULLF"))
 		deltakerExecutor.execute(oppdaterComand)

@@ -1,17 +1,18 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import java.util.*
@@ -28,10 +29,10 @@ class DeltakerTestExecutor(
 ) {
 
 	private val topic = "deltaker"
-	private val outputMessages = mutableListOf<KafkaMessageDto>()
+	private val outputMessages = mutableListOf<Pair<KafkaMessageDto, AktivitetskortHeaders>>()
 
 	init {
-		KafkaAktivitetskortIntegrationConsumer.subscribeAktivitet { outputMessages.add(it) }
+		KafkaAktivitetskortIntegrationConsumer.subscribeAktivitet { kafkaMessageDto, aktivitetkortHeader -> outputMessages.add(kafkaMessageDto to aktivitetkortHeader) }
 	}
 
 	fun execute(command: DeltakerCommand): AktivitetResult {
