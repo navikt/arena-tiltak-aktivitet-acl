@@ -104,8 +104,7 @@ open class DeltakerProcessor(
 			arenaId = KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString(),
 			tiltakKode = tiltak.kode,
 			oppfolgingsperiode = oppfolgingsperiode.id,
-			historisk = oppfolgingsperiode.historisk,
-			oppfolgingsSluttDato = oppfolgingsperiode.
+			oppfolgingsSluttDato = oppfolgingsperiode.oppfolgingsSluttDato
 		)
 		val outgoingMessage = aktivitet.toKafkaMessage()
 		kafkaProducerService.sendTilAktivitetskortTopic(
@@ -127,14 +126,13 @@ open class DeltakerProcessor(
 	}
 
 	data class AktivitetskortOppfolgingsperiode(
-		val historisk: Boolean,
 		val id: UUID,
 		val oppfolgingsSluttDato: ZonedDateTime?
 	)
 	private fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
 		val personIdent = aktivitet.personIdent
 		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
-			?.let { AktivitetskortOppfolgingsperiode(it.sluttDato != null , it.uuid, it.sluttDato) }
+			?.let { AktivitetskortOppfolgingsperiode(it.uuid , it.sluttDato) }
 		if (oppfolgingsperiode == null) {
 			log.info("Fant ikke oppfølgingsperiode for arenaId=${tiltakDeltakerId}")
 			when {
@@ -148,6 +146,6 @@ open class DeltakerProcessor(
 	}
 }
 
-fun AktivitetDbo.oppfolgingsPeriode() = {
-	DeltakerProcessor.AktivitetskortOppfolgingsperiode(this.historisk, it)
-}
+fun AktivitetDbo.oppfolgingsPeriode() =
+	DeltakerProcessor.AktivitetskortOppfolgingsperiode(this.id, this.oppfolgingsSluttDato)
+

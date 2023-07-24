@@ -7,7 +7,6 @@ data class AktivitetskortHeaders(
 	val arenaId: String,
 	val tiltakKode: String,
 	val oppfolgingsperiode: UUID?,
-	val historisk: Boolean?,
 	val oppfolgingsSluttDato: ZonedDateTime?,
 	)
 

@@ -67,6 +67,6 @@ fun ResultSet.toAktivitetDbo() =
 		arenaId = this.getString("arena_id"),
 		tiltakKode = this.getString("tiltak_kode"),
 		oppfolgingsperiodeUUID = this.getNullableUUID("oppfolgingsperiode_uuid"),
-		oppfolgingsSluttDato = this.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt")
-		historisk = this.getNullableBoolean("historisk") ?: false,
+		oppfolgingsSluttDato = this.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt"),
+		historisk = this.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt") != null,
 	)

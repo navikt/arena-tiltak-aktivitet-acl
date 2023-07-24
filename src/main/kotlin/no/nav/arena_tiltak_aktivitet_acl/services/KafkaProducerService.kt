@@ -31,6 +31,7 @@ open class KafkaProducerService(
 			RecordHeader("arenaTiltakskode", aktivitetskortHeaders.tiltakKode.toByteArray()),
 			RecordHeader("eksternReferanseId", aktivitetskortHeaders.arenaId.toByteArray()),
 			RecordHeader("oppfolgingsperiode", aktivitetskortHeaders.oppfolgingsperiode?.toString()?.toByteArray() ?: "".toByteArray()),
+			RecordHeader("oppfolgingsperiodeSlutt", aktivitetskortHeaders.oppfolgingsperiode?.toString()?.toByteArray() ?: "".toByteArray()),
 			RecordHeader("historisk", aktivitetskortHeaders.historisk?.toString()?.toByteArray() ?: "".toByteArray())
 		)
 

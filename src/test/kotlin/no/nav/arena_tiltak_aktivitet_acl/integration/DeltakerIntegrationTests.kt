@@ -187,6 +187,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		aktivitetskort3.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 	}
 
+	fun `skal lagre oppfolgingsperiode slutt og historisk`() {
+		val data2 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
+	}
+
 	@Test
 	fun `process deltakelse in the correct order also when failed`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = TestData()
