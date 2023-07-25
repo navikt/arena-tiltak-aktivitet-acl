@@ -106,7 +106,7 @@ open class IntegrationTestConfiguration(
 		translationRepository: TranslationRepository,
 		aktivitetRepository: AktivitetRepository
 	): DeltakerTestExecutor {
-		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository, aktivitetRepository)
+		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
 	}
 
 	@Bean

@@ -7,47 +7,49 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHe
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import org.junit.jupiter.api.fail
 
-data class AktivitetResult(
+class HandledResult(
+	position: String,
+	arenaDataDbo: ArenaDataDbo,
+	translation: TranslationDbo,
+	val output: KafkaMessageDto,
+	val headers: AktivitetskortHeaders
+): AktivitetResult(position, arenaDataDbo, translation) {
+	fun output(check: (data: KafkaMessageDto) -> Unit): AktivitetResult {
+		check(output)
+		return this
+	}
+	fun aktivitetskort(check: (aktivitetskort: Aktivitetskort) -> Unit): AktivitetResult {
+		check(output.aktivitetskort)
+		return this
+	}
+	override fun result(check: (arenaDataDbo: ArenaDataDbo, translation: TranslationDbo?, output: KafkaMessageDto?) -> Unit): AktivitetResult {
+		check(arenaDataDbo, translation, output)
+		return this
+	}
+}
+
+open class AktivitetResult(
 	val position: String,
 	val arenaDataDbo: ArenaDataDbo,
-	val translation: TranslationDbo?,
-	val output: KafkaMessageDto?,
-	val headers: AktivitetskortHeaders?
+	val translation: TranslationDbo?
 ) {
+	fun expectHandled(check: (data: HandledResult) -> Unit) {
+		if (this !is HandledResult) fail("Expected arena message to have ingest status handled")
+		check(this)
+	}
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
 		check.invoke(arenaDataDbo)
 		return this
 	}
 
 	fun translation(check: (data: TranslationDbo) -> Unit): AktivitetResult {
-		if (translation == null) {
-			fail("Trying to get translation, but it is null")
-		}
-
-		check.invoke(translation)
+		if (translation == null) fail("Trying to get translation, but it is null")
+		check(translation)
 		return this
 	}
 
-	fun output(check: (data: KafkaMessageDto) -> Unit): AktivitetResult {
-		if (output == null) {
-			fail("Trying to get output, but it is null")
-		}
-
-		check.invoke(output)
-		return this
-	}
-
-	fun result(check: (arenaDataDbo: ArenaDataDbo, translation: TranslationDbo?, output: KafkaMessageDto?) -> Unit): AktivitetResult {
-		check.invoke(arenaDataDbo, translation, output)
-		return this
-	}
-
-	fun outgoingPayload(check: (aktivitetskort: Aktivitetskort) -> Unit): AktivitetResult {
-		if (output?.aktivitetskort == null) {
-			fail("Forsøker å hente payload på en outgoing melding som er null")
-		}
-
-		check.invoke(output.aktivitetskort)
+	open fun result(check: (arenaDataDbo: ArenaDataDbo, translation: TranslationDbo?, output: KafkaMessageDto?) -> Unit): AktivitetResult {
+		check(arenaDataDbo, translation, null)
 		return this
 	}
 }

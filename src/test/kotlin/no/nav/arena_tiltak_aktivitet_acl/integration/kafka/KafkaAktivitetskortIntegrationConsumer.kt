@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.kafka
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.JsonNode
 import io.kotest.common.runBlocking
+import kotlinx.coroutines.flow.flow
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders.Companion.fromKafkaHeaders
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
