@@ -2,6 +2,8 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.date.shouldBeWithin
+
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
@@ -24,6 +26,7 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -49,15 +52,12 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	private fun setup(): TestData {
 		val tiltak = tiltakExecutor.execute(NyttTiltakCommand())
-			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.tiltak
-
-		val testData = TestData(tiltak = tiltak)
-
-		gjennomforingExecutor.execute(NyGjennomforingCommand(testData.gjennomforingInput))
-			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-
-		return testData
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }.tiltak
+		return TestData(tiltak = tiltak)
+			.also {testData ->
+				gjennomforingExecutor.execute(NyGjennomforingCommand(testData.gjennomforingInput))
+					.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			}
 	}
 
 	@Test
@@ -77,53 +77,49 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, tiltak) }
-			.aktivitet {
-				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
-				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
-				it.oppfolgingsperiodeUUID shouldNotBe null
-				it.oppfolgingsSluttTidspunkt shouldBe null
-			}
+		result.headers!!.let {
+			it.tiltakKode shouldBe gjennomforingInput.tiltakKode
+			it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+			it.oppfolgingsperiode shouldNotBe null
+			it.oppfolgingsSluttDato shouldBe null
+		}
+
+
 	}
 
 	@Test
 	fun `skal være historisk hvis opprettet i avsluttet periode`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 
-		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(6)
+		val gammelPeriode = OppfolgingClientMock.defaultOppfolgingsperioder.first()
+		val opprettetTidspunkt = gammelPeriode.startDato.plusSeconds(1)
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
-			registrertDato = opprettetTidspunkt
+			registrertDato = opprettetTidspunkt.toLocalDateTime()
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
-		val fnr = result.aktivitet?.personIdent
-
-		val oppfolgingPerioder  = OppfolgingClientMock.oppfolgingsperioder.get(fnr)!!
-		val gammelPeriode = oppfolgingPerioder.first()
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			.result { _, translation, output -> translation!!.aktivitetId shouldBe output!!.aktivitetskort.id }
 			.outgoingPayload { it.isSame(deltakerInput, tiltak) }
-			.aktivitet {
-				it.tiltakKode shouldBe gjennomforingInput.tiltakKode
-				it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
-				it.oppfolgingsperiodeUUID shouldNotBe null
-				it.oppfolgingsperiodeUUID shouldBe gammelPeriode.uuid
-				it.oppfolgingsSluttTidspunkt shouldNotBe null
-				it.oppfolgingsSluttTidspunkt shouldBe gammelPeriode.sluttDato
-			}
-
+		result.headers!!.let {
+			it.tiltakKode shouldBe gjennomforingInput.tiltakKode
+			it.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+			it.oppfolgingsperiode shouldBe gammelPeriode.uuid
+			it.oppfolgingsSluttDato!!.shouldBeWithin(Duration.ofMillis(1), gammelPeriode.sluttDato!!)
+		}
 	}
 
 
 	@Test
-	fun `historisk skal være null hvis ingen oppfølgingsperioder`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+	fun `skal ikke lage aktivitetskort hvis ingen oppfølgingsperioder (retry)`() {
+		val (gjennomforingId, deltakerId) = setup()
 		val opprettetTidspunkt = LocalDateTime.now().minusMonths(6)
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -135,7 +131,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
 		result.arenaDataDbo.ingestStatus shouldBe IngestStatus.RETRY
-		result.aktivitet shouldBe null
+		result.output shouldBe null
 	}
 
 	@Test
@@ -197,7 +193,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Test
 	fun `process deltakelse in the correct order also when failed`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = TestData()
-
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
@@ -205,20 +200,19 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "INFOMOETE", // Aktivitetstatus: Planlagt
 			endretAv = Ident(ident = "SIG123"),
 		)
-		val deltakerCommand = NyDeltakerCommand(deltakerInput)
-		val result: AktivitetResult = deltakerExecutor.execute(deltakerCommand)
-
-		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+		val planlagtCommand = NyDeltakerCommand(deltakerInput)
+		val plandlagtCommandResult: AktivitetResult = deltakerExecutor.execute(planlagtCommand)
+		plandlagtCommandResult.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+		val (_, arenaData) = plandlagtCommandResult
 
 		// Fail first message after 10 retries
 		(1..10).forEach{ processMessages() }
-		val resultDbo = arenaDataRepository.get(result.arenaDataDbo.arenaTableName, result.arenaDataDbo.operation, result.arenaDataDbo.operationPosition )
+		val resultDbo = arenaDataRepository.get(arenaData.arenaTableName, arenaData.operation, arenaData.operationPosition)
 		resultDbo.ingestStatus shouldBe IngestStatus.FAILED
 
-		val deltakerCommand2 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "GJENN"))
-		val result2: AktivitetResult = deltakerExecutor.execute(deltakerCommand2)
-
-		result2.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+		val gjennomforingCommand = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "GJENN"))
+		val gjennomforingCommandResult: AktivitetResult = deltakerExecutor.execute(gjennomforingCommand)
+		gjennomforingCommandResult.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
 
 		tiltakExecutor.execute(NyttTiltakCommand())
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
@@ -226,37 +220,30 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 
-		val deltakerCommand3 = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "FULLF"))
-		val result3: AktivitetResult = deltakerExecutor.execute(deltakerCommand3)
-
-		result3.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+		val fullfortCommand = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "FULLF"))
+		val fullfortCommandResult: AktivitetResult = deltakerExecutor.execute(fullfortCommand)
+		fullfortCommandResult.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
 
 		// Cron-job
 		processFailedMessages()
+		val aktivitetId = translationRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId!!
 
-		val aktivitetId = translationRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
-		aktivitetId shouldNotBe null
+		fun String.toAktivitetskort() = ObjectMapper.get().readValue(this, Aktivitetskort::class.java)
 
-		val mapper = ObjectMapper.get()
-		val data = aktivitetRepository.getAktivitet(aktivitetId!!)!!.data
-		val aktivitetskort = mapper.readValue(data, Aktivitetskort::class.java)
-		aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+		val planlagtAktivitetskort = aktivitetRepository.getAktivitet(aktivitetId)!!.data.toAktivitetskort()
+		planlagtAktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
 
 		processMessages()
-
-		val data2 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
-		val aktivitetskort2 = mapper.readValue(data2, Aktivitetskort::class.java)
-		aktivitetskort2.aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
+		val gjennomforingAktivitet = aktivitetRepository.getAktivitet(aktivitetId)!!.data.toAktivitetskort()
+		gjennomforingAktivitet.aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
 
 		processMessages()
-
-		val data3 = aktivitetRepository.getAktivitet(aktivitetId)!!.data
-		val aktivitetskort3 = mapper.readValue(data3, Aktivitetskort::class.java)
-		aktivitetskort3.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
+		val fullfortAktivitet= aktivitetRepository.getAktivitet(aktivitetId)!!.data.toAktivitetskort()
+		fullfortAktivitet.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 	}
 	@Test
 	fun `ingest existing deltaker`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
+		val (gjennomforingId, deltakerId, _, tiltak) = setup()
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -345,7 +332,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `nye aktiviteter uten oppfolgingsperioder skal retries til en oppfolgingsperiode starter`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+		val (gjennomforingId, deltakerId) = setup()
 
 		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
 		val fnr = "12345"
@@ -384,7 +371,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `skal kunne sette oppfolgingsperiode med slack på 1 uke på retry`() {
-		val (gjennomforingId, deltakerId, gjennomforingInput) = setup()
+		val (gjennomforingId, deltakerId) = setup()
 
 		// Finnes ingen oppfolgingsperioder
 		val fnr = "12345"
@@ -445,7 +432,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		deltakerExecutor.execute(deltakerCommand)
 			.let {
 				it.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
-				it.aktivitet?.oppfolgingsperiodeUUID shouldBe gjeldendePeriode.uuid
+				it.headers?.oppfolgingsperiode shouldBe gjeldendePeriode.uuid
 			}
 		// Skal ikke gjøre oppslag på periode men bruke eksiterende periode satt på aktiviteten
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = emptyList()
@@ -454,7 +441,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		deltakerExecutor.execute(oppdaterComand)
 			.let {
 				it.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
-				it.aktivitet?.oppfolgingsperiodeUUID shouldBe gjeldendePeriode.uuid
+				it.headers!!.oppfolgingsperiode shouldBe gjeldendePeriode.uuid
 			}
 	}
 

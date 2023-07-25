@@ -17,9 +17,12 @@ open class OppfolgingsperiodeService(
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	fun innenEnUke(opprettetTidspunkt: LocalDateTime, periodeStartDato: ZonedDateTime ): Boolean {
-		return opprettetTidspunkt.plusDays(7).isAfter(periodeStartDato.toLocalDateTime())
+	companion object {
+		fun innenEnUke(opprettetTidspunkt: LocalDateTime, periodeStartDato: ZonedDateTime): Boolean {
+			return opprettetTidspunkt.plusDays(7).isAfter(periodeStartDato.toLocalDateTime())
+		}
 	}
+
 
 	fun finnOppfolgingsperiode(fnr: String, opprettetTidspunkt: LocalDateTime): Oppfolgingsperiode? {
 		val oppfolgingsperioder = oppfolgingClient.hentOppfolgingsperioder(fnr)

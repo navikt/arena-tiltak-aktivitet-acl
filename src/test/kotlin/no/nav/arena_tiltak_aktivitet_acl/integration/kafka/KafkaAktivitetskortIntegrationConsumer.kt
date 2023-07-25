@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.kafka
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.JsonNode
+import io.kotest.common.runBlocking
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders.Companion.fromKafkaHeaders
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
@@ -19,20 +20,12 @@ class KafkaAktivitetskortIntegrationConsumer(
 ) {
 
 	private val client: KafkaConsumerClient
-
-
 	companion object {
-		private val aktivitetSubscriptions =  mutableListOf<(wrapper: KafkaMessageDto, headers: AktivitetskortHeaders) -> Unit>()
-
-		fun subscribeAktivitet(handler: (record: KafkaMessageDto, headers: AktivitetskortHeaders) -> Unit): Unit {
+		private val aktivitetSubscriptions =  mutableListOf<suspend (wrapper: KafkaMessageDto, headers: AktivitetskortHeaders) -> Unit>()
+		fun subscribeAktivitet(handler: suspend (record: KafkaMessageDto, headers: AktivitetskortHeaders) -> Unit) {
 			aktivitetSubscriptions.add(handler)
 		}
-
-		fun reset() {
-			aktivitetSubscriptions.clear()
-		}
 	}
-
 
 	init {
 		val config = KafkaConsumerClientBuilder.TopicConfig<String, String>()
@@ -43,25 +36,25 @@ class KafkaAktivitetskortIntegrationConsumer(
 				stringDeserializer(),
 				::handle
 			)
-
 		client = KafkaConsumerClientBuilder.builder()
 			.withProperties(kafkaProperties.consumer())
 			.withTopicConfig(config)
 			.build()
-
 		client.start()
 	}
 
 	private fun handle(record: ConsumerRecord<String, String>) {
 		val unknownMessageWrapper = JsonUtils.fromJson(record.value(), UnknownMessageWrapper::class.java)
-
 		when (unknownMessageWrapper.actionType) {
 			ActionType.UPSERT_AKTIVITETSKORT_V1 -> {
 				val deltakerPayload =
 					ObjectMapper.get().treeToValue(unknownMessageWrapper.aktivitetskort, Aktivitetskort::class.java)
 				val message = toKnownMessageWrapper(deltakerPayload, unknownMessageWrapper)
-				aktivitetSubscriptions.forEach { handleMessage -> handleMessage(message, fromKafkaHeaders(record.headers())) }
-
+				runBlocking {
+					aktivitetSubscriptions.forEach { handleMessage ->
+						handleMessage(message, fromKafkaHeaders(record.headers()))
+					}
+				}
 			}
 		}
 	}

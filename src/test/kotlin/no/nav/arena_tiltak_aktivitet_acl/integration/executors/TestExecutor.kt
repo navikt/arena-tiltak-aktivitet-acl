@@ -4,8 +4,8 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.integration.utils.Retry.nullableAsyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.asyncRetryHandler
-import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -34,17 +34,17 @@ abstract class TestExecutor(
 	}
 
 	fun getArenaData(table: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
-		return asyncRetryHandler({
+		return asyncRetryHandler("get arenadata $table, $operation, $position") {
 			arenaDataRepository.getAll().find {
 				it.arenaTableName == table
 					&& it.operation == operation
 					&& it.operationPosition == position
 			}
-		})
+		}
 	}
 
-	fun getTranslation(arenaId: Long, aktivitetKategori: AktivitetKategori): TranslationDbo? {
-		return nullableAsyncRetryHandler({ translationRepository.get(arenaId, aktivitetKategori) })
+	fun getTranslationRetry(arenaId: Long, aktivitetKategori: AktivitetKategori): TranslationDbo? {
+		return nullableAsyncRetryHandler("get translation $arenaId") { translationRepository.get(arenaId, aktivitetKategori) }
 	}
 
 

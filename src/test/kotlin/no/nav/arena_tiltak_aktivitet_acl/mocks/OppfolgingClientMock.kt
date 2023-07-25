@@ -12,6 +12,18 @@ open class OppfolgingClientMock {
 
 	companion object {
 		val oppfolgingsperioder = mutableMapOf<String, List<Oppfolgingsperiode>>()
+		val defaultOppfolgingsperioder = listOf(
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusMonths(2),
+				sluttDato = ZonedDateTime.now().minusMonths(1)
+			),
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusWeeks(2),
+				sluttDato = null
+			)
+		)
 	}
 
 	@Bean
@@ -22,18 +34,7 @@ open class OppfolgingClientMock {
 				if (oppfolgingsperioder[fnr] != null) {
 					return oppfolgingsperioder[fnr]!!
 				}
-				return listOf(
-					Oppfolgingsperiode(
-						uuid = UUID.randomUUID(),
-						startDato = ZonedDateTime.now().minusMonths(2),
-						sluttDato = ZonedDateTime.now().minusMonths(1)
-					),
-					Oppfolgingsperiode(
-						uuid = UUID.randomUUID(),
-						startDato = ZonedDateTime.now().minusWeeks(2),
-						sluttDato = null
-					)
-				)
+				return defaultOppfolgingsperioder
 			}
 		}
 	}
