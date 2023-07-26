@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.chrono.ChronoZonedDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -18,8 +17,11 @@ open class OppfolgingsperiodeService(
 	private val log = LoggerFactory.getLogger(javaClass)
 
 	companion object {
-		fun innenEnUke(opprettetTidspunkt: LocalDateTime, periodeStartDato: ZonedDateTime): Boolean {
-			return opprettetTidspunkt.plusDays(7).isAfter(periodeStartDato.toLocalDateTime())
+		fun mindreEnnEnUkeMellom(opprettetTidspunkt: LocalDateTime, periodeStartDato: LocalDateTime): Boolean {
+			return opprettetTidspunkt.plusDays(7).isAfter(periodeStartDato)
+		}
+		fun merEnnEnUkeMellom(opprettetTidspunkt: LocalDateTime, periodeStartDato: LocalDateTime): Boolean {
+			return !mindreEnnEnUkeMellom(opprettetTidspunkt, periodeStartDato)
 		}
 	}
 
@@ -43,7 +45,7 @@ open class OppfolgingsperiodeService(
 				.filter { it.sluttDato == null || it.sluttDato.isAfter(opprettetTidspunktCZDT) }
 				.minByOrNull { abs(ChronoUnit.MILLIS.between(opprettetTidspunktCZDT, it.startDato)) }
 				.let { periodeMatch ->
-					if (periodeMatch == null || !innenEnUke(opprettetTidspunkt, periodeMatch.startDato)) {
+					if (periodeMatch == null || !mindreEnnEnUkeMellom(opprettetTidspunkt, periodeMatch.startDato.toLocalDateTime())) {
 						log.info(
 							"Arenatiltak finn oppfølgingsperiode - opprettetTidspunkt har ingen god match på oppfølgingsperioder) - fnr={}, opprettetTidspunkt={}, oppfolgingsperioder={}",
 							fnr, opprettetTidspunkt, oppfolgingsperioder

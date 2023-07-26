@@ -15,7 +15,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.*
-import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.innenEnUke
+import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.merEnnEnUkeMellom
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -135,14 +135,14 @@ open class DeltakerProcessor(
 		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
 			?.let { AktivitetskortOppfolgingsperiode(it.uuid , it.sluttDato) }
 		if (oppfolgingsperiode == null) {
-			log.info("Fant ikke oppfølgingsperiode for arenaId=${tiltakDeltakerId}")
+			secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
 			val aktivitetStatus = aktivitet.aktivitetStatus
 			val erFerdig = aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false
 			when {
 				aktivitetStatus.erAvsluttet() || erFerdig ->
 					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-//				innenEnUke(opprettetTidspunkt, ZonedDateTime.now()) ->
-//					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
+				merEnnEnUkeMellom(opprettetTidspunkt, LocalDateTime.now()) ->
+					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
 				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
 			}
 		} else {

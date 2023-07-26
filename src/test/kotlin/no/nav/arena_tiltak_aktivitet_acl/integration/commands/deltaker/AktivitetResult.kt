@@ -34,17 +34,11 @@ open class AktivitetResult(
 	val translation: TranslationDbo?
 ) {
 	fun expectHandled(check: (data: HandledResult) -> Unit) {
-		if (this !is HandledResult) fail("Expected arena message to have ingest status handled")
+		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but wa ${this.arenaDataDbo.ingestStatus}")
 		check(this)
 	}
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
 		check.invoke(arenaDataDbo)
-		return this
-	}
-
-	fun translation(check: (data: TranslationDbo) -> Unit): AktivitetResult {
-		if (translation == null) fail("Trying to get translation, but it is null")
-		check(translation)
 		return this
 	}
 

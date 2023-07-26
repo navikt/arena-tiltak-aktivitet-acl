@@ -26,7 +26,7 @@ object Retry {
 			val data = executor()
 
 			if (data != null) {
-				log.info("Stopped retrying!")
+				log.info("Stopped retrying! ($retryMessage)")
 				return data
 			}
 			log.info("Retrying - ${retryMessage}")

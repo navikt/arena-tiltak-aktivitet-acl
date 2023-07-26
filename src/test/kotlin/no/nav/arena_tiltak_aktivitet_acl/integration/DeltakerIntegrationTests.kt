@@ -110,19 +110,18 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 
 	@Test
-	fun `skal ikke lage aktivitetskort hvis ingen oppfølgingsperioder (retry)`() {
+	fun `skal ikke opprette gammelt aktivitetskort hvis langt utenfor oppfølgingsperioder (ignored)`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val opprettetTidspunkt = LocalDateTime.now().minusMonths(6)
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
-			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
 			registrertDato = opprettetTidspunkt
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
-		result.arenaDataDbo.ingestStatus shouldBe IngestStatus.RETRY
+		result.arenaDataDbo.ingestStatus shouldBe IngestStatus.IGNORED
 	}
 
 	@Test
@@ -256,16 +255,16 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val updatedDeltakerCommand = NyDeltakerCommand(deltakerInputUpdated)
 		val updatedResult = deltakerExecutor.execute(updatedDeltakerCommand)
 
-		result.expectHandled { result ->
-			result.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			result.translation!!.aktivitetId shouldBe result.output.aktivitetskort.id
-			result.aktivitetskort { it.isSame(deltakerInput, tiltak) }
+		result.expectHandled { r ->
+			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
+			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
+			r.aktivitetskort { it.isSame(deltakerInput, tiltak) }
 		}
 
-		updatedResult.expectHandled { result ->
-			result.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			result.translation!!.aktivitetId shouldBe result.output.aktivitetskort.id
-			result.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak) }
+		updatedResult.expectHandled { r ->
+			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
+			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
+			r.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak) }
 		}
 	}
 
@@ -290,17 +289,12 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val TILTAKSNAVN_OVERRIDE = "Tiltaksnavn override"
 		val gjennomforingId: Long = Random().nextLong()
 		val deltakerId: Long = Random().nextLong()
-		val gjennomforingInput = GjennomforingInput(
-			gjennomforingId = gjennomforingId,
-			navn = null
-		)
-
+		val gjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId, navn = null)
 		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(navn = TILTAKSNAVN_OVERRIDE))
 			.let { result ->
 				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 				result.tiltak
 			}
-
 		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 
@@ -308,7 +302,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
-			endretAv = Ident(ident = "SIG123")
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime()
 		)
 
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
@@ -322,16 +317,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `nye aktiviteter uten oppfolgingsperioder skal retries til en oppfolgingsperiode starter`() {
+	fun `nye aktiviteter uten oppfolgingsperioder som er opprettet for mindre enn en uke siden skal få ingeststatus RETRY`() {
 		val (gjennomforingId, deltakerId) = setup()
-
 		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
-		val fnr = "12345"
+		val fnr = "54321"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = oppfolgingsperioder
-
-		val opprettetTidspunkt = LocalDateTime.now()
-
+		val opprettetTidspunkt = LocalDateTime.now().minusDays(7).plusSeconds(20)
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
@@ -340,23 +332,28 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			registrertDato = opprettetTidspunkt,
 			personId = 123L
 		)
-
-		val deltakerCommand = NyDeltakerCommand(deltakerInput)
-		val result = deltakerExecutor.execute(deltakerCommand)
-
+		val result = deltakerExecutor.execute(NyDeltakerCommand(deltakerInput))
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+	}
 
-		val gjeldendePeriode = Oppfolgingsperiode(
-			uuid = UUID.randomUUID(),
-			startDato = ZonedDateTime.now().minusDays(1),
-			sluttDato = null
+	@Test
+	fun `nye aktiviteter uten oppfolgingsperioder som er opprettet for mer enn en uke siden skal få ingeststatus IGNORED`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
+		val fnr = "54321"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = oppfolgingsperioder
+		val opprettetTidspunkt = LocalDateTime.now().minusDays(7).minusSeconds(20)
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			personId = 123L
 		)
-		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(gjeldendePeriode)
-
-		processMessages()
-
-		val arenaDataDbo = arenaDataRepository.get(ArenaTableName.DELTAKER, Operation.CREATED, result.position)
-		arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED // aktivitet skal være sendt
+		val result = deltakerExecutor.execute(NyDeltakerCommand(deltakerInput))
+		result.arenaData { it.ingestStatus shouldBe IngestStatus.IGNORED }
 	}
 
 
@@ -365,11 +362,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val (gjennomforingId, deltakerId) = setup()
 
 		// Finnes ingen oppfolgingsperioder
-		val fnr = "12345"
+		val fnr = "414141"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = emptyList()
 
-		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1) // over en uke gammel aktivitet
+		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1).plusSeconds(20) // litt mindre enn en uke gammel aktivitet
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -407,7 +404,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			startDato = ZonedDateTime.now().minusDays(1),
 			sluttDato = null
 		)
-		val fnr = "12345"
+		val fnr = "515151"
 		OrdsClientMock.fnrHandlers[123L] = { fnr }
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(gjeldendePeriode)
 		val opprettetTidspunkt = LocalDateTime.now()

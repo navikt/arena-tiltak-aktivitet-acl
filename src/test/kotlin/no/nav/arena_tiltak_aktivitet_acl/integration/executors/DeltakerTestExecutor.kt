@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 import io.kotest.assertions.fail
 import io.kotest.common.runBlocking
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withTimeout
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
@@ -10,9 +11,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHe
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.HandledResult
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
@@ -47,7 +46,9 @@ class DeltakerTestExecutor(
 		)
 	}
 	private suspend fun waitForRecord(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
-		return messageFlow.first { isCorrectRecord(it) }
+		return withTimeout(5000) {
+			messageFlow.first { isCorrectRecord(it) }
+		}
 	}
 
 	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto, tiltakDeltakerId: String): AktivitetResult {
