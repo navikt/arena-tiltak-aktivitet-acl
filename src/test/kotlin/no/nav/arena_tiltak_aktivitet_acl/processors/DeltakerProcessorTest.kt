@@ -3,7 +3,6 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
-import io.kotest.core.annotation.Ignored
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -21,7 +20,6 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundEx
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.anyString
