@@ -18,6 +18,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
+import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
@@ -183,62 +184,46 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Skal opprette translation hvis regDato (opprettetTidspunkt) er innen en oppfølgingsperiode") {
-		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1)
-
+		val opprettetTidspunkt = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime().plusSeconds(10)
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
-			registrertDato = opprettetTidspunkt
-		)
-
+			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
-
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-
 		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
-
 		translationEntry shouldNotBe null
 	}
 
-	test("Skal kaste OppfolgingsperiodeNotFoundException hvis ingen perioder") {
+	test("Skal kaste OppfolgingsperiodeNotFoundException hvis ingen perioder ") {
 		val oppfolgingsperioder = listOf<Oppfolgingsperiode>()
-
-		val opprettetTidspunkt = LocalDateTime.now().minusDays(8)
-
+		val opprettetTidspunkt = LocalDateTime.now().minusDays(6)
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
-			registrertDato = opprettetTidspunkt
-		)
-
+			registrertDato = opprettetTidspunkt)
 		shouldThrowExactly<OppfolgingsperiodeNotFoundException> {
 			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
 		}
 	}
 
-	test("Skal kaste OppfolgingsperiodeNotFoundException hvis ingen passende perioder") {
-		val oppfolgingsperioder = listOf<Oppfolgingsperiode>(
+	test("Skal kaste IgnoredException hvis ingen passende perioder og eldre enn 1 uke") {
+		val oppfolgingsperioder = listOf(
 			Oppfolgingsperiode(
 				uuid = UUID.randomUUID(),
 				startDato = ZonedDateTime.now().minusMonths(2),
-				sluttDato = ZonedDateTime.now().minusMonths(1)
-			),
+				sluttDato = ZonedDateTime.now().minusMonths(1)),
 			Oppfolgingsperiode(
 				uuid = UUID.randomUUID(),
 				startDato = ZonedDateTime.now().minusWeeks(2),
-				sluttDato = null
-			)
+				sluttDato = null)
 		)
-
 		val opprettetTidspunkt = LocalDateTime.now().minusMonths(3)
-
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
-			registrertDato = opprettetTidspunkt
-		)
-
-		shouldThrowExactly<OppfolgingsperiodeNotFoundException> {
+			registrertDato = opprettetTidspunkt)
+		shouldThrowExactly<IgnoredException> {
 			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
 		}
 	}
