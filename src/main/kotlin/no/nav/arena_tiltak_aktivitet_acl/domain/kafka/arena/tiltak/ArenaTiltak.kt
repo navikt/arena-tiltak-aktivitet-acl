@@ -1,4 +1,4 @@
-package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
+package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak
 
 // @SONAR_START@
 data class ArenaTiltak(

@@ -1,4 +1,4 @@
-package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
+package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak
 
 import java.time.LocalDate
 import java.time.LocalDateTime

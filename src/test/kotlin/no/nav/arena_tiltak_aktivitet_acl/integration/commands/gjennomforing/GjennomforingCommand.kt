@@ -1,8 +1,8 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing
 
 import com.fasterxml.jackson.databind.JsonNode
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforingDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaGjennomforingDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
 abstract class GjennomforingCommand(key: Long) : Command(key.toString()) {

@@ -11,14 +11,12 @@ import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltak
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltak
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltakKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_TILTAK_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -190,10 +188,10 @@ private fun createArenaTiltak(
 }
 
 private fun createArenaTiltakKafkaMessage(
-	operationPosition: String = "1",
-	operationType: Operation = Operation.CREATED,
-	operationTimestamp: LocalDateTime = LocalDateTime.now(),
-	arenaTiltak: ArenaTiltak,
+    operationPosition: String = "1",
+    operationType: Operation = Operation.CREATED,
+    operationTimestamp: LocalDateTime = LocalDateTime.now(),
+    arenaTiltak: ArenaTiltak,
 ): ArenaTiltakKafkaMessage {
 	return ArenaTiltakKafkaMessage(
 		arenaTableName =  ArenaTableName.TILTAK,

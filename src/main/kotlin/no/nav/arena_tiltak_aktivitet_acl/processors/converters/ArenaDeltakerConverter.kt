@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors.converters
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.TiltakDeltaker
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltaker
 import java.util.*
 
 object ArenaDeltakerConverter {
@@ -57,13 +57,13 @@ object ArenaDeltakerConverter {
 	}
 
 	fun convertToTiltaksaktivitet(
-		deltaker: TiltakDeltaker,
-		aktivitetId: UUID,
-		personIdent: String,
-		arrangorNavn: String?,
-		gjennomforingNavn: String,
-		tiltak: Tiltak,
-		erNyAktivitet: Boolean,
+        deltaker: TiltakDeltaker,
+        aktivitetId: UUID,
+        personIdent: String,
+        arrangorNavn: String?,
+        gjennomforingNavn: String,
+        tiltak: Tiltak,
+        erNyAktivitet: Boolean,
 	): Aktivitetskort {
 		return Aktivitetskort(
 			id = aktivitetId,
