@@ -27,6 +27,10 @@ open class TranslationService(
 		return nyAktivitetsId
 	}
 
+	fun hentAktivitetIdForArenaId(arenaId: Long, aktivitetType: AktivitetKategori): UUID? {
+		return translationRepository.get(arenaId, aktivitetType)?.aktivitetId
+	}
+
 	fun aktivitetIdExists(deltakerArenaId: Long, aktivitetType: AktivitetKategori): Boolean {
 		val aktivitetId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
 
