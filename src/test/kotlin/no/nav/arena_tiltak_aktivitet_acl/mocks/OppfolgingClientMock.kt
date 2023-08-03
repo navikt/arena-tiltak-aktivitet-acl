@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.mocks
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.ZonedDateTime
@@ -9,9 +10,22 @@ import java.util.*
 
 @Configuration
 open class OppfolgingClientMock {
+	private val log = LoggerFactory.getLogger(javaClass)
 
 	companion object {
-		val oppfolgingsperiode = mutableMapOf<String, List<Oppfolgingsperiode>>()
+		val oppfolgingsperioder = mutableMapOf<String, List<Oppfolgingsperiode>>()
+		val defaultOppfolgingsperioder = listOf(
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusMonths(2),
+				sluttDato = ZonedDateTime.now().minusMonths(1)
+			),
+			Oppfolgingsperiode(
+				uuid = UUID.randomUUID(),
+				startDato = ZonedDateTime.now().minusWeeks(2),
+				sluttDato = null
+			)
+		)
 	}
 
 	@Bean
@@ -19,21 +33,13 @@ open class OppfolgingClientMock {
 
 		return object : OppfolgingClient {
 			override fun hentOppfolgingsperioder(fnr: String): List<Oppfolgingsperiode> {
-				if (oppfolgingsperiode[fnr] != null) {
-					return oppfolgingsperiode[fnr]!!
+
+				if (oppfolgingsperioder[fnr] != null) {
+					log.info("Fant mock oppfolgingsperiode for person: $fnr ${oppfolgingsperioder[fnr]}")
+					return oppfolgingsperioder[fnr]!!
 				}
-				return listOf(
-					Oppfolgingsperiode(
-						uuid = UUID.randomUUID(),
-						startDato = ZonedDateTime.now().minusMonths(2),
-						sluttDato = ZonedDateTime.now().minusMonths(1)
-					),
-					Oppfolgingsperiode(
-						uuid = UUID.randomUUID(),
-						startDato = ZonedDateTime.now().minusWeeks(2),
-						sluttDato = null
-					)
-				)
+				log.info("Bruker default oppfolgingsperiode")
+				return defaultOppfolgingsperioder
 			}
 		}
 	}

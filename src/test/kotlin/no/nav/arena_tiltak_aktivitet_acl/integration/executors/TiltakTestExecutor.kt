@@ -4,7 +4,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakResult
-import no.nav.arena_tiltak_aktivitet_acl.integration.utils.nullableAsyncRetryHandler
+import no.nav.arena_tiltak_aktivitet_acl.integration.utils.Retry.nullableAsyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
@@ -26,21 +26,21 @@ class TiltakTestExecutor(
 	private val topic = "tiltak"
 
 	fun execute(command: TiltakCommand): TiltakResult {
-		return command.execute(incrementAndGetPosition()) { wrapper, kode -> executor(wrapper, kode) }
+		return sendKafkaMessageOgVentPaAck(
+			command.toArenaKafkaMessageDto(incrementAndGetPosition()),
+			command.tiltaksKode
+		)
 	}
 
-	private fun executor(arenaWrapper: ArenaKafkaMessageDto, kode: String): TiltakResult {
+	private fun sendKafkaMessageOgVentPaAck(arenaWrapper: ArenaKafkaMessageDto, kode: String): TiltakResult {
 		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper), kode)
-
 		val data = getArenaData(
 			ArenaTableName.TILTAK,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
 			arenaWrapper.pos
 		)
-
-		val storedTiltak = nullableAsyncRetryHandler({ tiltakRepository.getByKode(kode) })
+		val storedTiltak = nullableAsyncRetryHandler("get tiltak by kode: $kode") { tiltakRepository.getByKode(kode) }
 			?: fail("Forventet at tiltak med kode $kode ligger i tiltak databasen.")
-
 		return TiltakResult(
 			arenaDataDbo = data,
 			tiltak = storedTiltak

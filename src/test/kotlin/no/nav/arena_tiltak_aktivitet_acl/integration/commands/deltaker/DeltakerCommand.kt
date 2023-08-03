@@ -5,12 +5,9 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
-abstract class DeltakerCommand(key: Long) : Command(key.toString()) {
+abstract class DeltakerCommand(val tiltakDeltakerId: Long) : Command(tiltakDeltakerId.toString()) {
 
-	abstract fun execute(
-		position: String,
-		executor: (wrapper: ArenaKafkaMessageDto) -> AktivitetResult
-	): AktivitetResult
+	abstract fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto
 
 	fun createPayload(input: DeltakerInput): JsonNode {
 		val data = ArenaDeltaker(

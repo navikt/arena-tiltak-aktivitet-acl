@@ -9,18 +9,13 @@ class OppdaterDeltakerCommand(
 	val oldDeltakerData: DeltakerInput,
 	val updatedDeltakerData: DeltakerInput
 ) : DeltakerCommand(updatedDeltakerData.tiltakDeltakerId) {
-
-	override fun execute(position: String, executor: (wrapper: ArenaKafkaMessageDto) -> AktivitetResult): AktivitetResult {
-		val wrapper = ArenaKafkaMessageDto(
+	override fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto =
+		ArenaKafkaMessageDto(
 			table = ArenaTableName.DELTAKER,
 			opType = ArenaOperation.U.name,
 			opTs = LocalDateTime.now().format(opTsFormatter),
-			pos = position,
+			pos = pos,
 			before = createPayload(oldDeltakerData),
 			after = createPayload(updatedDeltakerData)
 		)
-
-		return executor.invoke(wrapper)
-	}
-
 }

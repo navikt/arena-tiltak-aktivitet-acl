@@ -13,16 +13,12 @@ class OppdaterTiltakCommand(
 	val administrasjonskode: Tiltak.Administrasjonskode = Tiltak.Administrasjonskode.IND
 ) : TiltakCommand(kode) {
 
-	override fun execute(position: String, executor: (wrapper: ArenaKafkaMessageDto, kode: String) -> TiltakResult): TiltakResult {
-		val wrapper = ArenaKafkaMessageDto(
-			table = ArenaTableName.TILTAK,
-			opType = ArenaOperation.U.name,
-			opTs = LocalDateTime.now().format(opTsFormatter),
-			pos = position,
-			before = createPayload(kode, gammeltNavn, administrasjonskode.name),
-			after = createPayload(kode, nyttNavn, administrasjonskode.name)
-		)
-
-		return executor.invoke(wrapper, kode)
-	}
+	override fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto = ArenaKafkaMessageDto(
+		table = ArenaTableName.TILTAK,
+		opType = ArenaOperation.U.name,
+		opTs = LocalDateTime.now().format(opTsFormatter),
+		pos = pos,
+		before = createPayload(kode, gammeltNavn, administrasjonskode.name),
+		after = createPayload(kode, nyttNavn, administrasjonskode.name)
+	)
 }

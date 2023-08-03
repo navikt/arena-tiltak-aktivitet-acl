@@ -9,20 +9,15 @@ class NyGjennomforingCommand(
 	private val input: GjennomforingInput
 ) : GjennomforingCommand(input.gjennomforingId) {
 
-	override fun execute(
-		position: String,
-		executor: (wrapper: ArenaKafkaMessageDto) -> GjennomforingResult
-	): GjennomforingResult {
-		val wrapper = ArenaKafkaMessageDto(
+	override fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto {
+		return ArenaKafkaMessageDto(
 			table = ArenaTableName.GJENNOMFORING,
 			opType = ArenaOperation.I.name,
 			opTs = LocalDateTime.now().format(opTsFormatter),
-			pos = position,
+			pos = pos,
 			before = null,
 			after = createPayload(input)
 		)
-
-		return executor.invoke(wrapper)
 	}
 
 }
