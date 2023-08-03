@@ -1,9 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableBoolean
-import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableUUID
-import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
+import no.nav.arena_tiltak_aktivitet_acl.utils.*
 import org.intellij.lang.annotations.Language
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -18,7 +16,7 @@ open class AktivitetRepository(
 ) {
 	fun upsert(aktivitet: AktivitetDbo) {
 		val sql = """
-			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, historisk)
+			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt)
 			VALUES (:id,
 					:person_ident,
 					:kategori_type,
@@ -26,7 +24,7 @@ open class AktivitetRepository(
 					:arena_id,
 					:tiltak_kode,
 					:oppfolgingsperiode_uuid,
-					:historisk)
+					:oppfolgingsperiode_slutt_tidspunkt)
 			ON CONFLICT ON CONSTRAINT aktivitet_pkey
 			DO UPDATE SET data = :data::jsonb
 		""".trimIndent()
@@ -40,7 +38,7 @@ open class AktivitetRepository(
 				"arena_id" to aktivitet.arenaId,
 				"tiltak_kode" to aktivitet.tiltakKode,
 				"oppfolgingsperiode_uuid" to aktivitet.oppfolgingsperiodeUUID,
-				"historisk" to aktivitet.historisk
+				"oppfolgingsperiode_slutt_tidspunkt" to aktivitet.oppfolgingsSluttTidspunkt?.toOffsetDateTime()
 			)
 		)
 
@@ -69,5 +67,5 @@ fun ResultSet.toAktivitetDbo() =
 		arenaId = this.getString("arena_id"),
 		tiltakKode = this.getString("tiltak_kode"),
 		oppfolgingsperiodeUUID = this.getNullableUUID("oppfolgingsperiode_uuid"),
-		historisk = this.getNullableBoolean("historisk")
+		oppfolgingsSluttTidspunkt = this.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt"),
 	)

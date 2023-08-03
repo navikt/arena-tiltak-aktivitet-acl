@@ -24,7 +24,10 @@ class GjennomforingTestExecutor(
 	private val topic = "gjennomforing"
 
 	fun execute(command: GjennomforingCommand): GjennomforingResult {
-		return command.execute(incrementAndGetPosition()) { sendAndCheck(it, command.key) }
+		return sendAndCheck(
+			command.toArenaKafkaMessageDto(incrementAndGetPosition()),
+			command.key
+		)
 	}
 
 	private fun sendAndCheck(arenaWrapper: ArenaKafkaMessageDto, key: String): GjennomforingResult {
