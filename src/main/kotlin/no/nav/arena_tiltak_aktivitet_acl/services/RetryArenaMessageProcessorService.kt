@@ -10,7 +10,8 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.*
+import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -117,7 +118,7 @@ open class RetryArenaMessageProcessorService(
 			.tag("tableName", tableName)
 			.register(meterRegistry)
 
-		timer.record { runnable.invoke() }
+		timer.record(runnable)
 	}
 
 }

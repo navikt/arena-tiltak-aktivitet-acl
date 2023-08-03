@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import org.testcontainers.utility.DockerImageName
+import java.util.*
 import javax.sql.DataSource
 
 object SingletonPostgresContainer {
@@ -40,8 +41,11 @@ object SingletonPostgresContainer {
 	}
 
 	private fun applyMigrations(dataSource: DataSource) {
+		val properties = Properties()
+		properties["flyway.cleanDisabled"] = false
 		val flyway: Flyway = Flyway.configure()
 			.dataSource(dataSource)
+			.configuration(properties)
 			.connectRetries(10)
 			.load()
 
