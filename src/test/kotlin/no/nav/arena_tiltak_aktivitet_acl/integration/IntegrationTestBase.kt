@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Profile
@@ -30,7 +31,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.util.*
 import javax.sql.DataSource
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(IntegrationTestConfiguration::class)
 @ActiveProfiles("integration")
 @TestConfiguration("application-integration.properties")
@@ -53,6 +54,9 @@ abstract class IntegrationTestBase {
 
 	@Autowired
 	lateinit var deltakerExecutor: DeltakerTestExecutor
+
+	@LocalServerPort
+	var port: Int? = null
 
 
 	@BeforeEach

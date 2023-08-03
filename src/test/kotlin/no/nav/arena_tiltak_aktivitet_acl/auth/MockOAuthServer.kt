@@ -3,16 +3,16 @@ package no.nav.arena_tiltak_aktivitet_acl.auth
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import java.util.*
 
-open class MockOAuthServer {
+object MockOAuthServer {
 
 	private val azureAdIssuer = "azuread"
 	private val tokenXIssuer = "tokenx"
 
-	private val server = MockOAuth2Server()
+	val server = MockOAuth2Server()
 
 	init {
 		server.start()
-		System.setProperty("MOCK_AZURE_AD_DISCOVERY_URL", server.wellKnownUrl(Issuer.AZURE_AD).toString())
+		System.setProperty("AZURE_APP_WELL_KNOWN_URL", server.wellKnownUrl(Issuer.AZURE_AD).toString())
 		System.setProperty("MOCK_TOKEN_X_DISCOVERY_URL", server.wellKnownUrl(Issuer.TOKEN_X).toString())
 	}
 
@@ -57,6 +57,6 @@ open class MockOAuthServer {
 		val claimsWithRoles = claims.toMutableMap()
 		claimsWithRoles["roles"] = arrayOf("access_as_application")
 		claimsWithRoles["oid"] = subject
-		return server.issueToken(azureAdIssuer, subject, audience, claimsWithRoles).serialize()
+		return server.issueToken(Issuer.AZURE_AD, subject, audience, claimsWithRoles).serialize()
 	}
 }
