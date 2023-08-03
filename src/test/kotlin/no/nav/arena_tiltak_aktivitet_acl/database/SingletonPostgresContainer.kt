@@ -7,13 +7,14 @@ import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import org.testcontainers.utility.DockerImageName
+import java.util.*
 import javax.sql.DataSource
 
 object SingletonPostgresContainer {
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	private const val postgresDockerImageName = "postgres:14-alpine"
+	private const val postgresDockerImageName = "postgres:14.7-alpine" // same as gcp
 
 	private var postgresContainer: PostgreSQLContainer<Nothing>? = null
 
@@ -40,8 +41,13 @@ object SingletonPostgresContainer {
 	}
 
 	private fun applyMigrations(dataSource: DataSource) {
+		val properties = Properties()
+		properties["flyway.cleanDisabled"] = false
+		properties["flyway.postgresql.transactional.lock"] = false
 		val flyway: Flyway = Flyway.configure()
 			.dataSource(dataSource)
+			.configuration(properties)
+			.table("flyway_schema_history")
 			.connectRetries(10)
 			.load()
 

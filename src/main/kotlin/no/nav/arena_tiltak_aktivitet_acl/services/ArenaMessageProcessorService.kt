@@ -126,7 +126,7 @@ open class ArenaMessageProcessorService(
 			listOf(Tag.of("processor", processorName))
 		)
 
-		timer.record { runnable.invoke() }
+		timer.record(runnable)
 	}
 
 }
