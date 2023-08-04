@@ -3,9 +3,8 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import io.micrometer.core.annotation.Timed
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaTiltakKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltakKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.OperationNotImplementedException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import org.slf4j.LoggerFactory

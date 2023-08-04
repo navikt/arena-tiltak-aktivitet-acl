@@ -4,7 +4,7 @@ import ArenaOrdsProxyClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.amt_enhetsregister.EnhetsregisterClient
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaGjennomforingKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaGjennomforingKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository

@@ -20,9 +20,3 @@ data class ArenaKafkaMessage<D>(
 		}
 	}
 }
-
-typealias ArenaTiltakKafkaMessage = ArenaKafkaMessage<ArenaTiltak>
-
-typealias ArenaGjennomforingKafkaMessage = ArenaKafkaMessage<ArenaGjennomforingDto>
-
-typealias ArenaDeltakerKafkaMessage = ArenaKafkaMessage<ArenaDeltaker>

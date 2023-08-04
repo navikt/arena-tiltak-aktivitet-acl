@@ -1,5 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import no.nav.arena_tiltak_aktivitet_acl.auth.Issuer
+import no.nav.arena_tiltak_aktivitet_acl.auth.M2M_ROLE
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.DeltakerTestExecutor
@@ -14,6 +16,8 @@ import no.nav.arena_tiltak_aktivitet_acl.services.RetryArenaMessageProcessorServ
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import no.nav.common.kafka.util.KafkaPropertiesBuilder
+import no.nav.security.mock.oauth2.MockOAuth2Server
+import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterEach
@@ -22,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Profile
@@ -30,10 +35,11 @@ import org.springframework.test.context.ActiveProfiles
 import java.util.*
 import javax.sql.DataSource
 
-@SpringBootTest
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(IntegrationTestConfiguration::class)
 @ActiveProfiles("integration")
-@TestConfiguration("application-integration.properties")
+@EnableMockOAuth2Server
 abstract class IntegrationTestBase {
 
 	@Autowired
@@ -54,6 +60,12 @@ abstract class IntegrationTestBase {
 	@Autowired
 	lateinit var deltakerExecutor: DeltakerTestExecutor
 
+	@Autowired
+	lateinit var mockOAuthServer: MockOAuth2Server
+
+	@LocalServerPort
+	var port: Int? = null
+
 
 	@BeforeEach
 	fun beforeEach() {
@@ -73,6 +85,15 @@ abstract class IntegrationTestBase {
 
 	fun processFailedMessages() {
 		retryArenaMessageProcessorService.processFailedMessages()
+	}
+
+	fun issueAzureAdM2MToken(
+		subject: String = UUID.randomUUID().toString(),
+	): String {
+		val claimsWithRoles = mapOf(
+			"roles" to arrayOf(M2M_ROLE),
+			"oid" to subject)
+		return mockOAuthServer.issueToken(Issuer.AZURE_AD, subject, "aktivitet-arena-acl", claimsWithRoles).serialize()
 	}
 }
 

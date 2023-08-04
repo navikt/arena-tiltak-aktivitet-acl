@@ -27,6 +27,10 @@ open class TranslationService(
 		return nyAktivitetsId
 	}
 
+	fun hentAktivitetIdForArenaId(arenaId: Long, aktivitetType: AktivitetKategori): UUID? {
+		return translationRepository.get(arenaId, aktivitetType)?.aktivitetId
+	}
+
 	private fun insertTranslation(arenaId: Long, aktivitetId: UUID, kategori: AktivitetKategori) {
 		val translation = TranslationDbo(
 			aktivitetId = aktivitetId,

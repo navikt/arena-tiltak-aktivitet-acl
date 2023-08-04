@@ -1,4 +1,4 @@
-package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
+package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak
 
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.ValidationException
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDate

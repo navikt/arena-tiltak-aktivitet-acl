@@ -1,8 +1,8 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker
 
 import com.fasterxml.jackson.databind.JsonNode
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
 abstract class DeltakerCommand(val tiltakDeltakerId: Long) : Command(tiltakDeltakerId.toString()) {

@@ -1,13 +1,18 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.date.shouldBeWithin
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.date.shouldBeWithin
-
+import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
+import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.OppdaterDeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
@@ -23,6 +28,8 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -69,6 +76,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
 
+		var aktivitetId: UUID? = null
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			it.output.aktivitetskort.id shouldBe it.translation!!.aktivitetId
@@ -77,7 +85,33 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 			it.headers.oppfolgingsperiode shouldNotBe null
 			it.headers.oppfolgingsSluttDato shouldBe null
+			it.aktivitetskort {
+				aktivitetId = it.id
+			}
 		}
+
+		val token = issueAzureAdM2MToken()
+		val client = IdMappingClient(port!!) { token }
+		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET) )
+			.let { (response, result) ->
+				response.isSuccessful shouldBe true
+				result shouldBe aktivitetId
+			}
+	}
+
+	@Test
+	fun `skal gi 404 når id-mapping ikke finnes`() {
+		val token = issueAzureAdM2MToken()
+		val client = IdMappingClient(port!!) { token }
+		val (response, _) = client.hentMapping(TranslationQuery(123123, AktivitetKategori.TILTAKSAKTIVITET))
+		response.code shouldBe HttpStatus.NOT_FOUND.value()
+	}
+
+	@Test
+	fun `skal kreve token`() {
+		val client = IdMappingClient(port!!) { "" }
+		val (response, _) = client.hentMapping(TranslationQuery(11221, AktivitetKategori.TILTAKSAKTIVITET) )
+		response.code shouldBe HttpStatus.UNAUTHORIZED.value()
 	}
 
 	@Test
