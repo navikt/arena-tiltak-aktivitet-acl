@@ -17,17 +17,6 @@ open class ControllerAdvice(
 
 	private val logger = LoggerFactory.getLogger(javaClass)
 
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	@ExceptionHandler(NoSuchElementException::class)
-	fun handleNotFoundException(e: NoSuchElementException): ResponseEntity<Response> {
-		logger.info(e.message, e)
-
-		return buildResponse(
-			status = HttpStatus.NOT_FOUND,
-			exception = e
-		)
-	}
-
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	@ExceptionHandler(IllegalStateException::class)
 	fun handleIllegalStateException(e: IllegalStateException): ResponseEntity<Response> {

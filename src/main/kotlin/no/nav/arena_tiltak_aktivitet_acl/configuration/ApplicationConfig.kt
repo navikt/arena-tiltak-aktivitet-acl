@@ -1,9 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.configuration
 
-import no.nav.common.auth.oidc.filter.AzureAdUserRoleResolver
-import no.nav.common.auth.oidc.filter.OidcAuthenticationFilter
-import no.nav.common.auth.oidc.filter.OidcAuthenticator
-import no.nav.common.auth.oidc.filter.OidcAuthenticatorConfig
 import no.nav.common.rest.filter.LogRequestFilter
 import no.nav.common.token_client.builder.AzureAdTokenClientBuilder
 import no.nav.common.token_client.client.MachineToMachineTokenClient
@@ -14,7 +10,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 
-@Profile("default")
 @EnableJwtTokenValidation
 @Configuration
 open class ApplicationConfig {
@@ -24,6 +19,7 @@ open class ApplicationConfig {
 	}
 
 	@Bean
+	@Profile("default")
 	open fun machineToMachineTokenClient(): MachineToMachineTokenClient {
 		return AzureAdTokenClientBuilder.builder()
 			.withNaisDefaults()
@@ -38,20 +34,6 @@ open class ApplicationConfig {
 		)
 		registration.order = 1
 		registration.addUrlPatterns("/*")
-		return registration
-	}
-
-	@Bean
-	open fun authenticationFilterRegistrationBean(): FilterRegistrationBean<OidcAuthenticationFilter> {
-		val azureAdAuthConfig = OidcAuthenticatorConfig()
-			.withDiscoveryUrl(getEnvOrProperty("AZURE_APP_WELL_KNOWN_URL"))
-//			.withClientId(getEnvOrProperty("AZURE_APP_CLIENT_ID"))
-			.withUserRoleResolver(AzureAdUserRoleResolver())
-
-		val registration = FilterRegistrationBean<OidcAuthenticationFilter>()
-		val authenticationFilter = OidcAuthenticationFilter(OidcAuthenticator.fromConfigs(azureAdAuthConfig))
-		registration.filter = authenticationFilter
-		registration.addUrlPatterns("/api/*")
 		return registration
 	}
 
