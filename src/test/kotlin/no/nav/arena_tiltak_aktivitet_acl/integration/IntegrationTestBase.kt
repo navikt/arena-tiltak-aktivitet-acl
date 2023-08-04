@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import com.nimbusds.jose.JOSEObjectType
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.DeltakerTestExecutor
@@ -14,6 +15,9 @@ import no.nav.arena_tiltak_aktivitet_acl.services.RetryArenaMessageProcessorServ
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import no.nav.common.kafka.util.KafkaPropertiesBuilder
+import no.nav.security.mock.oauth2.MockOAuth2Server
+import no.nav.security.mock.oauth2.token.DefaultOAuth2TokenCallback
+import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterEach
@@ -31,10 +35,11 @@ import org.springframework.test.context.ActiveProfiles
 import java.util.*
 import javax.sql.DataSource
 
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(IntegrationTestConfiguration::class)
 @ActiveProfiles("integration")
-@TestConfiguration("application-integration.properties")
+@EnableMockOAuth2Server
 abstract class IntegrationTestBase {
 
 	@Autowired
@@ -54,6 +59,9 @@ abstract class IntegrationTestBase {
 
 	@Autowired
 	lateinit var deltakerExecutor: DeltakerTestExecutor
+
+	@Autowired
+	lateinit var mockOAuthServer: MockOAuth2Server
 
 	@LocalServerPort
 	var port: Int? = null
@@ -77,6 +85,21 @@ abstract class IntegrationTestBase {
 
 	fun processFailedMessages() {
 		retryArenaMessageProcessorService.processFailedMessages()
+	}
+
+	fun token(issuerId: String, subject: String, audience: String): String {
+		return mockOAuthServer.issueToken(
+			issuerId,
+			"theclientid",
+			DefaultOAuth2TokenCallback(
+				issuerId,
+				subject,
+				JOSEObjectType.JWT.type,
+				listOf(audience),
+				emptyMap(),
+				3600
+			)
+		).serialize()
 	}
 }
 

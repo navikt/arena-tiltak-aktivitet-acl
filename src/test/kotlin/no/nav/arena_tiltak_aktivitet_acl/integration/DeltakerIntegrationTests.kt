@@ -1,17 +1,17 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import io.kotest.matchers.date.shouldBeWithin
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.date.shouldBeWithin
-import no.nav.arena_tiltak_aktivitet_acl.auth.MockOAuthServer
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
-
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.OppdaterDeltakerCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
@@ -25,7 +25,6 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
-import no.nav.security.mock.oauth2.token.DefaultOAuth2TokenCallback
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
@@ -85,7 +84,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		}
 
 		// TODO: Lag en client som henter fra
-		val token = MockOAuthServer.issueAzureAdM2MToken()
+		val token = token("azuread", "subject1", "demoapplication");
 		val client = IdMappingClient(port!!) { token }
 		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET) ) shouldNotBe null
 	}

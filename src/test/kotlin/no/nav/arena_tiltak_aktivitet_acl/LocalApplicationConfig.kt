@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import no.nav.arena_tiltak_aktivitet_acl.utils.token_provider.ScopedTokenProvider
 import no.nav.common.featuretoggle.UnleashClient
-import no.nav.common.featuretoggle.UnleashClientImpl
 import no.nav.security.token.support.spring.api.EnableJwtTokenValidation
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
