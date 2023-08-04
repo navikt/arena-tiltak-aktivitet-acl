@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
-import com.nimbusds.jose.JOSEObjectType
+import no.nav.arena_tiltak_aktivitet_acl.auth.Issuer
+import no.nav.arena_tiltak_aktivitet_acl.auth.M2M_ROLE
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.DeltakerTestExecutor
@@ -16,7 +17,6 @@ import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 import no.nav.common.kafka.util.KafkaPropertiesBuilder
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.security.mock.oauth2.token.DefaultOAuth2TokenCallback
 import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
@@ -87,19 +87,13 @@ abstract class IntegrationTestBase {
 		retryArenaMessageProcessorService.processFailedMessages()
 	}
 
-	fun token(issuerId: String, subject: String, audience: String): String {
-		return mockOAuthServer.issueToken(
-			issuerId,
-			"theclientid",
-			DefaultOAuth2TokenCallback(
-				issuerId,
-				subject,
-				JOSEObjectType.JWT.type,
-				listOf(audience),
-				emptyMap(),
-				3600
-			)
-		).serialize()
+	fun issueAzureAdM2MToken(
+		subject: String = UUID.randomUUID().toString(),
+	): String {
+		val claimsWithRoles = mapOf(
+			"roles" to arrayOf(M2M_ROLE),
+			"oid" to subject)
+		return mockOAuthServer.issueToken(Issuer.AZURE_AD, subject, "aktivitet-arena-acl", claimsWithRoles).serialize()
 	}
 }
 

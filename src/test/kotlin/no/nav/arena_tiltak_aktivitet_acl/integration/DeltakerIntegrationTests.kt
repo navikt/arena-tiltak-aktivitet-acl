@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.date.shouldBeWithin
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -27,6 +28,8 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -73,6 +76,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
 
+		var aktivitetId: UUID? = null
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			it.output.aktivitetskort.id shouldBe it.translation!!.aktivitetId
@@ -81,12 +85,33 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 			it.headers.oppfolgingsperiode shouldNotBe null
 			it.headers.oppfolgingsSluttDato shouldBe null
+			it.aktivitetskort {
+				aktivitetId = it.id
+			}
 		}
 
-		// TODO: Lag en client som henter fra
-		val token = token("azuread", "subject1", "demoapplication");
+		val token = issueAzureAdM2MToken()
 		val client = IdMappingClient(port!!) { token }
-		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET) ) shouldNotBe null
+		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET) )
+			.let { (response, result) ->
+				response.isSuccessful shouldBe true
+				result shouldBe aktivitetId
+			}
+	}
+
+	@Test
+	fun `skal gi 404 når id-mapping ikke finnes`() {
+		val token = issueAzureAdM2MToken()
+		val client = IdMappingClient(port!!) { token }
+		val (response, _) = client.hentMapping(TranslationQuery(123123, AktivitetKategori.TILTAKSAKTIVITET))
+		response.code shouldBe HttpStatus.NOT_FOUND.value()
+	}
+
+	@Test
+	fun `skal kreve token`() {
+		val client = IdMappingClient(port!!) { "" }
+		val (response, _) = client.hentMapping(TranslationQuery(11221, AktivitetKategori.TILTAKSAKTIVITET) )
+		response.code shouldBe HttpStatus.UNAUTHORIZED.value()
 	}
 
 	@Test
