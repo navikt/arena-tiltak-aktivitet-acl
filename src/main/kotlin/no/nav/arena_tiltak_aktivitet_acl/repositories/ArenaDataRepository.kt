@@ -197,7 +197,11 @@ open class ArenaDataRepository(
 	}
 
 	@Timed(value = "acl.query.hasUnhandledDeltakelse")
-	fun hasUnhandledDeltakelse(deltakelseArenaId: Long): Boolean {
+	fun hasUnhandledDeltakelse(deltakelseArenaId: Long): Boolean = hasUnhandledRow(deltakelseArenaId, ArenaTableName.DELTAKER)
+	@Timed(value = "acl.query.hasUnhandledGruppetiltak")
+	fun hasUnhandledGruppetiltak(aktivitetId: Long): Boolean = hasUnhandledRow(aktivitetId, ArenaTableName.GRUPPETILTAK)
+
+	fun hasUnhandledRow(arenaId: Long, table: ArenaTableName): Boolean {
 		//language=PostgreSQL
 		val sql = """
 			SELECT count(*) as antall FROM arena_data
@@ -206,8 +210,8 @@ open class ArenaDataRepository(
 				AND ingest_status != 'HANDLED'
 		""".trimIndent()
 		val params = sqlParameters(
-			"arena_id" to deltakelseArenaId.toString(),
-			"deltakerTableName" to ArenaTableName.DELTAKER.tableName
+			"arena_id" to arenaId.toString(),
+			"deltakerTableName" to table.tableName
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antall") }
 			?.let { it > 0 } ?: false

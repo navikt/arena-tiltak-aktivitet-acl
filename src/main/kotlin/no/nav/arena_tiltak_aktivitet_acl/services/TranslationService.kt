@@ -14,13 +14,13 @@ open class TranslationService(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	fun hentEllerOpprettAktivitetId(deltakerArenaId: Long, aktivitetType: AktivitetKategori): UUID {
-		val aktivitetId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
+	fun hentEllerOpprettAktivitetId(arenaId: Long, aktivitetType: AktivitetKategori): UUID {
+		val aktivitetId = translationRepository.get(arenaId, aktivitetType)?.aktivitetId
 		if (aktivitetId != null) return aktivitetId
 		val nyAktivitetsId = UUID.randomUUID()
-		log.info("Opprettet ny id for deltaker, id=$nyAktivitetsId arenaId=$deltakerArenaId")
+		log.info("Opprettet ny id for deltaker/gruppedeltaker/utdanningsdeltaker, id=$nyAktivitetsId arenaId=$arenaId")
 		insertTranslation(
-			deltakerArenaId,
+			arenaId,
 			nyAktivitetsId,
 			aktivitetType
 		)

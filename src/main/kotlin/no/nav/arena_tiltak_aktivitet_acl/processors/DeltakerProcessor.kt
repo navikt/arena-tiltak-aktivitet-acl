@@ -99,7 +99,7 @@ open class DeltakerProcessor(
 			)
 
 		val oppfolgingsperiode = aktivitetskort?.oppfolgingsPeriode()
-			?: getOppfolgingsPeriodeOrThrow(aktivitet, deltaker.regDato, deltaker.tiltakdeltakerId)
+			?: oppfolgingsperiodeService.getOppfolgingsPeriodeOrThrow(aktivitet, deltaker.regDato, deltaker.tiltakdeltakerId)
 
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString(),
@@ -130,25 +130,6 @@ open class DeltakerProcessor(
 		val id: UUID,
 		val oppfolgingsSluttDato: ZonedDateTime?
 	)
-	private fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
-		val personIdent = aktivitet.personIdent
-		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
-			?.let { AktivitetskortOppfolgingsperiode(it.uuid , it.sluttDato) }
-		if (oppfolgingsperiode == null) {
-			secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
-			val aktivitetStatus = aktivitet.aktivitetStatus
-			val erFerdig = aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false
-			when {
-				aktivitetStatus.erAvsluttet() || erFerdig ->
-					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				merEnnEnUkeMellom(opprettetTidspunkt, LocalDateTime.now()) ->
-					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
-			}
-		} else {
-			return oppfolgingsperiode
-		}
-	}
 }
 
 fun AktivitetDbo.oppfolgingsPeriode() = this.oppfolgingsperiodeUUID?.let {
