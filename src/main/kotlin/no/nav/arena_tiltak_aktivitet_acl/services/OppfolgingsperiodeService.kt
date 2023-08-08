@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
-import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
+import no.nav.arena_tiltak_aktivitet_acl.processors.AktivitetskortOppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -31,10 +31,10 @@ open class OppfolgingsperiodeService(
 		}
 	}
 
-	fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): DeltakerProcessor.AktivitetskortOppfolgingsperiode {
+	fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
 		val personIdent = aktivitet.personIdent
 		val oppfolgingsperiode = finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
-			?.let { DeltakerProcessor.AktivitetskortOppfolgingsperiode(it.uuid, it.sluttDato) }
+			?.let { AktivitetskortOppfolgingsperiode(it.uuid, it.sluttDato) }
 		if (oppfolgingsperiode == null) {
 			SecureLog.secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
 			val aktivitetStatus = aktivitet.aktivitetStatus

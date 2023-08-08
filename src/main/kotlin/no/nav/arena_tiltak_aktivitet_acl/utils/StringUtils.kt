@@ -72,5 +72,4 @@ fun String?.asTime(): LocalTime {
 	return LocalTime.MIDNIGHT
 }
 
-infix fun LocalDate?.withTime(time: LocalTime) =
-	if (this != null) LocalDateTime.of(this, time) else null
+infix fun LocalDate?.withTime(time: LocalTime) = this?.let { LocalDateTime.of(this, time) }

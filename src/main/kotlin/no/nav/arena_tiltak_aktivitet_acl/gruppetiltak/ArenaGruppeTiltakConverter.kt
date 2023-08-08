@@ -2,7 +2,6 @@ package no.nav.arena_tiltak_aktivitet_acl.gruppetiltak
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import java.time.LocalDate
-import java.util.*
 
 object ArenaGruppeTiltakConverter {
 	fun toAktivitetStatus(startDato: LocalDate?, sluttDato: LocalDate?, kafkaOperation: Operation): AktivitetStatus {

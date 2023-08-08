@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.gruppetiltak
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
+import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
@@ -13,7 +14,6 @@ data class GruppeTiltak(
 	val datoFra: LocalDate?,
 	val datoTil: LocalDate?,
 	val motePlan: List<GruppeMote>?,
-	val personId: Long?,
 	val personIdent: String,
 	val opprettetTid: LocalDateTime,
 	val opprettetAv: String?,
@@ -23,12 +23,11 @@ data class GruppeTiltak(
 	fun convertToTiltaksaktivitet(
 		kafkaOperation: Operation,
 		aktivitetId: UUID,
-		personIdent: String,
 		nyAktivitet: Boolean,
 	): Aktivitetskort {
 		return Aktivitetskort(
 			id = aktivitetId,
-			personIdent = personIdent,
+			personIdent = this.personIdent,
 			tittel = this.aktivitetsnavn,
 			aktivitetStatus = ArenaGruppeTiltakConverter.toAktivitetStatus(this.datoFra, this.datoTil, kafkaOperation),
 			startDato = this.datoFra,
@@ -44,9 +43,15 @@ data class GruppeTiltak(
 			etiketter = listOf()
 		)
 	}
+
+	fun getArenaIdWithPrefix(): String {
+		return KafkaProducerService.GRUPPE_TILTAK_ID_PREFIX + this.arenaAktivitetId.toString()
+	}
 }
 
 data class GruppeMote(
-	val tid: LocalDateTime?,
-	val sted: String?
+	val fra: LocalDateTime,
+	val til: LocalDateTime,
+	val sted: String,
+	val moteId: Long
 )

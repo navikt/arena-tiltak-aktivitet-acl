@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.processors.AktivitetskortOppfolgingsperiode
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -14,3 +15,7 @@ data class AktivitetDbo (
 	val oppfolgingsperiodeUUID: UUID?,
 	val oppfolgingsSluttTidspunkt: ZonedDateTime?
 )
+
+fun AktivitetDbo.oppfolgingsPeriode() = this.oppfolgingsperiodeUUID?.let {
+	AktivitetskortOppfolgingsperiode(it, this.oppfolgingsSluttTidspunkt)
+}

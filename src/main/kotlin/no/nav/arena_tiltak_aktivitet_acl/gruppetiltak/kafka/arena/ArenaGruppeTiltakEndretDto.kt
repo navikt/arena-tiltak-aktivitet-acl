@@ -1,38 +1,58 @@
 package no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.kafka.arena
 
+import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.GruppeMote
 import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.GruppeTiltak
+import no.nav.arena_tiltak_aktivitet_acl.utils.asTime
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDate
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.withTime
 
 @Suppress("kotlin:S117")
 data class ArenaGruppeTiltakEndretDto(
 	val VEILEDNINGDELTAKER_ID: Long? = null,
-	val MOTEPLAN_ID: Long? = null,
 	val AKTIVITET_ID: Long,
 	val VEILEDNINGAKTIVITET_ID: Long? = null,
 	val AKTIVITETID: String, // "GA" + AKTIVITET_ID
 	val AKTIVITET_TYPE_KODE: String, // Kodeverk, f.eks "IGVAL", men ikke samme som tiltak,
 	val AKTIVITETSNAVN: String,
-	val MOTEPLAN_STARTDATO: String?, // dato-tid, eks "2023-05-23 00:00:00" , klokkeslett ikke relevant?
-	val MOTEPLAN_SLUTTDATO: String?, // dato-tid, eks "2023-05-23 00:00:00"
 	val PERSON_ID: Long?, // arena personid
 	val PERSONIDENT: String, // fnr/dnr
-	val HENDELSE_ID: Long?,
+	val HENDELSE_ID: Long,
 	val OPPRETTET_DATO: String, // dato-tid, eks "2023-05-05 10:38:45"
 	val OPPRETTET_AV: String, // Arena-saksbehandlerident eks "MRN0106"
 	val ENDRET_DATO: String?, // dato-tid, eks "2023-05-05 10:38:45"
-	val ENDRET_AV: String? // Arena-saksbehandlerident eks "MRN0106"
+	val ENDRET_AV: String?, // Arena-saksbehandlerident eks "MRN0106"
+	val AKTIVITET_PERIODE_FOM: String,
+	val AKTIVITET_PERIODE_TOM: String,
+	// Kan være flere møter men litt rar representasjon i kafkameldingene 🤷
+	val MOTEPLAN_ID: Long? = null,
+	val MOTEPLAN_START_DATO: String?, // dato-tid, eks "2023-05-23 00:00:00" , klokkeslett ikke relevant?
+	val MOTEPLAN_START_KL_SLETT: String?, // dato-tid, eks "2023-05-23 00:00:00" , klokkeslett ikke relevant?
+	val MOTEPLAN_SLUTT_DATO: String?, // dato-tid, eks "2023-05-23 00:00:00"
+	val MOTEPLAN_SLUTT_KL_SLETT: String?, // dato-tid, eks "2023-05-23 00:00:00"
+	val MOTEPLAN_STED: String?,
 ) {
-	fun mapGruppeTiltak(): GruppeTiltak {
+	fun toGruppeTiltak(): GruppeTiltak {
+		val moteStart = MOTEPLAN_START_DATO
+			?.asValidatedLocalDate("MOTEPLAN_START_DATO") withTime MOTEPLAN_START_KL_SLETT.asTime()
+		val moteSlutt = MOTEPLAN_SLUTT_DATO
+			?.asValidatedLocalDate("MOTEPLAN_SLUTT_DATO") withTime MOTEPLAN_SLUTT_KL_SLETT.asTime()
+
 		return GruppeTiltak(
 			arenaAktivitetId = AKTIVITET_ID,
 			aktivitetstype = AKTIVITET_TYPE_KODE,
 			aktivitetsnavn = AKTIVITETSNAVN,
 			beskrivelse = null,
-			datoFra = MOTEPLAN_STARTDATO?.asValidatedLocalDate("MOTEPLAN_STARTDATO"),
-			datoTil = MOTEPLAN_SLUTTDATO?.asValidatedLocalDate("MOTEPLAN_SLUTTDATO"),
-			motePlan = null,
-			personId = PERSON_ID,
+			datoFra = AKTIVITET_PERIODE_FOM.asValidatedLocalDate("AKTIVITET_PERIODE_FOM"),
+			datoTil = AKTIVITET_PERIODE_TOM.asValidatedLocalDate("AKTIVITET_PERIODE_TOM"),
+			motePlan = listOf(
+				GruppeMote(
+					moteStart!!,
+					moteSlutt!!,
+					MOTEPLAN_STED!!,
+					MOTEPLAN_ID!!
+				)
+			),
 			personIdent = PERSONIDENT,
 			opprettetTid = OPPRETTET_DATO.asValidatedLocalDateTime("OPPRETTET_DATO"),
 			opprettetAv = OPPRETTET_AV,
