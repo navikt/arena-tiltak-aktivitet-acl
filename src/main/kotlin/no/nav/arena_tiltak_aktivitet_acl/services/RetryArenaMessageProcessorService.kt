@@ -6,6 +6,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.processor.GruppeTiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
@@ -23,6 +24,7 @@ open class RetryArenaMessageProcessorService(
 	private val tiltakProcessor: TiltakProcessor,
 	private val gjennomforingProcessor: GjennomforingProcessor,
 	private val deltakerProcessor: DeltakerProcessor,
+	private val gruppeTiltakProcessor: GruppeTiltakProcessor,
 	private val meterRegistry: MeterRegistry
 ) {
 
@@ -84,6 +86,7 @@ open class RetryArenaMessageProcessorService(
 						)
 					)
 					ArenaTableName.DELTAKER -> deltakerProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
+					ArenaTableName.GRUPPETILTAK -> gruppeTiltakProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
 				}
 			} catch (e: Exception) {
 				val currentIngestAttempts = arenaDataDbo.ingestAttempts + 1

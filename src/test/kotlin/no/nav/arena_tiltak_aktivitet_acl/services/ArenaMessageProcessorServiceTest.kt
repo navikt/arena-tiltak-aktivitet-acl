@@ -13,6 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaGjennomforingKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.processor.GruppeTiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
@@ -33,6 +34,8 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 
 	lateinit var deltakerProcessor: DeltakerProcessor
 
+	lateinit var gruppeTiltakProcessor: GruppeTiltakProcessor
+
 	lateinit var meterRegistry: MeterRegistry
 
 	lateinit var messageProcessor: ArenaMessageProcessorService
@@ -45,6 +48,8 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		tiltakProcessor = mockk()
 		gjennomforingProcessor = mockk()
 		deltakerProcessor = mockk()
+		gruppeTiltakProcessor = mockk()
+
 
 		meterRegistry = SimpleMeterRegistry()
 
@@ -52,6 +57,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 			tiltakProcessor = tiltakProcessor,
 			gjennomforingProcessor = gjennomforingProcessor,
 			deltakerProcessor = deltakerProcessor,
+			gruppeTiltakProcessor = gruppeTiltakProcessor,
 			arenaDataRepository = arenaDataRepository,
 			meterRegistry = meterRegistry
 		)
