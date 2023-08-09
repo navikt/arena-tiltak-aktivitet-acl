@@ -1,6 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.date.shouldBeWithin
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -29,7 +28,6 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
-import org.springframework.http.HttpStatusCode
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
