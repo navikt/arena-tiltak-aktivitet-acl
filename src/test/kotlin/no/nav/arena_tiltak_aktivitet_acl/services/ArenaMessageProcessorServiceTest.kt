@@ -46,8 +46,8 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 			tiltakProcessor = tiltakProcessor,
 			gjennomforingProcessor = gjennomforingProcessor,
 			deltakerProcessor = deltakerProcessor,
-			arenaDataRepository = arenaDataRepository,
 			gruppeTiltakProcessor = gruppeTiltakProcessor,
+			arenaDataRepository = arenaDataRepository,
 			meterRegistry = meterRegistry
 		)
 	}
