@@ -14,12 +14,13 @@ class HandledResult(
 	val output: KafkaMessageDto,
 	val headers: AktivitetskortHeaders
 ): AktivitetResult(position, arenaDataDbo, translation) {
+	val aktivitetskort = output.aktivitetskort
 	fun output(check: (data: KafkaMessageDto) -> Unit): AktivitetResult {
 		check(output)
 		return this
 	}
 	fun aktivitetskort(check: (aktivitetskort: Aktivitetskort) -> Unit): AktivitetResult {
-		check(output.aktivitetskort)
+		check(aktivitetskort)
 		return this
 	}
 	override fun result(check: (arenaDataDbo: ArenaDataDbo, translation: TranslationDbo?, output: KafkaMessageDto?) -> Unit): AktivitetResult {

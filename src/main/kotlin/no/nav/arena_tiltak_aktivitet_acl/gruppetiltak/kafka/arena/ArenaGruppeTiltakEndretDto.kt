@@ -1,5 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.kafka.arena
 
+import no.nav.arena_tiltak_aktivitet_acl.domain.InternalDomainObject
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ToDomainAble
 import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.GruppeMote
 import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.GruppeTiltak
 import no.nav.arena_tiltak_aktivitet_acl.utils.asTime
@@ -15,6 +17,8 @@ data class ArenaGruppeTiltakEndretDto(
 	val AKTIVITETID: String, // "GA" + AKTIVITET_ID
 	val AKTIVITET_TYPE_KODE: String, // Kodeverk, f.eks "IGVAL", men ikke samme som tiltak,
 	val AKTIVITETSNAVN: String,
+	val ARRANGEMENT_BESKRIVELSE: String,
+	val ARRANGEMENT_TYPE_NAVN: String,
 	val PERSON_ID: Long?, // arena personid
 	val PERSONIDENT: String, // fnr/dnr
 	val HENDELSE_ID: Long,
@@ -31,7 +35,9 @@ data class ArenaGruppeTiltakEndretDto(
 	val MOTEPLAN_SLUTT_DATO: String?, // dato-tid, eks "2023-05-23 00:00:00"
 	val MOTEPLAN_SLUTT_KL_SLETT: String?, // dato-tid, eks "2023-05-23 00:00:00"
 	val MOTEPLAN_STED: String?,
-) {
+): ToDomainAble {
+
+
 	fun toGruppeTiltak(): GruppeTiltak {
 		val moteStart = MOTEPLAN_START_DATO
 			?.asValidatedLocalDate("MOTEPLAN_START_DATO") withTime MOTEPLAN_START_KL_SLETT.asTime()
@@ -41,16 +47,16 @@ data class ArenaGruppeTiltakEndretDto(
 		return GruppeTiltak(
 			arenaAktivitetId = AKTIVITET_ID,
 			aktivitetstype = AKTIVITET_TYPE_KODE,
-			aktivitetsnavn = AKTIVITETSNAVN,
-			beskrivelse = null,
+			tittel = AKTIVITETSNAVN,
+			beskrivelse = ARRANGEMENT_BESKRIVELSE,
 			datoFra = AKTIVITET_PERIODE_FOM.asValidatedLocalDate("AKTIVITET_PERIODE_FOM"),
 			datoTil = AKTIVITET_PERIODE_TOM.asValidatedLocalDate("AKTIVITET_PERIODE_TOM"),
-			motePlan = listOf(
+			motePlan =  if (MOTEPLAN_ID == null) emptyList() else listOf(
 				GruppeMote(
 					moteStart!!,
 					moteSlutt!!,
 					MOTEPLAN_STED!!,
-					MOTEPLAN_ID!!
+					MOTEPLAN_ID
 				)
 			),
 			personIdent = PERSONIDENT,
@@ -59,6 +65,10 @@ data class ArenaGruppeTiltakEndretDto(
 			endretTid = ENDRET_DATO?.asValidatedLocalDateTime("ENDRET_DATO"),
 			endretAv = ENDRET_AV
 		)
+	}
+
+	override fun toInternalDataObject(): InternalDomainObject {
+		return this.toGruppeTiltak()
 	}
 }
 

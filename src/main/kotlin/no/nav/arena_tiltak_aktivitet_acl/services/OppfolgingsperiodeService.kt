@@ -31,7 +31,7 @@ open class OppfolgingsperiodeService(
 		}
 	}
 
-	fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
+	fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, arenaId: Long): AktivitetskortOppfolgingsperiode {
 		val personIdent = aktivitet.personIdent
 		val oppfolgingsperiode = finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
 			?.let { AktivitetskortOppfolgingsperiode(it.uuid, it.sluttDato) }
@@ -41,10 +41,10 @@ open class OppfolgingsperiodeService(
 			val erFerdig = aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false
 			when {
 				aktivitetStatus.erAvsluttet() || erFerdig ->
-					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
+					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${arenaId}")
 				merEnnEnUkeMellom(opprettetTidspunkt, LocalDateTime.now()) ->
-					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
+					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${arenaId}")
+				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${arenaId}")
 			}
 		} else {
 			return oppfolgingsperiode

@@ -7,7 +7,9 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ToDomainAble
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
+import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.kafka.arena.ArenaGruppeTiltakEndretDto
 import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.processor.GruppeTiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.ArenaMessageProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
@@ -55,7 +57,7 @@ open class ArenaMessageProcessorService(
 				ArenaTableName.TILTAK -> process(messageDto, tiltakProcessor) { it.TILTAKSKODE }
 				ArenaTableName.GJENNOMFORING -> process(messageDto, gjennomforingProcessor) { it.TILTAKGJENNOMFORING_ID.toString() }
 				ArenaTableName.DELTAKER -> process(messageDto, deltakerProcessor) { it.TILTAKDELTAKER_ID.toString() }
-				ArenaTableName.GRUPPETILTAK -> process(messageDto, gruppeTiltakProcessor) { it.AKTIVITETID }
+				ArenaTableName.GRUPPETILTAK -> process<ArenaGruppeTiltakEndretDto>(messageDto, gruppeTiltakProcessor) { it.AKTIVITET_ID.toString() }
 			}
 		}
 	}

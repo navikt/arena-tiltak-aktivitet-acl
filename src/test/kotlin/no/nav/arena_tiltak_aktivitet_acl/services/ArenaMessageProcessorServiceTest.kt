@@ -8,51 +8,46 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import io.mockk.CapturingSlot
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaGjennomforingKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.gruppetiltak.processor.GruppeTiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.mockito.kotlin.mock
 import org.slf4j.LoggerFactory
 
 class ArenaMessageProcessorServiceTest : StringSpec({
 
 	val mapper = ObjectMapper.get()
 
-	lateinit var arenaDataRepository: ArenaDataRepository
-
-	lateinit var tiltakProcessor: TiltakProcessor
-
-	lateinit var gjennomforingProcessor: GjennomforingProcessor
-
-	lateinit var deltakerProcessor: DeltakerProcessor
-
+	var arenaDataRepository: ArenaDataRepository = mock()
+	var tiltakProcessor: TiltakProcessor = mock()
+	var gjennomforingProcessor: GjennomforingProcessor = mock()
+	var deltakerProcessor: DeltakerProcessor = mock()
+	var gruppeTiltakProcessor: GruppeTiltakProcessor = mock()
 	lateinit var meterRegistry: MeterRegistry
-
 	lateinit var messageProcessor: ArenaMessageProcessorService
 
 	beforeEach {
 		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		rootLogger.level = Level.WARN
-
-		arenaDataRepository = mockk()
-		tiltakProcessor = mockk()
-		gjennomforingProcessor = mockk()
-		deltakerProcessor = mockk()
-
+		clearMocks(
+			tiltakProcessor,
+			gjennomforingProcessor,
+			deltakerProcessor,
+			gruppeTiltakProcessor
+		)
 		meterRegistry = SimpleMeterRegistry()
-
 		messageProcessor = ArenaMessageProcessorService(
 			tiltakProcessor = tiltakProcessor,
 			gjennomforingProcessor = gjennomforingProcessor,
 			deltakerProcessor = deltakerProcessor,
 			arenaDataRepository = arenaDataRepository,
+			gruppeTiltakProcessor = gruppeTiltakProcessor,
 			meterRegistry = meterRegistry
 		)
 	}

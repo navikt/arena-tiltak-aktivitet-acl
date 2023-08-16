@@ -14,9 +14,7 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 	@Test
 	fun `Konsumer gjennomføring - gyldig gjennomføring - ingestes uten feil`() {
 
-		val gjennomforingInput = GjennomforingInput(
-			gjennomforingId = Random().nextLong()
-		)
+		val gjennomforingInput = GjennomforingInput(gjennomforingId = Random().nextLong())
 		val arbgivId = gjennomforingInput.arbeidsgiverIdArrangor
 		val virksomhetsnummer = "123"
 		val expected = gjennomforingInput.toDbo(gjennomforingInput.gjennomforingId, virksomhetsnummer, "virksomhetnavn")
