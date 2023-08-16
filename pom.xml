@@ -168,6 +168,13 @@
             <groupId>com.github.navikt.common-java-modules</groupId>
             <artifactId>kafka</artifactId>
             <version>${common.version}</version>
+            <exclusions>
+                <!-- schema registry client pulls in non-jakarte (javax) annotations-->
+                <exclusion>
+                    <groupId>io.swagger.core.v3</groupId>
+                    <artifactId>swagger-annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.github.navikt.common-java-modules</groupId>
