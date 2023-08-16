@@ -53,22 +53,22 @@ class GruppeIntegrationTests : IntegrationTestBase() {
 					it.aktivitetskort.personIdent shouldBe gruppeTiltak.personIdent
 				}
 				withClue("Arena-aktivitetId skal være riktig") {
-					it.headers.arenaId shouldBe gruppeTiltak.arenaAktivitetId
+					it.headers.arenaId shouldBe "ARENAGA${gruppeTiltak.arenaAktivitetId}"
 				}
 			}
 	}
 
-	fun asfsadf() {
-		AKTIVITET_DATO_PASSERT -> oppdater status (Fullført)
-		STATUS_ENDERT(AVBR, FULLF) -> oppdater status
-		if (opretation == Operation.DELETED) {
-			DELTAKER_FJERNET
-			// Møteplan
-			MØTEPLAN_SLETTET
-			MØTEPLAN_DATO_PASSERT(etter å ha blitt endret)
-			MØTEPLAN_DATO_PASSERT(uten endring)
-		}
-		moter.erAllePassert() -> (oppdater tekst)
-	}
+//	fun asfsadf() {
+//		AKTIVITET_DATO_PASSERT -> oppdater status (Fullført)
+//		STATUS_ENDERT(AVBR, FULLF) -> oppdater status
+//		if (opretation == Operation.DELETED) {
+//			DELTAKER_FJERNET
+//			// Møteplan
+//			MØTEPLAN_SLETTET
+//			MØTEPLAN_DATO_PASSERT(etter å ha blitt endret)
+//			MØTEPLAN_DATO_PASSERT(uten endring)
+//		}
+//		moter.erAllePassert() -> (oppdater tekst)
+//	}
 
 }
