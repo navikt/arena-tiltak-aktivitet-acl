@@ -23,22 +23,17 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 
 	val mapper = ObjectMapper.get()
 
-	var arenaDataRepository: ArenaDataRepository = mockk()
-	var tiltakProcessor: TiltakProcessor = mockk()
-	var gjennomforingProcessor: GjennomforingProcessor = mockk()
-	var deltakerProcessor: DeltakerProcessor = mockk()
-	var gruppeTiltakProcessor: GruppeTiltakProcessor = mockk()
+	val arenaDataRepository: ArenaDataRepository = mockk()
+	val tiltakProcessor: TiltakProcessor = mockk()
+	val gjennomforingProcessor: GjennomforingProcessor = mockk()
+	val deltakerProcessor: DeltakerProcessor = mockk()
+	val gruppeTiltakProcessor: GruppeTiltakProcessor = mockk()
 	lateinit var meterRegistry: MeterRegistry
 	lateinit var messageProcessor: ArenaMessageProcessorService
-
 
 	beforeEach {
 		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		rootLogger.level = Level.WARN
-		tiltakProcessor = mockk()
-		gjennomforingProcessor = mockk()
-		deltakerProcessor = mockk()
-		gruppeTiltakProcessor = mockk()
 		clearMocks(
 			tiltakProcessor,
 			gjennomforingProcessor,
