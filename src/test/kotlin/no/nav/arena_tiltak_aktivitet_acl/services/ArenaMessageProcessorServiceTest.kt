@@ -17,24 +17,28 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.mockito.kotlin.mock
 import org.slf4j.LoggerFactory
 
 class ArenaMessageProcessorServiceTest : StringSpec({
 
 	val mapper = ObjectMapper.get()
 
-	var arenaDataRepository: ArenaDataRepository = mock()
-	var tiltakProcessor: TiltakProcessor = mock()
-	var gjennomforingProcessor: GjennomforingProcessor = mock()
-	var deltakerProcessor: DeltakerProcessor = mock()
-	var gruppeTiltakProcessor: GruppeTiltakProcessor = mock()
+	var arenaDataRepository: ArenaDataRepository = mockk()
+	var tiltakProcessor: TiltakProcessor = mockk()
+	var gjennomforingProcessor: GjennomforingProcessor = mockk()
+	var deltakerProcessor: DeltakerProcessor = mockk()
+	var gruppeTiltakProcessor: GruppeTiltakProcessor = mockk()
 	lateinit var meterRegistry: MeterRegistry
 	lateinit var messageProcessor: ArenaMessageProcessorService
+
 
 	beforeEach {
 		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		rootLogger.level = Level.WARN
+		tiltakProcessor = mockk()
+		gjennomforingProcessor = mockk()
+		deltakerProcessor = mockk()
+		gruppeTiltakProcessor = mockk()
 		clearMocks(
 			tiltakProcessor,
 			gjennomforingProcessor,
