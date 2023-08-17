@@ -47,10 +47,12 @@ spec:
         - host: amt-arena-ords-proxy.dev-fss-pub.nais.io
         - host: veilarboppfolging.dev-fss-pub.nais.io
   env:
+    # q2: api://dev-fss.amt.amt-arena-ords-proxy/.default q1: api://dev-fss.amt.amt-arena-ords-proxy-q1/.default
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
-      value: api://dev-fss.amt.amt-arena-ords-proxy-q2/.default
+      value: api://dev-fss.amt.amt-arena-ords-proxy/.default
+    # q2: https://amt-arena-ords-proxy-q1.dev-fss-pub.nais.io q1: https://amt-arena-ords-proxy.dev-fss-pub.nais.io
     - name: AMT_ARENA_ORDS_PROXY_URL
-      value: https://amt-arena-ords-proxy-q2.dev-fss-pub.nais.io
+      value: https://amt-arena-ords-proxy.dev-fss-pub.nais.io
     # Kafka topics
     - name: AKTIVITETSKORT_TOPIC
       value: dab.aktivitetskort-v1.1
