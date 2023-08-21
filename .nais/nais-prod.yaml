@@ -49,6 +49,7 @@ spec:
       external:
         - host: amt-arena-ords-proxy.prod-fss-pub.nais.io
         - host: veilarboppfolging.prod-fss-pub.nais.io
+        - host: dab-unleash-api.nav.cloud.nais.io
   env:
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
       value: api://prod-fss.amt.amt-arena-ords-proxy/.default
@@ -71,6 +72,8 @@ spec:
       value: api://prod-fss.pto.veilarboppfolging/.default
     - name: VEILARBOPPFOLGING_URL
       value: https://veilarboppfolging.prod-fss-pub.nais.io
+    - name: UNLEASH_ENVIRONMENT
+      value: production
   gcp:
     sqlInstances:
       - name: aktivitet-arena-acl-v1
