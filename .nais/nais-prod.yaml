@@ -36,6 +36,11 @@ spec:
   secureLogs:
     enabled: true
   accessPolicy:
+    inbound:
+      rules:
+        - application: amt-aktivitetskort-publisher
+          namespace: amt
+          cluster: prod-gcp
     outbound:
       rules:
         - application: amt-enhetsregister
