@@ -6,6 +6,7 @@ import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.DeltakerTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.GjennomforingTestExecutor
+import no.nav.arena_tiltak_aktivitet_acl.integration.executors.GruppeTiltakExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.executors.TiltakTestExecutor
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.kafka.KafkaProperties
@@ -59,6 +60,9 @@ abstract class IntegrationTestBase {
 
 	@Autowired
 	lateinit var deltakerExecutor: DeltakerTestExecutor
+
+	@Autowired
+	lateinit var gruppeTiltakExecutor: GruppeTiltakExecutor
 
 	@Autowired
 	lateinit var mockOAuthServer: MockOAuth2Server
@@ -131,9 +135,17 @@ open class IntegrationTestConfiguration(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
 		translationRepository: TranslationRepository,
-		aktivitetRepository: AktivitetRepository
 	): DeltakerTestExecutor {
 		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
+	}
+
+	@Bean
+	open fun gruppeTiltakExecutor(
+		kafkaProducer: KafkaProducerClientImpl<String, String>,
+		arenaDataRepository: ArenaDataRepository,
+		translationRepository: TranslationRepository,
+	): GruppeTiltakExecutor {
+		return GruppeTiltakExecutor(kafkaProducer, arenaDataRepository, translationRepository)
 	}
 
 	@Bean

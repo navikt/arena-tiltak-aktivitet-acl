@@ -6,10 +6,12 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 
+const val ARENAIDENT = "ARENAIDENT"
 data class Ident(
-	val identType: String = "ARENAIDENT",
 	val ident: String
-)
+) {
+	val identType: String = ARENAIDENT
+}
 
 data class Beskrivelse(
 	val label: String? = null,

@@ -7,23 +7,15 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
-import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
-import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
+import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
-import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.merEnnEnUkeMellom
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
-import java.time.ZonedDateTime
-import java.util.*
 
 @Component
 open class DeltakerProcessor(
@@ -57,7 +49,7 @@ open class DeltakerProcessor(
 		}
 
 		// Translation opprettes ikke før denne er kjørt.
-		val aktivitetId = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+		val (aktivitetId, _) = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
 		val personIdent = ordsClient.hentFnr(deltaker.personId)
 			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
 		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
@@ -99,7 +91,7 @@ open class DeltakerProcessor(
 			)
 
 		val oppfolgingsperiode = aktivitetskort?.oppfolgingsPeriode()
-			?: getOppfolgingsPeriodeOrThrow(aktivitet, deltaker.regDato, deltaker.tiltakdeltakerId)
+			?: oppfolgingsperiodeService.getOppfolgingsPeriodeOrThrow(aktivitet, deltaker.regDato, deltaker.tiltakdeltakerId)
 
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString(),
@@ -126,33 +118,4 @@ open class DeltakerProcessor(
 			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
 	}
 
-	data class AktivitetskortOppfolgingsperiode(
-		val id: UUID,
-		val oppfolgingsSluttDato: ZonedDateTime?
-	)
-	private fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
-		val personIdent = aktivitet.personIdent
-		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
-			?.let { AktivitetskortOppfolgingsperiode(it.uuid , it.sluttDato) }
-		if (oppfolgingsperiode == null) {
-			secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
-			val aktivitetStatus = aktivitet.aktivitetStatus
-			val erFerdig = aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false
-			when {
-				aktivitetStatus.erAvsluttet() || erFerdig ->
-					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				merEnnEnUkeMellom(opprettetTidspunkt, LocalDateTime.now()) ->
-					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
-			}
-		} else {
-			return oppfolgingsperiode
-		}
-	}
 }
-
-fun AktivitetDbo.oppfolgingsPeriode() = this.oppfolgingsperiodeUUID?.let {
-	DeltakerProcessor.AktivitetskortOppfolgingsperiode(it, this.oppfolgingsSluttTidspunkt)
-}
-
-

@@ -34,6 +34,7 @@ open class KafkaProducerService(
 
 	companion object {
 		const val TILTAK_ID_PREFIX = "ARENATA"
+		const val GRUPPE_TILTAK_ID_PREFIX = "ARENAGA"
 	}
 
 }

@@ -2,8 +2,14 @@ package no.nav.arena_tiltak_aktivitet_acl.services
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
+import no.nav.arena_tiltak_aktivitet_acl.processors.AktivitetskortOppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.chrono.ChronoZonedDateTime
@@ -22,6 +28,26 @@ open class OppfolgingsperiodeService(
 		}
 		fun merEnnEnUkeMellom(opprettetTidspunkt: LocalDateTime, periodeStartDato: LocalDateTime): Boolean {
 			return !mindreEnnEnUkeMellom(opprettetTidspunkt, periodeStartDato)
+		}
+	}
+
+	fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, arenaId: Long): AktivitetskortOppfolgingsperiode {
+		val personIdent = aktivitet.personIdent
+		val oppfolgingsperiode = finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
+			?.let { AktivitetskortOppfolgingsperiode(it.uuid, it.sluttDato) }
+		if (oppfolgingsperiode == null) {
+			SecureLog.secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
+			val aktivitetStatus = aktivitet.aktivitetStatus
+			val erFerdig = aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false
+			when {
+				aktivitetStatus.erAvsluttet() || erFerdig ->
+					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${arenaId}")
+				merEnnEnUkeMellom(opprettetTidspunkt, LocalDateTime.now()) ->
+					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${arenaId}")
+				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${arenaId}")
+			}
+		} else {
+			return oppfolgingsperiode
 		}
 	}
 

@@ -2,17 +2,20 @@ package no.nav.arena_tiltak_aktivitet_acl.rest
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.arena_tiltak_aktivitet_acl.auth.AuthService
 import no.nav.arena_tiltak_aktivitet_acl.auth.Issuer
+import no.nav.arena_tiltak_aktivitet_acl.configuration.ControllerAdvice
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.services.TranslationService
 import no.nav.security.token.support.core.api.Protected
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -34,7 +37,9 @@ class TranslationController(
 	@Operation(summary = "Hent aktivitetsid uuid for arena tiltaksdeltakelse", description = "Mapper mellom arenaid nøkkel i Arena for ulike typer tiltak og funksjonell aktivitetsid i aktivitetsplan")
 	@ApiResponses(value = [
 		ApiResponse(responseCode = "200", description = "Funksjonell aktivitetsId for arenaid returnert ok "),
-		ApiResponse(responseCode = "404", description = "Fant ingen funksjonell aktivitetsid for oppgitt arenaid og aktivitetskategori.")
+		ApiResponse(responseCode = "404", description = "Fant ingen funksjonell aktivitetsid for oppgitt arenaid og aktivitetskategori.",
+				content = [Content(schema = Schema(implementation = ControllerAdvice.Response::class))]
+			)
 		])
 	@PostMapping(value=["/arenaid"], produces=["application/json"], consumes =["application/json"])
 	fun finnAktivitetsIdForArenaId(
