@@ -18,18 +18,18 @@ data class ArenaGjennomforing(
 		virksomhetsnummer: String?,
 		arrangorNavn: String?
 	): GjennomforingDbo {
-		var vasketArrangorNavn: String? = null
-		if (arrangorNavn != null) {
-			vasketArrangorNavn = arrangorNavn
+		var vasketLokaltNavn: String? = null
+		if (lokaltNavn != null) {
+			vasketLokaltNavn = lokaltNavn
 				.redactNorwegianSSNs()
-				.replaceStringWithOnlySpecialChars("Ukjent arrangør")
+				.replaceStringWithOnlySpecialChars("Uten navn")
 		}
 		return GjennomforingDbo(
 			arenaId = arenaId,
 			tiltakKode = tiltakKode,
 			arrangorVirksomhetsnummer = virksomhetsnummer,
-			arrangorNavn = vasketArrangorNavn,
-			navn = lokaltNavn,
+			arrangorNavn = arrangorNavn,
+			navn = vasketLokaltNavn,
 			startDato = datoFra,
 			sluttDato = datoTil,
 			status = statusKode,
