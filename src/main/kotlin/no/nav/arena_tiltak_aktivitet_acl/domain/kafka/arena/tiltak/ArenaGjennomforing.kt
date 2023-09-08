@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak
 
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.util.nullifyStringWithOnlySpecialChars
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.util.redactNorwegianSSNs
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.util.replaceStringWithOnlySpecialChars
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingDbo
 import java.time.LocalDate
 
@@ -22,7 +22,7 @@ data class ArenaGjennomforing(
 		if (lokaltNavn != null) {
 			vasketLokaltNavn = lokaltNavn
 				.redactNorwegianSSNs()
-				.replaceStringWithOnlySpecialChars("Uten navn")
+				.nullifyStringWithOnlySpecialChars()
 		}
 		return GjennomforingDbo(
 			arenaId = arenaId,

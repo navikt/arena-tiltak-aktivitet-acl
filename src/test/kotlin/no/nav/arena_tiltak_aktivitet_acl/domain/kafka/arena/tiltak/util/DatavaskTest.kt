@@ -6,8 +6,8 @@ import io.kotest.matchers.shouldBe
 class DatavaskTest : FunSpec({
 
 	test("replaceSpecialChars") {
-		"+.!-_,;:-*&-- /\\'`´-,$".replaceStringWithOnlySpecialChars("Default replacement") shouldBe "Default replacement"
-		"+.!- Noen spesialkarakterer -----,$".replaceStringWithOnlySpecialChars("Default replacement")  shouldBe "+.!- Noen spesialkarakterer -----,$"
+		"+.!-_,;:-*&-- /\\'`´-,$".nullifyStringWithOnlySpecialChars() shouldBe null
+		"+.!- Noen spesialkarakterer -----,$".nullifyStringWithOnlySpecialChars()  shouldBe "+.!- Noen spesialkarakterer -----,$"
 	}
 
 	test("redactNorwegianSSNs") {

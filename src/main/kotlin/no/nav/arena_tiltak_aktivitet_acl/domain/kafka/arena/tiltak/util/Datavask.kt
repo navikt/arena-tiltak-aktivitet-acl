@@ -1,9 +1,9 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.util
 
-fun String.replaceStringWithOnlySpecialChars(defaultReplacement: String): String {
+fun String.nullifyStringWithOnlySpecialChars(): String? {
 	val specialCharsPattern = "^[\\p{P}\\p{S}\\p{Z}]+$".toRegex()
 	return if (this.matches(specialCharsPattern)) {
-		defaultReplacement
+		null
 	} else {
 		this
 	}

@@ -88,6 +88,6 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 
 		gjennomforingExecutor.execute(NyGjennomforingCommand(input))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-			.result { _, output -> output?.navn shouldBe "Uten navn" }
+			.result { _, output -> output?.navn shouldBe null }
 	}
 }
