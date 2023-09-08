@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration
 import io.kotest.matchers.date.shouldBeWithin
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldMatch
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
@@ -18,6 +19,9 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakC
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
+import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.AMO
+import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.ENKELAMO
+import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.GRUPPEAMO
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
@@ -26,6 +30,8 @@ import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import java.time.Duration
@@ -78,7 +84,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			it.output.aktivitetskort.id shouldBe it.translation!!.aktivitetId
-			it.aktivitetskort { it.isSame(deltakerInput, tiltak) }
+			it.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			it.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 			it.headers.oppfolgingsperiode shouldNotBe null
@@ -132,7 +138,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			it.translation?.aktivitetId shouldBe it.output.aktivitetskort.id
-			it.aktivitetskort { it.isSame(deltakerInput, tiltak) }
+			it.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			it.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
 			it.headers.oppfolgingsperiode shouldBe gammelPeriode.uuid
@@ -265,7 +271,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 	@Test
 	fun `ingest existing deltaker`() {
-		val (gjennomforingId, deltakerId, _, tiltak) = setup()
+		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakerId = deltakerId,
@@ -290,13 +296,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
-			r.aktivitetskort { it.isSame(deltakerInput, tiltak) }
+			r.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput ) }
 		}
 
 		updatedResult.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
-			r.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak) }
+			r.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak, gjennomforingInput) }
 		}
 	}
 
@@ -317,12 +323,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `tittel should be set to tiltaksnavn when gjennomforing navn is null`() {
-		val TILTAKSNAVN_OVERRIDE = "Tiltaksnavn override"
+	fun `tittel should be set to default value when gjennomforing navn is null`() {
 		val gjennomforingId: Long = Random().nextLong()
 		val deltakerId: Long = Random().nextLong()
 		val gjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId, navn = null)
-		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(navn = TILTAKSNAVN_OVERRIDE))
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand())
 			.let { result ->
 				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 				result.tiltak
@@ -343,8 +348,39 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled { result ->
 			result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1
-			result.output.aktivitetskort.tittel shouldBe TILTAKSNAVN_OVERRIDE
-			result.aktivitetskort { it.isSame(deltakerInput, tiltak) }
+			result.output.aktivitetskort.tittel shouldBe "Ukjent navn"
+			result.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
+		}
+	}
+
+	@ParameterizedTest(name = "Tittel skal prefixes for {0}")
+	@ValueSource(strings = [AMO, GRUPPEAMO, ENKELAMO])
+	fun `tittel should be prefixed for some tiltakskoder`(tiltaksKode: String) {
+		val gjennomforingId: Long = Random().nextLong()
+		val deltakerId: Long = Random().nextLong()
+		val gjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId, tiltakKode = tiltaksKode, navn = "Klubbmøte")
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = tiltaksKode))
+			.let { result ->
+				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+				result.tiltak
+			}
+		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime()
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.expectHandled { result ->
+			result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1
+			result.output.aktivitetskort.tittel shouldMatch "^(Gruppe AMO:|AMO-kurs:|Enkeltplass AMO:) ${gjennomforingInput.navn}\$"
 		}
 	}
 
@@ -469,10 +505,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	private fun Aktivitetskort.isSame(
 		deltakerInput: DeltakerInput,
-		tiltak: TiltakDbo
+		tiltak: TiltakDbo,
+		gjennomforingInput: GjennomforingInput
 	) {
 		personIdent shouldBe "12345"
-		tittel shouldBe tiltak.navn
+		tittel shouldBe (gjennomforingInput.navn ?: "Ukjent navn")
 		aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
 		etiketter.size shouldBe 0
 		startDato shouldBe deltakerInput.datoFra

@@ -87,13 +87,15 @@ open class DeltakerProcessor(
 		val aktivitetskort = aktivitetService.get(aktivitetId)
 		val erNyAktivitet = aktivitetskort != null
 
+		val fallbackGjennomforingNavn = "Ukjent navn"
+
 		val aktivitet = ArenaDeltakerConverter
 			.convertToTiltaksaktivitet(
 				deltaker = deltaker,
 				aktivitetId = aktivitetId,
 				personIdent = personIdent,
 				arrangorNavn = gjennomforing.arrangorNavn,
-				gjennomforingNavn = tiltak.navn,
+				gjennomforingNavn = gjennomforing.navn ?: fallbackGjennomforingNavn,
 				tiltak = tiltak,
 				erNyAktivitet = erNyAktivitet,
 			)

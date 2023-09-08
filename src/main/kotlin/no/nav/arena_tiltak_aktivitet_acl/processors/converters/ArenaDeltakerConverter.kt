@@ -5,10 +5,10 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltake
 import java.util.*
 
 object ArenaDeltakerConverter {
-	val JOBBKLUBB = "JOBBKLUBB"
-	val AMO = "AMO"
-	val GRUPPEAMO = "GRUPPEAMO"
-	val ENKELAMO = "ENKELAMO"
+	const val JOBBKLUBB = "JOBBKLUBB"
+	const val AMO = "AMO"
+	const val GRUPPEAMO = "GRUPPEAMO"
+	const val ENKELAMO = "ENKELAMO"
 
 	fun toAktivitetStatus(status: String): AktivitetStatus {
 		return when (status) {

@@ -62,4 +62,32 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.result { _, output -> output?.navn shouldBe null }
 	}
+
+	@Test
+	fun `Konsumer gjennomføring - lokaltnavn har fnr - gjennomføringsnavn skal vaskes`() {
+		tiltakExecutor.execute(NyttTiltakCommand())
+
+		val input = GjennomforingInput(
+			gjennomforingId = Random().nextLong(),
+			navn = "10108094523 Brua frisør"
+		)
+
+		gjennomforingExecutor.execute(NyGjennomforingCommand(input))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.result { _, output -> output?.navn shouldBe "[FNR] Brua frisør" }
+	}
+
+	@Test
+	fun `Konsumer gjennomføring - lokaltnavn har kun spesialkarakterer - gjennomføringsnavn skal vaskes`() {
+		tiltakExecutor.execute(NyttTiltakCommand())
+
+		val input = GjennomforingInput(
+			gjennomforingId = Random().nextLong(),
+			navn = "....-#$%___"
+		)
+
+		gjennomforingExecutor.execute(NyGjennomforingCommand(input))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+			.result { _, output -> output?.navn shouldBe null }
+	}
 }
