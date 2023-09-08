@@ -324,11 +324,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `tittel should be set to default value when gjennomforing navn is null`() {
-		val TILTAKSNAVN_OVERRIDE = "Tiltaksnavn override"
 		val gjennomforingId: Long = Random().nextLong()
 		val deltakerId: Long = Random().nextLong()
 		val gjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId, navn = null)
-		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(navn = TILTAKSNAVN_OVERRIDE))
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand())
 			.let { result ->
 				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 				result.tiltak
@@ -354,7 +353,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		}
 	}
 
-	@ParameterizedTest(name = "Tittel skal prefixes for  {0}")
+	@ParameterizedTest(name = "Tittel skal prefixes for {0}")
 	@ValueSource(strings = [AMO, GRUPPEAMO, ENKELAMO])
 	fun `tittel should be prefixed for some tiltakskoder`(tiltaksKode: String) {
 		val gjennomforingId: Long = Random().nextLong()
