@@ -4,6 +4,9 @@ on:
     branches:
       - main
 
+permissions:
+  packages: write
+
 env:
   IMAGE_TAG: ${{ github.sha }}
   IMAGE: ghcr.io/${{ github.repository }}/aktivitet-arena-acl
