@@ -9,4 +9,5 @@ class PersonsporingService (
 	val personSporingRepository: PersonSporingRepository
 	) {
 	fun upsert(personSporingDbo: PersonSporingDbo) = personSporingRepository.upsert(personSporingDbo)
+	fun get(personId: Long, gjennomforingId: Long) = personSporingRepository.get(personId, gjennomforingId)
 }
