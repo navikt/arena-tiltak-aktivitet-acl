@@ -1,9 +1,9 @@
 package no.nav.arena_tiltak_aktivitet_acl
 
+import io.getunleash.Unleash
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.arena_tiltak_aktivitet_acl.utils.token_provider.ScopedTokenProvider
-import no.nav.common.featuretoggle.UnleashClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -11,8 +11,8 @@ import org.springframework.context.annotation.Configuration
 open class LocalApplicationConfig {
 
 	@Bean
-	open fun unlead(): UnleashClient  {
-		val mock = mockk<UnleashClient>()
+	open fun unlead(): Unleash  {
+		val mock = mockk<Unleash>()
 		every { mock.isEnabled(any()) } returns false
 		return mock
 	}

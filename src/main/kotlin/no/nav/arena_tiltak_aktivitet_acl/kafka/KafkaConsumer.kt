@@ -1,8 +1,8 @@
 package no.nav.arena_tiltak_aktivitet_acl.kafka
 
+import io.getunleash.Unleash
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.arena_tiltak_aktivitet_acl.services.ArenaMessageProcessorService
-import no.nav.common.featuretoggle.UnleashClient
 import no.nav.common.kafka.consumer.KafkaConsumerClient
 import no.nav.common.kafka.consumer.util.KafkaConsumerClientBuilder
 import no.nav.common.kafka.consumer.util.deserializer.Deserializers.stringDeserializer
@@ -16,7 +16,7 @@ open class KafkaConsumer(
 	kafkaTopicProperties: KafkaTopicProperties,
 	kafkaProperties: KafkaProperties,
 	private val arenaMessageProcessorService: ArenaMessageProcessorService,
-	unleashClient: UnleashClient,
+	unleash: Unleash,
 	private val meterRegistry: MeterRegistry
 ) {
 
@@ -45,7 +45,7 @@ open class KafkaConsumer(
 
 		client = KafkaConsumerClientBuilder.builder()
 			.withProperties(kafkaProperties.consumer())
-			.withToggle { unleashClient.isEnabled("aktivitet-arena-acl.kafka.consumer.disabled") }
+			.withToggle { unleash.isEnabled("aktivitet-arena-acl.kafka.consumer.disabled") }
 			.withTopicConfigs(topicConfigs)
 			.build()
 	}
