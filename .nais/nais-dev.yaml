@@ -53,7 +53,7 @@ spec:
         - host: veilarboppfolging.dev-fss-pub.nais.io
         - host: dab-unleash-api.nav.cloud.nais.io
   envFrom:
-    - secret: veilarbaktivitet-unleash-api-token
+    - secret: aktivitet-arena-acl-unleash-api-token
   env:
     # q2: api://dev-fss.amt.amt-arena-ords-proxy/.default q1: api://dev-fss.amt.amt-arena-ords-proxy-q1/.default
     - name: AMT_ARENA_ORDS_PROXY_SCOPE
