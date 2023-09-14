@@ -2,6 +2,10 @@ name: Deploy feature branch
 on:
   workflow_dispatch:
 
+concurrency:
+  group: deploy_feture_branch
+  cancel-in-progress: true
+
 permissions:
   packages: write
   contents: write
