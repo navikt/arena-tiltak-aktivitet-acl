@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltake
 import java.util.*
 
 object ArenaDeltakerConverter {
-	const val JOBBKLUBB = "JOBBKLUBB"
+	const val JOBBKLUBB = "JOBBK"
 	const val AMO = "AMO"
 	const val GRUPPEAMO = "GRUPPEAMO"
 	const val ENKELAMO = "ENKELAMO"
