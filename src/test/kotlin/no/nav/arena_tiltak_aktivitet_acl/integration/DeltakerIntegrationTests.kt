@@ -22,6 +22,7 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.AMO
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.ENKELAMO
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.GRUPPEAMO
+import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.JOBBKLUBB
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
@@ -51,7 +52,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Autowired
 	lateinit var translationRepository: TranslationRepository
 
-	data class TestData (
+	data class TestData(
 		val gjennomforingId: Long = Random().nextLong(),
 		val deltakerId: Long = Random().nextLong(),
 		val gjennomforingInput: GjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId),
@@ -62,7 +63,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val tiltak = tiltakExecutor.execute(NyttTiltakCommand())
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }.tiltak
 		return TestData(tiltak = tiltak)
-			.also {testData ->
+			.also { testData ->
 				gjennomforingExecutor.execute(NyGjennomforingCommand(testData.gjennomforingInput))
 					.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			}
@@ -96,7 +97,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		val token = issueAzureAdM2MToken()
 		val client = IdMappingClient(port!!) { token }
-		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET) )
+		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET))
 			.let { (response, result) ->
 				response.isSuccessful shouldBe true
 				result shouldBe aktivitetId
@@ -114,7 +115,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Test
 	fun `skal kreve token`() {
 		val client = IdMappingClient(port!!) { "" }
-		val (response, _) = client.hentMapping(TranslationQuery(11221, AktivitetKategori.TILTAKSAKTIVITET) )
+		val (response, _) = client.hentMapping(TranslationQuery(11221, AktivitetKategori.TILTAKSAKTIVITET))
 		response.code shouldBe HttpStatus.UNAUTHORIZED.value()
 	}
 
@@ -234,8 +235,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val arenaData = plandlagtCommandResult.arenaDataDbo
 
 		// Fail first message after 10 retries
-		(1..10).forEach{ processMessages() }
-		val resultDbo = arenaDataRepository.get(arenaData.arenaTableName, arenaData.operation, arenaData.operationPosition)
+		(1..10).forEach { processMessages() }
+		val resultDbo =
+			arenaDataRepository.get(arenaData.arenaTableName, arenaData.operation, arenaData.operationPosition)
 		resultDbo.ingestStatus shouldBe IngestStatus.FAILED
 
 		val gjennomforingCommand = NyDeltakerCommand(deltakerInput.copy(deltakerStatusKode = "GJENN"))
@@ -266,9 +268,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		gjennomforingAktivitet.aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES
 
 		processMessages()
-		val fullfortAktivitet= aktivitetRepository.getAktivitet(aktivitetId)!!.data.toAktivitetskort()
+		val fullfortAktivitet = aktivitetRepository.getAktivitet(aktivitetId)!!.data.toAktivitetskort()
 		fullfortAktivitet.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 	}
+
 	@Test
 	fun `ingest existing deltaker`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
@@ -296,7 +299,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
-			r.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput ) }
+			r.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 		}
 
 		updatedResult.expectHandled { r ->
@@ -358,7 +361,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	fun `tittel should be prefixed for some tiltakskoder`(tiltaksKode: String) {
 		val gjennomforingId: Long = Random().nextLong()
 		val deltakerId: Long = Random().nextLong()
-		val gjennomforingInput = GjennomforingInput(gjennomforingId = gjennomforingId, tiltakKode = tiltaksKode, navn = "Klubbmøte")
+		val gjennomforingInput =
+			GjennomforingInput(gjennomforingId = gjennomforingId, tiltakKode = tiltaksKode, navn = "Klubbmøte")
 		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = tiltaksKode))
 			.let { result ->
 				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
@@ -381,6 +385,37 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		result.expectHandled { result ->
 			result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1
 			result.output.aktivitetskort.tittel shouldMatch "^(Gruppe AMO:|AMO-kurs:|Enkeltplass AMO:) ${gjennomforingInput.navn}\$"
+		}
+	}
+
+	@Test
+	fun `beskrivelse should be gjennomforingsnavn for tiltakstype JOBBKLUBB`() {
+		val gjennomforingId: Long = Random().nextLong()
+		val deltakerId: Long = Random().nextLong()
+		val gjennomforingInput =
+			GjennomforingInput(gjennomforingId = gjennomforingId, tiltakKode = JOBBKLUBB, navn = "Klubbmøte")
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = JOBBKLUBB))
+			.let { result ->
+				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+				result.tiltak
+			}
+		gjennomforingExecutor.execute(NyGjennomforingCommand(gjennomforingInput))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime()
+		)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.expectHandled { result ->
+			result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1
+			result.output.aktivitetskort.beskrivelse shouldBe gjennomforingInput.navn
 		}
 	}
 

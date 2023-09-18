@@ -11,11 +11,6 @@ data class Ident(
 	val ident: String
 )
 
-data class Beskrivelse(
-	val label: String? = null,
-	val verdi: String
-)
-
 data class Attributt(
 	val label: String,
 	val verdi: String
@@ -32,7 +27,7 @@ data class Aktivitetskort(
 	val etiketter: List<Etikett>,
 	val startDato: LocalDate?,
 	val sluttDato: LocalDate?,
-	val beskrivelse: Beskrivelse?, // alle, men annen oppførsel på tiltak(jobbklubb)
+	val beskrivelse: String?, // alle, men annen oppførsel på tiltak(jobbklubb)
 	val endretAv: Ident,
 	val endretTidspunkt: LocalDateTime,
 	val avtaltMedNav: Boolean,
