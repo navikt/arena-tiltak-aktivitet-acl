@@ -76,7 +76,7 @@ object ArenaDeltakerConverter {
 			etiketter = listOfNotNull(
 				toDeltakelseStatus(deltaker.deltakerStatusKode)
 				?.let { deltakelseStatus -> Etikett(deltakelseStatus.toString()) }),
-			beskrivelse = if (tiltak.kode == JOBBKLUBB) Beskrivelse(verdi = gjennomforingNavn) else null,
+			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
 			endretTidspunkt = if (erNyAktivitet) deltaker.regDato else deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
 			endretAv = if (erNyAktivitet) Ident(ident = deltaker.regUser ?: throw IllegalArgumentException("Missing regUser"))
 			           else Ident(ident = deltaker.modUser ?: throw IllegalArgumentException("Missing modUser")),
