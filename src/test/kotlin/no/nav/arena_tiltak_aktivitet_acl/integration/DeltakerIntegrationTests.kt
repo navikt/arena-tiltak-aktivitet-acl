@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.date.shouldBeWithin
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -528,11 +529,12 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		// Skal ikke gjøre oppslag på periode men bruke eksiterende periode satt på aktiviteten
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = emptyList()
 		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput
-			.copy(deltakerStatusKode = "FULLF"))
+			.copy(deltakerStatusKode = "AVSLAG"))
 		deltakerExecutor.execute(oppdaterComand)
 			.expectHandled {
 				it.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
 				it.headers.oppfolgingsperiode shouldBe gjeldendePeriode.uuid
+				it.aktivitetskort { it.etiketter shouldContain Etikett("Avslag", Sentiment.NEGATIVE, "AVSLAG") }
 			}
 	}
 

@@ -15,7 +15,18 @@ data class Attributt(
 	val label: String,
 	val verdi: String
 )
+
+enum class Sentiment {
+	POSITIVE, // Fått tilbud, Klar for oppstart, Påbegynt, Påmeldt? (gode nyheter for brukeren)
+	NEGATIVE, // Ikke fått jobben, Avbrutt, Annulert, Fått avslag (dårlige nyheter for brukeren)
+	ACTION, // Venter svar fra deg (Venter handling fra brukeren)
+	NEUTRAL, // Deltar, Vurderes?
+	WAITING // Mangler godkjenning, Venteliste, Vurderes? (Venter handling fra andre enn brukeren, venter på dato for oppstart)
+}
+
 data class Etikett(
+	val tekst: String,
+	val sentiment: Sentiment,
 	val kode: String,
 )
 
