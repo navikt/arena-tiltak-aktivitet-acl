@@ -74,8 +74,8 @@ object ArenaDeltakerConverter {
 			sluttDato = deltaker.datoTil,
 			avtaltMedNav = true, // Arenatiltak er alltid Avtalt med NAV
 			etiketter = listOfNotNull(
-				toDeltakelseStatus(deltaker.deltakerStatusKode)
-				?.let { deltakelseStatus -> Etikett(deltakelseStatus.toString()) }),
+				toDeltakelseStatus(deltaker.deltakerStatusKode)?.toEtikett()
+			),
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
 			endretTidspunkt = if (erNyAktivitet) deltaker.regDato else deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
 			endretAv = if (erNyAktivitet) Ident(ident = deltaker.regUser ?: throw IllegalArgumentException("Missing regUser"))
