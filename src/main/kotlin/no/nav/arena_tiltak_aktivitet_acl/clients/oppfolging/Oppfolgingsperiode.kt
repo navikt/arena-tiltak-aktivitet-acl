@@ -9,9 +9,9 @@ data class Oppfolgingsperiode (
 	val startDato: ZonedDateTime,
 	val sluttDato: ZonedDateTime?
 ) {
-	fun contains(opprettet: ChronoZonedDateTime<*>): Boolean {
-		val startetIPeriode = opprettet.isAfter(startDato) || opprettet.isEqual(startDato)
-		val opprettetFørSluttDato = sluttDato == null || sluttDato.isAfter(opprettet)
-		return startetIPeriode && opprettetFørSluttDato
+	fun tidspunktInnenforPeriode(tidspunkt: ChronoZonedDateTime<*>): Boolean {
+		val startetIPeriode = tidspunkt.isAfter(startDato) || tidspunkt.isEqual(startDato)
+		val foerSluttDato = sluttDato == null || sluttDato.isAfter(tidspunkt)
+		return startetIPeriode && foerSluttDato
 	}
 }

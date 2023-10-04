@@ -15,7 +15,8 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.*
-import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.merEnnEnUkeMellom
+import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.defaultSlakk
+import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.tidspunktTidligereEnnRettFoerPeriodeStartDato
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -132,9 +133,9 @@ open class DeltakerProcessor(
 		val id: UUID,
 		val oppfolgingsSluttDato: ZonedDateTime?
 	)
-	private fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, opprettetTidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
+	private fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, tidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
 		val personIdent = aktivitet.personIdent
-		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, opprettetTidspunkt)
+		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, tidspunkt)
 			?.let { AktivitetskortOppfolgingsperiode(it.uuid , it.sluttDato) }
 		if (oppfolgingsperiode == null) {
 			secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
@@ -143,9 +144,9 @@ open class DeltakerProcessor(
 			when {
 				aktivitetStatus.erAvsluttet() || erFerdig ->
 					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				merEnnEnUkeMellom(opprettetTidspunkt, LocalDateTime.now()) ->
+				tidspunktTidligereEnnRettFoerPeriodeStartDato(tidspunkt, LocalDateTime.now(), defaultSlakk) ->
 					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${opprettetTidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
+				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${tidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
 			}
 		} else {
 			return oppfolgingsperiode
