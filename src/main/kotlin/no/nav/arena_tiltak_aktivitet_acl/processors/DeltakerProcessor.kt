@@ -3,27 +3,29 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import ArenaOrdsProxyClient
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakerKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltaker
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
-import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.defaultSlakk
-import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.tidspunktTidligereEnnRettFoerPeriodeStartDato
+import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.tidspunktTidligereEnnRettFoerStartDato
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
-import java.time.ZonedDateTime
 import java.util.*
 
 @Component
@@ -56,13 +58,6 @@ open class DeltakerProcessor(
 		if (deltaker.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
 			throw IgnoredException("Deltakeren registrert=${deltaker.regDato} opprettet før aktivitetsplan skal ikke håndteres")
 		}
-
-		// Translation opprettes ikke før denne er kjørt.
-		val aktivitetId = arenaIdTranslationService.hentEllerOpprettAktivitetId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
-		val personIdent = personsporingService.get(deltaker.personId, arenaGjennomforingId)?.fodselsnummer ?: ordsClient.hentFnr(deltaker.personId)
-			?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
-		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
-
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
 				message.arenaTableName,
@@ -85,30 +80,58 @@ open class DeltakerProcessor(
 			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
 		}
 
-		val aktivitetskort = aktivitetService.get(aktivitetId)
-		val erNyAktivitet = aktivitetskort != null
+		// Translation opprettes ikke her lenger
+		val eksisterendeAktivitetsId = arenaIdTranslationService.hentAktivitetIdForArenaId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+		val erNyDeltakelse = (eksisterendeAktivitetsId == null)
+
+		val personIdent = personsporingService.get(deltaker.personId, arenaGjennomforingId)?.fodselsnummer ?: ordsClient.hentFnr(deltaker.personId)
+		?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
+		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
+
+		val oppfolgingsperiodePaaEndringsTidspunkt = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, deltaker.modDato ?: deltaker.regDato)
+		/*
+		 Dette kan bety at personen ikke lenger er under oppfølging, eller at hen ikke er under oppfølging _enda_
+		 Vi hopper ut her, siden handleOppfolgingsperiodeNull kaster exception alltid.
+		 Dette er viktig for å ikke opprette ny aktivitetsid før vi faktisk lagrer et aktivitetskort.
+		*/
+		if (oppfolgingsperiodePaaEndringsTidspunkt == null) handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakerId)
+
+		val (skalOppretteNyAktivitet, faktiskAktivitetsId) =
+			if (!erNyDeltakelse) {
+				val gammeltAktivitetskort = aktivitetService.get(eksisterendeAktivitetsId!!)!!
+				if (oppfolgingsperiodePaaEndringsTidspunkt!!.uuid != gammeltAktivitetskort.oppfolgingsperiodeUUID) {
+					// Har har det kommet en endring på kortet under en annen oppfølgingsperiode enn den opprinnelige oppfølgingsperioden. Vi oppretter et helt nytt aktivitetskort.
+					secureLog.info("Endring på deltakelse ${deltaker.tiltakdeltakerId} fra oppfølgingperiode ${gammeltAktivitetskort.oppfolgingsperiodeUUID} til oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
+						"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
+					val nyAktivitetsId = UUID.randomUUID()
+					arenaIdTranslationService.oppdaterAktivitetId( eksisterendeAktivitetsId, nyAktivitetsId)
+					true to nyAktivitetsId
+				} else {
+					// oppfølgingsperiode har ikke endret seg (happy case)
+					false to eksisterendeAktivitetsId
+				}
+			} else { // Ny aktivitet
+				true to arenaIdTranslationService.opprettAktivitetsId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+			}
+
 
 		val fallbackGjennomforingNavn = "Ukjent navn"
 
 		val aktivitet = ArenaDeltakerConverter
 			.convertToTiltaksaktivitet(
 				deltaker = deltaker,
-				aktivitetId = aktivitetId,
+				aktivitetId = faktiskAktivitetsId,
 				personIdent = personIdent,
 				arrangorNavn = gjennomforing.arrangorNavn,
 				gjennomforingNavn = gjennomforing.navn ?: fallbackGjennomforingNavn,
 				tiltak = tiltak,
-				erNyAktivitet = erNyAktivitet,
+				erNyAktivitet = skalOppretteNyAktivitet,
 			)
-
-		val oppfolgingsperiode = aktivitetskort?.oppfolgingsPeriode()
-			?: getOppfolgingsPeriodeOrThrow(aktivitet, deltaker.regDato, deltaker.tiltakdeltakerId)
-
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString(),
 			tiltakKode = tiltak.kode,
-			oppfolgingsperiode = oppfolgingsperiode.id,
-			oppfolgingsSluttDato = oppfolgingsperiode.oppfolgingsSluttDato
+			oppfolgingsperiode = oppfolgingsperiodePaaEndringsTidspunkt!!.uuid,
+			oppfolgingsSluttDato = oppfolgingsperiodePaaEndringsTidspunkt.sluttDato
 		)
 		val outgoingMessage = aktivitet.toKafkaMessage()
 		kafkaProducerService.sendTilAktivitetskortTopic(
@@ -116,8 +139,8 @@ open class DeltakerProcessor(
 			outgoingMessage,
 			aktivitetskortHeaders
 		)
-		secureLog.info("Melding for deltaker id=$aktivitetId arenaId=${deltaker.tiltakdeltakerId} personId=${deltaker.personId} fnr=$personIdent er sendt")
-		log.info("Melding id=${outgoingMessage.messageId} arenaId=${deltaker.tiltakdeltakerId} type=${outgoingMessage.actionType} er sendt")
+		secureLog.info("Melding for aktivitetskort id=$faktiskAktivitetsId arenaId=${deltaker.tiltakdeltakerId} personId=${deltaker.personId} fnr=$personIdent er sendt")
+		log.info("Melding id=${outgoingMessage.messageId} aktivitetskort id=$faktiskAktivitetsId  arenaId=${deltaker.tiltakdeltakerId} type=${outgoingMessage.actionType} er sendt")
 		aktivitetService.upsert(aktivitet, aktivitetskortHeaders)
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltaker.tiltakdeltakerId))
 	}
@@ -129,33 +152,20 @@ open class DeltakerProcessor(
 			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
 	}
 
-	data class AktivitetskortOppfolgingsperiode(
-		val id: UUID,
-		val oppfolgingsSluttDato: ZonedDateTime?
-	)
-	private fun getOppfolgingsPeriodeOrThrow(aktivitet: Aktivitetskort, tidspunkt: LocalDateTime, tiltakDeltakerId: Long): AktivitetskortOppfolgingsperiode {
-		val personIdent = aktivitet.personIdent
-		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, tidspunkt)
-			?.let { AktivitetskortOppfolgingsperiode(it.uuid , it.sluttDato) }
-		if (oppfolgingsperiode == null) {
-			secureLog.info("Fant ikke oppfølgingsperiode for personIdent=${personIdent}")
-			val aktivitetStatus = aktivitet.aktivitetStatus
-			val erFerdig = aktivitet.sluttDato?.isBefore(LocalDate.now()) ?: false
-			when {
-				aktivitetStatus.erAvsluttet() || erFerdig ->
-					throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				tidspunktTidligereEnnRettFoerPeriodeStartDato(tidspunkt, LocalDateTime.now(), defaultSlakk) ->
-					throw IgnoredException("Opprettet for over 1 uke siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
-				else -> throw OppfolgingsperiodeNotFoundException("Pågående deltakelse opprettetTidspunkt=${tidspunkt}, oppfølgingsperiode ikke startet/oppfolgingsperiode eldre enn en uke, id=${tiltakDeltakerId}")
-			}
-		} else {
-			return oppfolgingsperiode
+	private fun handleOppfolgingsperiodeNull(deltaker: TiltakDeltaker, personIdent: String, tidspunkt: LocalDateTime, tiltakDeltakerId: Long) {
+		secureLog.info("Fant ikke oppfølgingsperiode for personIdent=$personIdent")
+		val aktivitetStatus = ArenaDeltakerConverter.toAktivitetStatus(deltaker.deltakerStatusKode)
+		val erFerdig = deltaker.datoTil?.isBefore(LocalDate.now()) ?: false
+		when {
+			aktivitetStatus.erAvsluttet() || erFerdig ->
+				throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
+			tidspunktTidligereEnnRettFoerStartDato(tidspunkt, LocalDateTime.now(), defaultSlakk) ->
+				throw IgnoredException("Opprettet for mer enn $defaultSlakk siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
+			else -> throw OppfolgingsperiodeNotFoundException("Deltakelse endret tidspunkt=${tidspunkt}, Finner ingen passende oppfølgingsperiode, id=${tiltakDeltakerId}")
 		}
 	}
 }
 
-fun AktivitetDbo.oppfolgingsPeriode() = this.oppfolgingsperiodeUUID?.let {
-	DeltakerProcessor.AktivitetskortOppfolgingsperiode(it, this.oppfolgingsSluttTidspunkt)
-}
+
 
 

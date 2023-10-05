@@ -35,8 +35,8 @@ open class GjennomforingProcessor(
 
 		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(gjennomforing.arenaId))
 		gjennomforingRepository.upsert(gjennomforingDbo)
-		log.info("Melding for gjennomføring " +
-			"arenaId=${gjennomforing.arenaId} er håndtert")
+		log.info("Upsert av gjennomføring " +
+			"arenaId=${gjennomforing.arenaId} navn=${gjennomforing.lokaltNavn} tiltakkode=${gjennomforing.tiltakKode}")
 	}
 
 

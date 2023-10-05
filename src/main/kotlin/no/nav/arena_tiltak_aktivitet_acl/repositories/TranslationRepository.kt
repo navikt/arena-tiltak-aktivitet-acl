@@ -8,6 +8,7 @@ import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import java.util.*
 
 @Component
 open class TranslationRepository(
@@ -33,6 +34,19 @@ open class TranslationRepository(
 		} catch (e: DuplicateKeyException) {
 			throw IllegalStateException("Translation entry on table with id ${entry.arenaId} already exist.")
 		}
+	}
+
+	/*
+	aktivitet_id er primærnøkkel, men har ingen fremmednøkler knyttet til seg, så update går fint.
+	 */
+	fun updateAktivitetId(oldAktivitetId: UUID, newAktivitetId: UUID) {
+		val sql = """
+			UPDATE translation SET aktivitet_id = :newAktivitetId where aktivitet_id = :oldAktivitetId
+		""".trimIndent()
+		val parameters = sqlParameters(
+			"oldAktivitetId" to oldAktivitetId,
+			"newAktivitetId" to newAktivitetId)
+		template.update(sql, parameters)
 	}
 
 	fun get(arenaId: Long, aktivitetKategori: AktivitetKategori): TranslationDbo? {

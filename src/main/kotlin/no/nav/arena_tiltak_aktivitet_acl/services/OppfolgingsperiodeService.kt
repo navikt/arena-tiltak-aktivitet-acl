@@ -18,11 +18,11 @@ open class OppfolgingsperiodeService(
 ) {
 
 	companion object {
-		fun tidspunktRettFoerPeriodeStartDatoEllerSenere(tidspunkt: LocalDateTime, periodeStartDato: LocalDateTime, slakk: TemporalAmount): Boolean {
-			return tidspunkt.plus(slakk).isAfter(periodeStartDato)
+		fun tidspunktRettFoerStartDatoEllerSenere(tidspunkt: LocalDateTime, startDato: LocalDateTime, slakk: TemporalAmount): Boolean {
+			return tidspunkt.plus(slakk).isAfter(startDato)
 		}
-		fun tidspunktTidligereEnnRettFoerPeriodeStartDato(tidspunkt: LocalDateTime, periodeStartDato: LocalDateTime, slakk: TemporalAmount): Boolean {
-			return !tidspunktRettFoerPeriodeStartDatoEllerSenere(tidspunkt, periodeStartDato, slakk)
+		fun tidspunktTidligereEnnRettFoerStartDato(tidspunkt: LocalDateTime, startDato: LocalDateTime, slakk: TemporalAmount): Boolean {
+			return !tidspunktRettFoerStartDatoEllerSenere(tidspunkt, startDato, slakk)
 		}
 		val defaultSlakk = Duration.of(7, ChronoUnit.DAYS)
 	}
@@ -47,7 +47,7 @@ open class OppfolgingsperiodeService(
 				.filter { it.sluttDato == null || it.sluttDato.isAfter(tidspunktCZDT) }
 				.minByOrNull { abs(ChronoUnit.MILLIS.between(tidspunktCZDT, it.startDato)) }
 				.let { periodeMatch ->
-					if (periodeMatch == null || !tidspunktRettFoerPeriodeStartDatoEllerSenere(tidspunkt, periodeMatch.startDato.toLocalDateTime(), defaultSlakk)) {
+					if (periodeMatch == null || !tidspunktRettFoerStartDatoEllerSenere(tidspunkt, periodeMatch.startDato.toLocalDateTime(), defaultSlakk)) {
 						secureLog.info(
 							"Arenatiltak finn oppfølgingsperiode - tidspunkt har ingen god match på oppfølgingsperioder) - fnr={}, tidspunkt={}, oppfolgingsperioder={}",
 							fnr, tidspunkt, oppfolgingsperioder
@@ -55,8 +55,8 @@ open class OppfolgingsperiodeService(
 						null
 					} else {
 						secureLog.info(
-							"Arenatiltak finn oppfølgingsperiode - tidspunkt innen 1 uke oppfølging startdato) - fnr={}, tidspunkt={}, oppfolgingsperioder={}",
-							fnr, tidspunkt, oppfolgingsperioder
+							"Arenatiltak finn oppfølgingsperiode - tidspunkt innen {} oppfølging startdato) - fnr={}, tidspunkt={}, oppfolgingsperioder={}",
+							defaultSlakk, fnr, tidspunkt, oppfolgingsperioder
 						)
 						periodeMatch
 					}

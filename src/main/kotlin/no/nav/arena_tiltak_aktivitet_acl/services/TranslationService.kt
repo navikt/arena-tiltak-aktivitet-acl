@@ -11,20 +11,11 @@ import java.util.*
 open class TranslationService(
 	private val translationRepository: TranslationRepository
 ) {
-
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	fun hentEllerOpprettAktivitetId(deltakerArenaId: Long, aktivitetType: AktivitetKategori): UUID {
-		val aktivitetId = translationRepository.get(deltakerArenaId, aktivitetType)?.aktivitetId
-		if (aktivitetId != null) return aktivitetId
-		val nyAktivitetsId = UUID.randomUUID()
-		log.info("Opprettet ny id for deltaker, id=$nyAktivitetsId arenaId=$deltakerArenaId")
-		insertTranslation(
-			deltakerArenaId,
-			nyAktivitetsId,
-			aktivitetType
-		)
-		return nyAktivitetsId
+	fun oppdaterAktivitetId(oldAktivitetId: UUID, newAktivitetId: UUID) {
+		log.info("Oppdaterer gjeldende aktivitetsId fra $oldAktivitetId til $newAktivitetId")
+		translationRepository.updateAktivitetId(oldAktivitetId, newAktivitetId)
 	}
 
 	fun hentAktivitetIdForArenaId(arenaId: Long, aktivitetType: AktivitetKategori): UUID? {
@@ -39,6 +30,17 @@ open class TranslationService(
 		)
 
 		translationRepository.insert(translation)
+	}
+
+	fun opprettAktivitetsId(deltakerArenaId: Long, aktivitetType: AktivitetKategori): UUID {
+		val nyAktivitetsId = UUID.randomUUID()
+		log.info("Opprettet ny aktivitetsid for deltakelse, aktivitetsId=$nyAktivitetsId deltakerId=$deltakerArenaId")
+		insertTranslation(
+			deltakerArenaId,
+			nyAktivitetsId,
+			aktivitetType
+		)
+		return nyAktivitetsId
 	}
 
 }
