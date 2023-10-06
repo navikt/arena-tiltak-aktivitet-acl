@@ -79,13 +79,12 @@ class DeltakerProcessorTest : FunSpec({
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
 			arenaIdTranslationService = TranslationService(idTranslationRepository),
-			ordsClient = ordsClient,
 			kafkaProducerService = kafkaProducerService,
 			aktivitetService = AktivitetService(AktivitetRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
-			personsporingService = PersonsporingService(personSporingRepository)
+			personsporingService = PersonsporingService(personSporingRepository, ordsClient)
 		)
 	}
 

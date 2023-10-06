@@ -1,6 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
-import ArenaOrdsProxyClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
@@ -17,7 +16,6 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.PersonSporingDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.defaultSlakk
 import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.tidspunktTidligereEnnRettFoerStartDato
@@ -33,7 +31,6 @@ import java.util.*
 open class DeltakerProcessor(
 	private val arenaDataRepository: ArenaDataRepository,
 	private val arenaIdTranslationService: TranslationService,
-	private val ordsClient: ArenaOrdsProxyClient,
 	private val kafkaProducerService: KafkaProducerService,
 	private val gjennomforingRepository: GjennomforingRepository,
 	private val aktivitetService: AktivitetService,
@@ -85,9 +82,7 @@ open class DeltakerProcessor(
 		val eksisterendeAktivitetsId = arenaIdTranslationService.hentAktivitetIdForArenaId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
 		val erNyDeltakelse = (eksisterendeAktivitetsId == null)
 
-		val personIdent = personsporingService.get(deltaker.personId, arenaGjennomforingId)?.fodselsnummer ?: ordsClient.hentFnr(deltaker.personId)
-		?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
-		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
+		val personIdent = personsporingService.get(deltaker.personId, arenaGjennomforingId).fodselsnummer
 
 		/*
 		 Hvis oppfølgingsperiode ikke finnes,
