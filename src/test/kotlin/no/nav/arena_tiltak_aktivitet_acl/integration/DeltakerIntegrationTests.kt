@@ -97,13 +97,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			}
 		}
 
-		val token = issueAzureAdM2MToken()
-		val client = IdMappingClient(port!!) { token }
-		client.hentMapping(TranslationQuery(deltakerInput.tiltakDeltakerId, AktivitetKategori.TILTAKSAKTIVITET))
-			.let { (response, result) ->
-				response.isSuccessful shouldBe true
-				result shouldBe aktivitetId
-			}
+		val translation = hentTranslationMedRestClient(deltakerId)
+		translation shouldBe aktivitetId
 	}
 
 	@Test
@@ -367,7 +362,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerId: Long = Random().nextLong()
 		val gjennomforingInput =
 			GjennomforingInput(gjennomforingId = gjennomforingId, tiltakKode = tiltaksKode, navn = "Klubbmøte")
-		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = tiltaksKode))
+		tiltakExecutor.execute(NyttTiltakCommand(kode = tiltaksKode))
 			.let { result ->
 				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 				result.tiltak
@@ -400,7 +395,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerId: Long = Random().nextLong()
 		val gjennomforingInput =
 			GjennomforingInput(gjennomforingId = gjennomforingId, tiltakKode = JOBBKLUBB, navn = "Klubbmøte")
-		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = JOBBKLUBB))
+		tiltakExecutor.execute(NyttTiltakCommand(kode = JOBBKLUBB))
 			.let { result ->
 				result.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 				result.tiltak
@@ -540,6 +535,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				handledResult.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
 				handledResult.aktivitetskort { aktivitetsId1 = it.id }
 			}
+		hentTranslationMedRestClient(deltakerId) shouldBe aktivitetsId1
 		// Skal opprette ny aktivitet dersom oppdatering kommer på ny periode
 		val nyperiode = Oppfolgingsperiode(
 			uuid = UUID.randomUUID(),
@@ -560,6 +556,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				}
 			}
 		aktivitetsId1 shouldNotBe aktivitetsId2
+		hentTranslationMedRestClient(deltakerId) shouldBe aktivitetsId2
 	}
 
 	@Test
@@ -638,6 +635,16 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			}
 	}
 
+	private fun hentTranslationMedRestClient(deltakerId: Long): UUID? {
+		val token = issueAzureAdM2MToken()
+		val client = IdMappingClient(port!!) { token }
+		return client.hentMapping(TranslationQuery(deltakerId, AktivitetKategori.TILTAKSAKTIVITET))
+			.let { (response, result) ->
+				response.isSuccessful shouldBe true
+				result
+			}
+	}
+
 	private fun Aktivitetskort.isSame(
 		deltakerInput: DeltakerInput,
 		tiltak: TiltakDbo,
@@ -654,6 +661,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		detaljer[1].verdi shouldBe "${deltakerInput.prosentDeltid}%"
 		detaljer[2].verdi shouldBe deltakerInput.antallDagerPerUke.toString()
 		endretAv shouldBe deltakerInput.endretAv
+		tiltak.kode shouldBe gjennomforingInput.tiltakKode
 	}
 }
 
