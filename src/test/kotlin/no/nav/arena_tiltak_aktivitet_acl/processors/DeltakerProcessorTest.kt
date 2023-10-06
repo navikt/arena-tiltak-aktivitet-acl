@@ -220,7 +220,8 @@ class DeltakerProcessorTest : FunSpec({
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
-			registrertDato = opprettetTidspunkt)
+			registrertDato = opprettetTidspunkt,
+			endretTidspunkt = opprettetTidspunkt)
 		shouldThrowExactly<IgnoredException> {
 			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
 		}
@@ -246,6 +247,7 @@ class DeltakerProcessorTest : FunSpec({
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
 			registrertDato = opprettetTidspunkt,
+			endretTidspunkt = opprettetTidspunkt,
 			deltakerStatusKode = "FULLF"
 		)
 
