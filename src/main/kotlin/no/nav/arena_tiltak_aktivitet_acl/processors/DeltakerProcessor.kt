@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import ArenaOrdsProxyClient
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
@@ -88,13 +89,13 @@ open class DeltakerProcessor(
 		?: throw IllegalStateException("Expected person with personId=${deltaker.personId} to exist")
 		personsporingService.upsert(PersonSporingDbo(personIdent = deltaker.personId, fodselsnummer = personIdent, tiltakgjennomforingId = arenaGjennomforingId))
 
-		val oppfolgingsperiodePaaEndringsTidspunkt = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, deltaker.modDato ?: deltaker.regDato)
 		/*
-		 Dette kan bety at personen ikke lenger er under oppfølging, eller at hen ikke er under oppfølging _enda_
-		 Vi hopper ut her, siden handleOppfolgingsperiodeNull kaster exception alltid.
+		 Hvis oppfølgingsperiode ikke finnes,
+		 hopper vi ut her, enten med retry eller ignored, siden handleOppfolgingsperiodeNull kaster exception alltid.
 		 Dette er viktig for å ikke opprette ny aktivitetsid før vi faktisk lagrer et aktivitetskort.
 		*/
-		if (oppfolgingsperiodePaaEndringsTidspunkt == null) handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakerId)
+		val oppfolgingsperiodePaaEndringsTidspunkt = getOppfolgingsPeriodeOrThrow(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakerId)
+
 
 		val (skalOppretteNyAktivitet, faktiskAktivitetsId) =
 			if (!erNyDeltakelse) {
@@ -163,6 +164,14 @@ open class DeltakerProcessor(
 				throw IgnoredException("Opprettet for mer enn $defaultSlakk siden og ingen oppfølgingsperiode, id=${tiltakDeltakerId}")
 			else -> throw OppfolgingsperiodeNotFoundException("Deltakelse endret tidspunkt=${tidspunkt}, Finner ingen passende oppfølgingsperiode, id=${tiltakDeltakerId}")
 		}
+	}
+
+	private fun getOppfolgingsPeriodeOrThrow(deltaker: TiltakDeltaker, personIdent: String, tidspunkt: LocalDateTime, tiltakDeltakerId: Long): Oppfolgingsperiode? {
+		val oppfolgingsperiode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, tidspunkt)
+		return if (oppfolgingsperiode == null) {
+			handleOppfolgingsperiodeNull(deltaker, personIdent, tidspunkt, tiltakDeltakerId) // throws always
+			null
+		} else oppfolgingsperiode
 	}
 }
 
