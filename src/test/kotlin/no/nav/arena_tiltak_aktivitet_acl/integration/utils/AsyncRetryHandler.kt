@@ -17,7 +17,7 @@ object Retry {
 	private val log = LoggerFactory.getLogger(javaClass)
 	fun <T> nullableAsyncRetryHandler(
 		retryMessage: String,
-		maxAttempts: Int = 20,
+		maxAttempts: Int = 12,
 		sleepTime: Long = 250,
 		executor: () -> T?,
 	): T? {

@@ -79,13 +79,12 @@ class DeltakerProcessorTest : FunSpec({
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
 			arenaIdTranslationService = TranslationService(idTranslationRepository),
-			ordsClient = ordsClient,
 			kafkaProducerService = kafkaProducerService,
 			aktivitetService = AktivitetService(AktivitetRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
-			personsporingService = PersonsporingService(personSporingRepository)
+			personsporingService = PersonsporingService(personSporingRepository, ordsClient)
 		)
 	}
 
@@ -220,7 +219,8 @@ class DeltakerProcessorTest : FunSpec({
 		val newDeltaker = createArenaDeltakerKafkaMessage(
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
-			registrertDato = opprettetTidspunkt)
+			registrertDato = opprettetTidspunkt,
+			endretTidspunkt = opprettetTidspunkt)
 		shouldThrowExactly<IgnoredException> {
 			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
 		}
@@ -246,6 +246,7 @@ class DeltakerProcessorTest : FunSpec({
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L,
 			registrertDato = opprettetTidspunkt,
+			endretTidspunkt = opprettetTidspunkt,
 			deltakerStatusKode = "FULLF"
 		)
 
