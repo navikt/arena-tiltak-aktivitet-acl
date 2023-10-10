@@ -92,7 +92,7 @@ open class DeltakerProcessor(
 		val oppfolgingsperiodePaaEndringsTidspunkt = getOppfolgingsPeriodeOrThrow(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakerId)
 
 
-		val (skalOppretteNyAktivitet, faktiskAktivitetsId) =
+		val (nyAktivitet, faktiskAktivitetsId) =
 			if (!erNyDeltakelse) {
 				val gammeltAktivitetskort = aktivitetService.get(eksisterendeAktivitetsId!!)!!
 				if (oppfolgingsperiodePaaEndringsTidspunkt!!.uuid != gammeltAktivitetskort.oppfolgingsperiodeUUID) {
@@ -101,7 +101,8 @@ open class DeltakerProcessor(
 						"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
 					val nyAktivitetsId = UUID.randomUUID()
 					arenaIdTranslationService.oppdaterAktivitetId( eksisterendeAktivitetsId, nyAktivitetsId)
-					true to nyAktivitetsId
+					// Vi setter nyAktivitet til false, selv om vi oppretter ny aktivitet, slik at mod-dato blir brukt som endretTidspunkt på aktivitetskortet
+					false to nyAktivitetsId
 				} else {
 					// oppfølgingsperiode har ikke endret seg (happy case)
 					false to eksisterendeAktivitetsId
@@ -121,7 +122,7 @@ open class DeltakerProcessor(
 				arrangorNavn = gjennomforing.arrangorNavn,
 				gjennomforingNavn = gjennomforing.navn ?: fallbackGjennomforingNavn,
 				tiltak = tiltak,
-				erNyAktivitet = skalOppretteNyAktivitet,
+				erNyAktivitet = nyAktivitet,
 			)
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString(),
