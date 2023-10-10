@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
@@ -15,6 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundEx
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakerAktivitetMappingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.defaultSlakk
@@ -36,7 +38,8 @@ open class DeltakerProcessor(
 	private val aktivitetService: AktivitetService,
 	private val tiltakService: TiltakService,
 	private val personsporingService: PersonsporingService,
-	private val oppfolgingsperiodeService: OppfolgingsperiodeService
+	private val oppfolgingsperiodeService: OppfolgingsperiodeService,
+	private val deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
 
 	companion object {
@@ -77,12 +80,11 @@ open class DeltakerProcessor(
 		if (skalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)) {
 			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
 		}
-
-		// Translation opprettes ikke her lenger
-		val eksisterendeAktivitetsId = arenaIdTranslationService.hentAktivitetIdForArenaId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
-		val erNyDeltakelse = (eksisterendeAktivitetsId == null)
-
+		val deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltaker.tiltakdeltakerId)
+		val oppfolgingsperioder = deltakerAktivitetMapping.map { mapping -> mapping.oppfolgingsperiodeUuid }
 		val personIdent = personsporingService.get(deltaker.personId, arenaGjennomforingId).fodselsnummer
+
+		val erNyDeltakelse = (oppfolgingsperioder.isEmpty())
 
 		/*
 		 Hvis oppfølgingsperiode ikke finnes,
@@ -93,22 +95,27 @@ open class DeltakerProcessor(
 
 
 		val (nyAktivitet, faktiskAktivitetsId) =
+			// Det finnes allerede minst ett aktivitetskort for denne deltakelsen
 			if (!erNyDeltakelse) {
-				val gammeltAktivitetskort = aktivitetService.get(eksisterendeAktivitetsId!!)!!
-				if (oppfolgingsperiodePaaEndringsTidspunkt!!.uuid != gammeltAktivitetskort.oppfolgingsperiodeUUID) {
-					// Har har det kommet en endring på kortet under en annen oppfølgingsperiode enn den opprinnelige oppfølgingsperioden. Vi oppretter et helt nytt aktivitetskort.
-					secureLog.info("Endring på deltakelse ${deltaker.tiltakdeltakerId} fra oppfølgingperiode ${gammeltAktivitetskort.oppfolgingsperiodeUUID} til oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
-						"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
+				if (!oppfolgingsperioder.contains(oppfolgingsperiodePaaEndringsTidspunkt!!.uuid)) {
+				// Har har det kommet en endring på kortet under en annen oppfølgingsperiode enn den opprinnelige oppfølgingsperioden. Vi oppretter et helt nytt aktivitetskort.
+					val gjeldendeAktivitetsId = arenaIdTranslationService.hentAktivitetIdForArenaId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)!!
 					val nyAktivitetsId = UUID.randomUUID()
-					arenaIdTranslationService.oppdaterAktivitetId( eksisterendeAktivitetsId, nyAktivitetsId)
+					secureLog.info("Endring på deltakelse ${deltaker.tiltakdeltakerId} fra gjeldende aktivitetsid ${gjeldendeAktivitetsId} til ny aktivitetsid ${nyAktivitetsId} og oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
+						"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
+					deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(deltakerId = deltaker.tiltakdeltakerId, aktivitetId = nyAktivitetsId, oppfolgingsperiodeUuid = oppfolgingsperiodePaaEndringsTidspunkt.uuid))
+					arenaIdTranslationService.oppdaterAktivitetId( gjeldendeAktivitetsId, nyAktivitetsId)
 					// Vi setter nyAktivitet til false, selv om vi oppretter ny aktivitet, slik at mod-dato blir brukt som endretTidspunkt på aktivitetskortet
 					false to nyAktivitetsId
 				} else {
+					val eksisterendeAktivitetsId = deltakerAktivitetMapping.filter { it.oppfolgingsperiodeUuid == oppfolgingsperiodePaaEndringsTidspunkt.uuid }.map {it.aktivitetId}.first()
 					// oppfølgingsperiode har ikke endret seg (happy case)
 					false to eksisterendeAktivitetsId
 				}
 			} else { // Ny aktivitet
-				true to arenaIdTranslationService.opprettAktivitetsId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+				val nyAktivitetsId = arenaIdTranslationService.opprettAktivitetsId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+				deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(deltakerId = deltaker.tiltakdeltakerId, aktivitetId = nyAktivitetsId, oppfolgingsperiodeUuid = oppfolgingsperiodePaaEndringsTidspunkt!!.uuid))
+				true to nyAktivitetsId
 			}
 
 
@@ -127,7 +134,7 @@ open class DeltakerProcessor(
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = KafkaProducerService.TILTAK_ID_PREFIX + deltaker.tiltakdeltakerId.toString(),
 			tiltakKode = tiltak.kode,
-			oppfolgingsperiode = oppfolgingsperiodePaaEndringsTidspunkt!!.uuid,
+			oppfolgingsperiode = oppfolgingsperiodePaaEndringsTidspunkt.uuid,
 			oppfolgingsSluttDato = oppfolgingsperiodePaaEndringsTidspunkt.sluttDato
 		)
 		val outgoingMessage = aktivitet.toKafkaMessage()

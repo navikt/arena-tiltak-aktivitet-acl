@@ -84,7 +84,8 @@ class DeltakerProcessorTest : FunSpec({
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
-			personsporingService = PersonsporingService(personSporingRepository, ordsClient)
+			personsporingService = PersonsporingService(personSporingRepository, ordsClient),
+			deltakerAktivitetMappingRepository = DeltakerAktivitetMappingRepository(template)
 		)
 	}
 
