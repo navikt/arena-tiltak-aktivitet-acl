@@ -41,6 +41,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.util.*
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
@@ -507,7 +508,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `hvis neste oppdatering i ny periode skal vi opprette nytt aktivitetskort`() {
+	fun `hvis neste oppdatering i ny periode skal vi opprette nytt aktivitetskort med endretTidspunkt lik mod_dato`() {
 		val (gjennomforingId, deltakerId, _) = setup()
 		val foerstePeriode = Oppfolgingsperiode(
 			uuid = UUID.randomUUID(),
@@ -533,7 +534,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.expectHandled { handledResult ->
 				handledResult.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
 				handledResult.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
-				handledResult.aktivitetskort { aktivitetsId1 = it.id }
+				handledResult.aktivitetskort {
+					it.endretTidspunkt shouldBe opprettetTidspunkt.truncatedTo(ChronoUnit.SECONDS)
+					aktivitetsId1 = it.id
+				}
 			}
 		hentTranslationMedRestClient(deltakerId) shouldBe aktivitetsId1
 		// Skal opprette ny aktivitet dersom oppdatering kommer på ny periode
@@ -543,7 +547,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			sluttDato = null
 		)
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode, nyperiode)
-		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = LocalDateTime.now())
+		val endretTidspunkt = LocalDateTime.now()
+		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = endretTidspunkt)
 			.copy(deltakerStatusKode = "AVSLAG"))
 		var aktivitetsId2: UUID? = null
 		deltakerExecutor.execute(oppdaterComand)
@@ -552,6 +557,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				handledResult.headers.oppfolgingsperiode shouldBe nyperiode.uuid
 				handledResult.aktivitetskort {
 					it.etiketter shouldContain Etikett("Avslag", Sentiment.NEGATIVE, "AVSLAG")
+					it.endretTidspunkt shouldBe endretTidspunkt.truncatedTo(ChronoUnit.SECONDS)
 					aktivitetsId2 = it.id
 				}
 			}
