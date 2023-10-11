@@ -1,12 +1,8 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.integration.utils.Retry.nullableAsyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.asyncRetryHandler
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
@@ -16,7 +12,6 @@ import org.apache.kafka.clients.producer.ProducerRecord
 abstract class TestExecutor(
 	private val kafkaProducer: KafkaProducerClientImpl<String, String>,
 	private val arenaDataRepository: ArenaDataRepository,
-	private val translationRepository: TranslationRepository,
 ) {
 
 	companion object {
@@ -42,10 +37,5 @@ abstract class TestExecutor(
 			}
 		}
 	}
-
-	fun getTranslationRetry(arenaId: Long, aktivitetKategori: AktivitetKategori): TranslationDbo? {
-		return nullableAsyncRetryHandler("get translation $arenaId") { translationRepository.get(arenaId, aktivitetKategori) }
-	}
-
 
 }

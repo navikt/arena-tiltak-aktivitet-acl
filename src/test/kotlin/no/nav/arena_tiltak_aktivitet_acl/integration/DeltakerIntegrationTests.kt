@@ -41,6 +41,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.util.*
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
@@ -86,7 +87,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		var aktivitetId: UUID? = null
 		result.expectHandled { handledResult ->
 			handledResult.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			handledResult.output.aktivitetskort.id shouldBe handledResult.translation!!.aktivitetId
 			handledResult.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			handledResult.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
 			handledResult.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
@@ -95,6 +95,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			handledResult.aktivitetskort {
 				aktivitetId = it.id
 			}
+			handledResult.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == aktivitetId} shouldBe true
 		}
 
 		val translation = hentTranslationMedRestClient(deltakerId)
@@ -135,7 +136,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			it.translation?.aktivitetId shouldBe it.output.aktivitetskort.id
+			it.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == it.output.aktivitetskort.id} shouldBe true
 			it.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			it.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
@@ -295,13 +296,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
+			r.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == r.output.aktivitetskort.id } shouldBe true
 			r.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 		}
 
 		updatedResult.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			r.translation!!.aktivitetId shouldBe r.output.aktivitetskort.id
+			r.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == r.output.aktivitetskort.id } shouldBe true
 			r.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak, gjennomforingInput) }
 		}
 	}
@@ -507,7 +508,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `hvis neste oppdatering i ny periode skal vi opprette nytt aktivitetskort`() {
+	fun `hvis neste oppdatering i ny periode skal vi opprette nytt aktivitetskort med endretTidspunkt lik mod_dato`() {
 		val (gjennomforingId, deltakerId, _) = setup()
 		val foerstePeriode = Oppfolgingsperiode(
 			uuid = UUID.randomUUID(),
@@ -533,7 +534,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			.expectHandled { handledResult ->
 				handledResult.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
 				handledResult.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
-				handledResult.aktivitetskort { aktivitetsId1 = it.id }
+				handledResult.aktivitetskort {
+					it.endretTidspunkt shouldBe opprettetTidspunkt.truncatedTo(ChronoUnit.SECONDS)
+					aktivitetsId1 = it.id
+				}
 			}
 		hentTranslationMedRestClient(deltakerId) shouldBe aktivitetsId1
 		// Skal opprette ny aktivitet dersom oppdatering kommer på ny periode
@@ -543,7 +547,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			sluttDato = null
 		)
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode, nyperiode)
-		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = LocalDateTime.now())
+		val endretTidspunkt = LocalDateTime.now()
+		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = endretTidspunkt)
 			.copy(deltakerStatusKode = "AVSLAG"))
 		var aktivitetsId2: UUID? = null
 		deltakerExecutor.execute(oppdaterComand)
@@ -552,6 +557,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				handledResult.headers.oppfolgingsperiode shouldBe nyperiode.uuid
 				handledResult.aktivitetskort {
 					it.etiketter shouldContain Etikett("Avslag", Sentiment.NEGATIVE, "AVSLAG")
+					it.endretTidspunkt shouldBe endretTidspunkt.truncatedTo(ChronoUnit.SECONDS)
 					aktivitetsId2 = it.id
 				}
 			}
@@ -634,6 +640,65 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				it.ingestStatus shouldBe IngestStatus.RETRY
 			}
 	}
+
+	@Test
+	fun `hvis retry av gamle deltakelser på gamle perioder, skal gamle aktiviteter oppdateres`() {
+		val (gjennomforingId, deltakerId, _) = setup()
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(7),
+			sluttDato = ZonedDateTime.now().minusDays(5)
+		)
+
+		val gjeldendePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(3),
+			sluttDato = null
+		)
+		val fnr = "515151"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode, gjeldendePeriode)
+		val opprettetTidspunkt = LocalDateTime.now().minusDays(6)
+		val forsteDeltakerInput = DeltakerInput(
+			tiltakDeltakerId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			endretTidspunkt = opprettetTidspunkt,
+			personId = 123L
+		)
+		val andreDeltakerInput = forsteDeltakerInput.copy(endretTidspunkt = LocalDateTime.now(), datoTil = LocalDate.now())
+		val deltakerCommand = NyDeltakerCommand(forsteDeltakerInput)
+		var foersteAktivitetsId:UUID? = null
+		deltakerExecutor.execute(deltakerCommand)
+			.expectHandled { handledResult ->
+				handledResult.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+				handledResult.aktivitetskort { foersteAktivitetsId = it.id }
+			}
+
+		foersteAktivitetsId shouldNotBe null
+
+		val oppdaterCommand = OppdaterDeltakerCommand(forsteDeltakerInput, andreDeltakerInput)
+		var andreAktivitetsId:UUID? = null
+		deltakerExecutor.execute(oppdaterCommand)
+			.expectHandled {
+				data -> data.headers.oppfolgingsperiode shouldBe gjeldendePeriode.uuid
+				data.aktivitetskort { andreAktivitetsId = it.id }
+			}
+
+		andreAktivitetsId shouldNotBe null
+		andreAktivitetsId shouldNotBe foersteAktivitetsId
+
+
+		val forsteDeltakelseSattTilRetry = NyDeltakerCommand(forsteDeltakerInput)
+		deltakerExecutor.execute(forsteDeltakelseSattTilRetry)
+			.expectHandled {
+				data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+				data.aktivitetskort { it.id shouldBe foersteAktivitetsId }
+			}
+	}
+
 
 	private fun hentTranslationMedRestClient(deltakerId: Long): UUID? {
 		val token = issueAzureAdM2MToken()
