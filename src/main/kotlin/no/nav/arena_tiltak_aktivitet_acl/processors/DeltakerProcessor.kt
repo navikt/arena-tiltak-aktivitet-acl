@@ -80,7 +80,7 @@ open class DeltakerProcessor(
 		if (skalIgnoreres(arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)) {
 			throw IgnoredException("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
 		}
-		val deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltaker.tiltakdeltakerId)
+		val deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
 		val oppfolgingsperioder = deltakerAktivitetMapping.map { mapping -> mapping.oppfolgingsperiodeUuid }
 		val personIdent = personsporingService.get(deltaker.personId, arenaGjennomforingId).fodselsnummer
 
@@ -103,7 +103,7 @@ open class DeltakerProcessor(
 					val nyAktivitetsId = UUID.randomUUID()
 					secureLog.info("Endring på deltakelse ${deltaker.tiltakdeltakerId} fra gjeldende aktivitetsid ${gjeldendeAktivitetsId} til ny aktivitetsid ${nyAktivitetsId} og oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
 						"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
-					deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(deltakerId = deltaker.tiltakdeltakerId, aktivitetId = nyAktivitetsId, oppfolgingsperiodeUuid = oppfolgingsperiodePaaEndringsTidspunkt.uuid))
+					deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(deltakerId = deltaker.tiltakdeltakerId, aktivitetId = nyAktivitetsId, aktivitetKategori = AktivitetKategori.TILTAKSAKTIVITET, oppfolgingsperiodeUuid = oppfolgingsperiodePaaEndringsTidspunkt.uuid))
 					arenaIdTranslationService.oppdaterAktivitetId( gjeldendeAktivitetsId, nyAktivitetsId)
 					// Vi setter nyAktivitet til false, selv om vi oppretter ny aktivitet, slik at mod-dato blir brukt som endretTidspunkt på aktivitetskortet
 					false to nyAktivitetsId
@@ -114,7 +114,7 @@ open class DeltakerProcessor(
 				}
 			} else { // Ny aktivitet
 				val nyAktivitetsId = arenaIdTranslationService.opprettAktivitetsId(deltaker.tiltakdeltakerId, AktivitetKategori.TILTAKSAKTIVITET)
-				deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(deltakerId = deltaker.tiltakdeltakerId, aktivitetId = nyAktivitetsId, oppfolgingsperiodeUuid = oppfolgingsperiodePaaEndringsTidspunkt!!.uuid))
+				deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(deltakerId = deltaker.tiltakdeltakerId, aktivitetId = nyAktivitetsId, aktivitetKategori = AktivitetKategori.TILTAKSAKTIVITET, oppfolgingsperiodeUuid = oppfolgingsperiodePaaEndringsTidspunkt!!.uuid))
 				true to nyAktivitetsId
 			}
 

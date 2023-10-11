@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.springframework.dao.DuplicateKeyException
@@ -17,33 +18,36 @@ open class DeltakerAktivitetMappingRepository(
 		DeltakerAktivitetMappingDbo(
 			deltakerId = rs.getLong("deltaker_id"),
 			aktivitetId = rs.getUUID("aktivitet_id"),
+			aktivitetKategori = AktivitetKategori.valueOf(rs.getString("aktivitet_kategori")),
 			oppfolgingsperiodeUuid = rs.getUUID("oppfolgingsperiode_uuid"),
 		)
 	}
 
 	fun insert(entry: DeltakerAktivitetMappingDbo) {
 		val sql = """
-			INSERT INTO deltaker_aktivitet_mapping(deltaker_id, aktivitet_id, oppfolgingsperiode_uuid)
-			VALUES (:deltaker_id, :aktivitet_id, :oppfolgingsperiode_uuid)
+			INSERT INTO deltaker_aktivitet_mapping(deltaker_id, aktivitet_id, aktivitet_kategori, oppfolgingsperiode_uuid)
+			VALUES (:deltaker_id, :aktivitet_id, :aktivitet_kategori, :oppfolgingsperiode_uuid)
 		""".trimIndent()
 
 		try {
 			template.update(sql, entry.asParameterSource())
 		} catch (e: DuplicateKeyException) {
-			throw IllegalStateException("DeltakerAktivitetMapping entry on table with deltaker_id=${entry.deltakerId}, aktivitet_id=${entry.aktivitetId}, oppfolgingsperiode_uuid=${entry.oppfolgingsperiodeUuid} already exist.")
+			throw IllegalStateException("DeltakerAktivitetMapping entry on table with deltaker_id=${entry.deltakerId}, aktivitet_id=${entry.aktivitetId}, aktivitet_kategori=${entry.aktivitetKategori} oppfolgingsperiode_uuid=${entry.oppfolgingsperiodeUuid} already exist.")
 		}
 	}
 
 
-	fun get(deltakerId: Long): MutableList<DeltakerAktivitetMappingDbo> {
+	fun get(deltakerId: Long, kategori: AktivitetKategori): MutableList<DeltakerAktivitetMappingDbo> {
 		val sql = """
 			SELECT *
 				FROM deltaker_aktivitet_mapping
-				WHERE deltaker_id = :deltaker_id
+				WHERE deltaker_id = :deltaker_id and aktivitet_kategori = :aktivitet_kategori
 		""".trimIndent()
 
 		val parameters = sqlParameters(
-			"deltaker_id" to deltakerId
+			"deltaker_id" to deltakerId,
+			"aktivitet_kategori" to kategori.name
+
 		)
 		return template.query(sql, parameters, rowMapper)
 	}
@@ -51,6 +55,7 @@ open class DeltakerAktivitetMappingRepository(
 	private fun DeltakerAktivitetMappingDbo.asParameterSource() = sqlParameters(
 		"deltaker_id" to deltakerId,
 		"aktivitet_id" to aktivitetId,
+		"aktivitet_kategori" to aktivitetKategori.name,
 		"oppfolgingsperiode_uuid" to oppfolgingsperiodeUuid
 	)
 

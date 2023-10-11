@@ -5,7 +5,6 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.Retry.nullableAsyncRetryHandler
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -15,12 +14,10 @@ import org.junit.jupiter.api.fail
 class TiltakTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	translationRepository: TranslationRepository,
 	private val tiltakRepository: TiltakRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
 	arenaDataRepository = arenaDataRepository,
-	translationRepository = translationRepository
 ) {
 
 	private val topic = "tiltak"

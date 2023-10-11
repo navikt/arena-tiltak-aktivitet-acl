@@ -113,7 +113,7 @@ open class IntegrationTestConfiguration(
 		translationRepository: TranslationRepository,
 		tiltakRepository: TiltakRepository
 	): TiltakTestExecutor {
-		return TiltakTestExecutor(kafkaProducer, arenaDataRepository, translationRepository, tiltakRepository)
+		return TiltakTestExecutor(kafkaProducer, arenaDataRepository,  tiltakRepository)
 	}
 
 	@Bean
@@ -121,19 +121,18 @@ open class IntegrationTestConfiguration(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
 		gjennomforingRepository: GjennomforingRepository,
-		translationRepository: TranslationRepository
 	): GjennomforingTestExecutor {
-		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository, translationRepository)
+		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository)
 	}
 
 	@Bean
 	open fun deltakerExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: TranslationRepository,
+		deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository,
 		aktivitetRepository: AktivitetRepository
 	): DeltakerTestExecutor {
-		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
+		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, deltakerAktivitetMappingRepository)
 	}
 
 	@Bean
@@ -182,7 +181,7 @@ open class IntegrationTestConfiguration(
 			.withBrokerUrl(embeddedKafkaBroker.getBrokersAsString())
 			.withDeserializers(ByteArrayDeserializer::class.java, ByteArrayDeserializer::class.java)
 			.withPollProperties(10, 30_000)
-			.build();
+			.build()
 	}
 
 	@Bean
