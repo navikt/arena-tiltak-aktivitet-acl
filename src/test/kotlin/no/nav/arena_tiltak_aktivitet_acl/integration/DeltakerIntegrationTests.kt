@@ -28,7 +28,7 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConv
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
@@ -52,7 +52,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	lateinit var arenaDataRepository: ArenaDataRepository
 
 	@Autowired
-	lateinit var translationRepository: TranslationRepository
+	lateinit var arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 
 	data class TestData(
 		val gjennomforingId: Long = Random().nextLong(),
@@ -195,7 +195,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		// Cron-job
 		processMessages()
 
-		val aktivitetId = translationRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
+		val aktivitetId = arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
 		aktivitetId shouldNotBe null
 
 		val mapper = ObjectMapper.get()
@@ -253,7 +253,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		// Cron-job
 		processFailedMessages()
-		val aktivitetId = translationRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId!!
+		val aktivitetId = arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId!!
 
 		fun String.toAktivitetskort() = ObjectMapper.get().readValue(this, Aktivitetskort::class.java)
 

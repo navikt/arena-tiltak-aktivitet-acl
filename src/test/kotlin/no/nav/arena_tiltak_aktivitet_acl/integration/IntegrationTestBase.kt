@@ -110,10 +110,10 @@ open class IntegrationTestConfiguration(
 	open fun tiltakExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: TranslationRepository,
+		arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository,
 		tiltakRepository: TiltakRepository
 	): TiltakTestExecutor {
-		return TiltakTestExecutor(kafkaProducer, arenaDataRepository, translationRepository, tiltakRepository)
+		return TiltakTestExecutor(kafkaProducer, arenaDataRepository, arenaIdTilAktivitetskortIdRepository, tiltakRepository)
 	}
 
 	@Bean
@@ -121,19 +121,19 @@ open class IntegrationTestConfiguration(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
 		gjennomforingRepository: GjennomforingRepository,
-		translationRepository: TranslationRepository
+		arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	): GjennomforingTestExecutor {
-		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository, translationRepository)
+		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository, arenaIdTilAktivitetskortIdRepository)
 	}
 
 	@Bean
 	open fun deltakerExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: TranslationRepository,
+		arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository,
 		aktivitetRepository: AktivitetRepository
 	): DeltakerTestExecutor {
-		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, translationRepository)
+		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, arenaIdTilAktivitetskortIdRepository)
 	}
 
 	@Bean

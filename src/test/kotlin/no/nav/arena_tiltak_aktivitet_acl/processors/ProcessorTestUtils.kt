@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltaker
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -99,13 +99,13 @@ private fun emptyArenaTiltak(): ArenaTiltak {
 	)
 }
 
-private fun emptyArenaTiltakDeltaker(): ArenaDeltaker {
+private fun emptyArenaTiltakDeltaker(): ArenaDeltakelse {
 	val NOT_SET_STRING = "NOT_SET_STRING"
 	val NOT_SET_INT = Int.MIN_VALUE
 	val NOT_SET_LONG = Long.MIN_VALUE
 	val NOT_SET_FLOAT = Float.MIN_VALUE
 
-	return ArenaDeltaker(
+	return ArenaDeltakelse(
 		TILTAKDELTAKER_ID = NOT_SET_LONG,
 		PERSON_ID = NOT_SET_LONG,
 		TILTAKGJENNOMFORING_ID = NOT_SET_LONG,

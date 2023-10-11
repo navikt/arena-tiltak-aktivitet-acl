@@ -17,7 +17,7 @@ class ArenaIdTranslationRepositoryTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
 
-	lateinit var repository: TranslationRepository
+	lateinit var repository: ArenaIdTilAktivitetskortIdRepository
 
 	val testObject = TranslationDbo(
 		aktivitetId = UUID.randomUUID(),
@@ -29,7 +29,7 @@ class ArenaIdTranslationRepositoryTest : FunSpec({
 		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		rootLogger.level = Level.WARN
 
-		repository = TranslationRepository(NamedParameterJdbcTemplate(dataSource))
+		repository = ArenaIdTilAktivitetskortIdRepository(NamedParameterJdbcTemplate(dataSource))
 
 		DatabaseTestUtils.cleanDatabase(dataSource)
 	}

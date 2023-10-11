@@ -16,7 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.ValidationException
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TranslationRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.TiltakService
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -35,7 +35,7 @@ import java.util.*
 class ArenaGjennomforingProcessorTest {
 	private lateinit var jdbcTemplate: NamedParameterJdbcTemplate
 	private lateinit var repository: ArenaDataRepository
-	private lateinit var translationRepository: TranslationRepository
+	private lateinit var arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	private lateinit var tiltakService: TiltakService
 	private lateinit var ordsClient: ArenaOrdsProxyClient
 	private lateinit var kafkaProducerService: KafkaProducerService
@@ -52,7 +52,7 @@ class ArenaGjennomforingProcessorTest {
 	fun beforeAll() {
 		jdbcTemplate = NamedParameterJdbcTemplate(dataSource)
 		repository = ArenaDataRepository(jdbcTemplate)
-		translationRepository = TranslationRepository(jdbcTemplate)
+		arenaIdTilAktivitetskortIdRepository = ArenaIdTilAktivitetskortIdRepository(jdbcTemplate)
 		tiltakService = mock(TiltakService::class.java)
 		ordsClient = mock(ArenaOrdsProxyClient::class.java)
 		kafkaProducerService = mock(KafkaProducerService::class.java)

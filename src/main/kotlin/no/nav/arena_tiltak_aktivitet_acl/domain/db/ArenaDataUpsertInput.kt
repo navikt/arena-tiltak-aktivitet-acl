@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import java.time.LocalDateTime
@@ -37,6 +38,10 @@ fun ArenaKafkaMessage<*>.toUpsertInput(arenaId: String, ingestStatus: IngestStat
 }
 
 fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: Long): ArenaDataUpsertInput {
+	return this.toUpsertInput(arenaId.toString(), IngestStatus.HANDLED, null)
+}
+
+fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: DeltakelseId): ArenaDataUpsertInput {
 	return this.toUpsertInput(arenaId.toString(), IngestStatus.HANDLED, null)
 }
 

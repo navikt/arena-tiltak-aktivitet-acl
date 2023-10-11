@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 import java.time.Month
 
 // @SONAR_START@
-data class ArenaDeltaker(
+data class ArenaDeltakelse(
 	val TILTAKDELTAKER_ID: Long,
 	val PERSON_ID: Long? = null,
 	val TILTAKGJENNOMFORING_ID: Long,
@@ -46,23 +46,15 @@ data class ArenaDeltaker(
 
 	private val placeholderDate = LocalDateTime.of(1970, Month.JANUARY, 1, 0,0)
 
-	fun mapTiltakDeltaker(): TiltakDeltaker {
-		val tiltakdeltakerId = TILTAKDELTAKER_ID.also {
-			if (it == 0L) throw ValidationException("TILTAKDELTAKER_ID er 0")
-		}
-
-		val tiltakgjennomforingId = TILTAKGJENNOMFORING_ID.also {
-			if (it == 0L) throw ValidationException("TILTAKGJENNOMFORING_ID er 0")
-		}
-
+	fun mapTiltakDeltakelse(): TiltakDeltakelse {
+		if (TILTAKDELTAKER_ID == 0L) throw ValidationException("TILTAKDELTAKER_ID er 0")
+		if (TILTAKGJENNOMFORING_ID == 0L) throw ValidationException("TILTAKGJENNOMFORING_ID er 0")
 		val regDato = REG_DATO?.asValidatedLocalDateTime("REG_DATO") ?: placeholderDate.also {
-				log.warn("Bruker med arenaId=${tiltakdeltakerId} mangler REG_DATO, bruker placeholder dato istedenfor")
-			}
-
-
-		return TiltakDeltaker(
-			tiltakdeltakerId = tiltakdeltakerId,
-			tiltakgjennomforingId = tiltakgjennomforingId,
+			log.warn("Bruker med arenaId=${TILTAKDELTAKER_ID} mangler REG_DATO, bruker placeholder dato istedenfor")
+		}
+		return TiltakDeltakelse(
+			tiltakdeltakelseId = DeltakelseId(TILTAKDELTAKER_ID),
+			tiltakgjennomforingId = TILTAKGJENNOMFORING_ID,
 			personId = PERSON_ID ?: throw ValidationException("PERSON_ID er null"),
 			datoFra = DATO_FRA?.asValidatedLocalDate("DATO_FRA"),
 			datoTil = DATO_TIL?.asValidatedLocalDate("DATO_TIL"),
