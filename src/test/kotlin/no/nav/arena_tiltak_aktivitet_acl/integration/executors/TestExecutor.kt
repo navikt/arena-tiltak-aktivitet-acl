@@ -28,7 +28,7 @@ abstract class TestExecutor(
 		kafkaProducer.send(ProducerRecord(topic, key, payload))
 	}
 
-	fun getArenaData(table: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
+	fun pollArenaData(table: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
 		return asyncRetryHandler("get arenadata $table, $operation, $position") {
 			arenaDataRepository.getAll().find {
 				it.arenaTableName == table

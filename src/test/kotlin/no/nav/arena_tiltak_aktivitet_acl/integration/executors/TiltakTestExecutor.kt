@@ -31,7 +31,7 @@ class TiltakTestExecutor(
 
 	private fun sendKafkaMessageOgVentPaAck(arenaWrapper: ArenaKafkaMessageDto, kode: String): TiltakResult {
 		sendKafkaMessage(topic, objectMapper.writeValueAsString(arenaWrapper), kode)
-		val data = getArenaData(
+		val data = pollArenaData(
 			ArenaTableName.TILTAK,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
 			arenaWrapper.pos

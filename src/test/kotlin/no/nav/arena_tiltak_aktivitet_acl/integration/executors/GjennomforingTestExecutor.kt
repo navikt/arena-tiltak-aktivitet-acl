@@ -33,7 +33,7 @@ class GjennomforingTestExecutor(
 	}
 
 	private fun getResults(arenaWrapper: ArenaKafkaMessageDto): GjennomforingResult {
-		val arenaData = getArenaData(
+		val arenaData = pollArenaData(
 			ArenaTableName.GJENNOMFORING,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
 			arenaWrapper.pos

@@ -43,8 +43,8 @@ class DeltakerTestExecutor(
 			command.tiltakDeltakerId.toString()
 		)
 	}
-	private suspend fun waitForRecord(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
-		return withTimeout(50000) {
+	private suspend fun waitForAktivitetskortOnOutgoingTopic(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
+		return withTimeout(5000) {
 			messageFlow.first { isCorrectRecord(it) }
 		}
 	}
@@ -55,7 +55,7 @@ class DeltakerTestExecutor(
 	}
 
 	private fun getResults(wrapper: ArenaKafkaMessageDto): AktivitetResult {
-		val arenaData = getArenaData(
+		val arenaData = pollArenaData(
 			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
 			wrapper.pos
@@ -72,7 +72,7 @@ class DeltakerTestExecutor(
 			}
 			IngestStatus.HANDLED -> {
 				val message: TestRecord = runBlocking {
-					waitForRecord {
+					waitForAktivitetskortOnOutgoingTopic {
 						deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 						deltakerAktivitetMapping.any { a -> it.melding.aktivitetskort.id == a.aktivitetId }
 					}
