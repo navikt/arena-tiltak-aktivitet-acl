@@ -110,10 +110,9 @@ open class IntegrationTestConfiguration(
 	open fun tiltakExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository,
 		tiltakRepository: TiltakRepository
 	): TiltakTestExecutor {
-		return TiltakTestExecutor(kafkaProducer, arenaDataRepository, arenaIdTilAktivitetskortIdRepository, tiltakRepository)
+		return TiltakTestExecutor(kafkaProducer, arenaDataRepository,  tiltakRepository)
 	}
 
 	@Bean
@@ -121,19 +120,18 @@ open class IntegrationTestConfiguration(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
 		gjennomforingRepository: GjennomforingRepository,
-		arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	): GjennomforingTestExecutor {
-		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository, arenaIdTilAktivitetskortIdRepository)
+		return GjennomforingTestExecutor(kafkaProducer, arenaDataRepository, gjennomforingRepository)
 	}
 
 	@Bean
 	open fun deltakerExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository,
+		deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository,
 		aktivitetRepository: AktivitetRepository
 	): DeltakerTestExecutor {
-		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, arenaIdTilAktivitetskortIdRepository)
+		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, deltakerAktivitetMappingRepository)
 	}
 
 	@Bean
@@ -182,7 +180,7 @@ open class IntegrationTestConfiguration(
 			.withBrokerUrl(embeddedKafkaBroker.getBrokersAsString())
 			.withDeserializers(ByteArrayDeserializer::class.java, ByteArrayDeserializer::class.java)
 			.withPollProperties(10, 30_000)
-			.build();
+			.build()
 	}
 
 	@Bean

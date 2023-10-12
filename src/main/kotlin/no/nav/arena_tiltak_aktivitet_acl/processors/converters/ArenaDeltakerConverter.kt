@@ -76,8 +76,8 @@ object ArenaDeltakerConverter {
 				toDeltakelseStatus(deltaker.deltakerStatusKode)?.toEtikett()
 			),
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
-			endretTidspunkt = deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
-			endretAv = Ident(ident = deltaker.modUser ?: throw IllegalArgumentException("Missing modUser")),
+			endretTidspunkt = deltaker.modDato ?: deltaker.regDato,
+			endretAv = Ident(ident = deltaker.modUser ?: deltaker.regUser ?: throw IllegalArgumentException("Missing modUser")),
 			detaljer = listOfNotNull(
 				if (arrangorNavn != null) Attributt("Arrangør", arrangorNavn) else null,
 				if (deltaker.prosentDeltid != null) Attributt("Deltakelse", "${deltaker.prosentDeltid}%") else null,

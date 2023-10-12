@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak
 
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.random.Random
 
 data class TiltakDeltakelse(
 	val tiltakdeltakelseId: DeltakelseId,
@@ -20,6 +21,10 @@ data class TiltakDeltakelse(
 	val modDato: LocalDateTime?,
 )
 
-class DeltakelseId(
-	val value: Long
-)
+data class DeltakelseId(
+	val value: Long = Random.nextLong(1, 10000)
+) {
+//	override fun toString(): String {
+//		return value.toString()
+//	}
+}

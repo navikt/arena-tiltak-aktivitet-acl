@@ -14,6 +14,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
@@ -130,7 +131,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
 
-		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 
 		translationEntry shouldNotBe null
 	}
@@ -189,7 +190,7 @@ class DeltakerProcessorTest : FunSpec({
 			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
 

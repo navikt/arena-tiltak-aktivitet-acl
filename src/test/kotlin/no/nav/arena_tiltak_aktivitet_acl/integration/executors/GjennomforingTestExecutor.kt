@@ -4,7 +4,6 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingResult
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -14,11 +13,9 @@ class GjennomforingTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
 	val gjennomforingRepository: GjennomforingRepository,
-	arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
 	arenaDataRepository = arenaDataRepository,
-	arenaIdTilAktivitetskortIdRepository = arenaIdTilAktivitetskortIdRepository
 ) {
 
 	private val topic = "gjennomforing"

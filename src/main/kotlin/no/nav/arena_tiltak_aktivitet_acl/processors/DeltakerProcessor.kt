@@ -4,10 +4,7 @@ import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltakelse
@@ -158,8 +155,9 @@ open class DeltakerProcessor(
 	}
 
 	private fun utledEndringsType(oppfolgingsperiode: Oppfolgingsperiode, deltakelseId: DeltakelseId): EndringsType {
-		val oppfolgingsperiodeTilAktivitetskortId = deltakerAktivitetMappingRepository.get(deltakelseId)
-		val aktivitetId = oppfolgingsperiodeTilAktivitetskortId[oppfolgingsperiode.uuid]
+		val oppfolgingsperiodeTilAktivitetskortId = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+		val aktivitetId = oppfolgingsperiodeTilAktivitetskortId
+			.firstOrNull { it.oppfolgingsperiodeUuid == oppfolgingsperiode.uuid }?.aktivitetId
 		return when {
 			// Har tidligere deltakelse på samme oppfolgingsperiode
 			aktivitetId != null -> EndringsType.OppdaterAktivitet(aktivitetId)
@@ -176,10 +174,13 @@ open class DeltakerProcessor(
 			is EndringsType.NyttAktivitetskortByttPeriode -> this.oppfolgingsperiode
 			is EndringsType.OppdaterAktivitet -> null
 		}?.let {
-			deltakerAktivitetMappingRepository.insert(DeltakerAktivitetMappingDbo(
+			deltakerAktivitetMappingRepository.insert(
+				DeltakerAktivitetMappingDbo(
 				deltakelseId = deltakelseId,
 				aktivitetId = this.aktivitetskortId,
-				oppfolgingsperiodeUuid = it.uuid))
+				aktivitetKategori = AktivitetKategori.TILTAKSAKTIVITET,
+				oppfolgingsperiodeUuid = it.uuid)
+			)
 		}
 	}
 }
