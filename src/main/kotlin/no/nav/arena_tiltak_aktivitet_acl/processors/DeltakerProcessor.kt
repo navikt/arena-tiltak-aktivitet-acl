@@ -156,11 +156,11 @@ open class DeltakerProcessor(
 
 	private fun utledEndringsType(oppfolgingsperiode: Oppfolgingsperiode, deltakelseId: DeltakelseId): EndringsType {
 		val oppfolgingsperiodeTilAktivitetskortId = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
-		val aktivitetId = oppfolgingsperiodeTilAktivitetskortId
+		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
 			.firstOrNull { it.oppfolgingsperiodeUuid == oppfolgingsperiode.uuid }?.aktivitetId
 		return when {
 			// Har tidligere deltakelse på samme oppfolgingsperiode
-			aktivitetId != null -> EndringsType.OppdaterAktivitet(aktivitetId)
+			eksisterendeAktivitetsId != null -> EndringsType.OppdaterAktivitet(eksisterendeAktivitetsId)
 			// Har ingen tidligere aktivitetskort
 			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(oppfolgingsperiode)
 			// Har tidligere deltakelse men ikke på samme oppfølgingsperiode

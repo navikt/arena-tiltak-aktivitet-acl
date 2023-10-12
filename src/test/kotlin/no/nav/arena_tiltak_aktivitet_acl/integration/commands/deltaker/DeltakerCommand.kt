@@ -12,7 +12,7 @@ abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(til
 
 	fun createPayload(input: DeltakerInput): JsonNode {
 		val data = ArenaDeltakelse(
-			TILTAKDELTAKER_ID = input.tiltakDeltakerId.value,
+			TILTAKDELTAKER_ID = input.tiltakDeltakelseId.value,
 			PERSON_ID = input.personId,
 			TILTAKGJENNOMFORING_ID = input.tiltakgjennomforingId,
 			DELTAKERSTATUSKODE = input.deltakerStatusKode,

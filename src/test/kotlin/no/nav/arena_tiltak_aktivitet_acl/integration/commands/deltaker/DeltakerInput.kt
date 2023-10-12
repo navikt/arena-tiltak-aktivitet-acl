@@ -7,7 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import kotlin.random.Random
 
 data class DeltakerInput(
-	val tiltakDeltakerId: DeltakelseId,
+	val tiltakDeltakelseId: DeltakelseId,
 	val tiltakgjennomforingId: Long,
 	val personId: Long? = Random.nextLong(),
 	val datoFra: LocalDate = LocalDate.now().minusDays(2),

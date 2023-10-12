@@ -24,7 +24,7 @@ data class TiltakDeltakelse(
 data class DeltakelseId(
 	val value: Long = Random.nextLong(1, 10000)
 ) {
-//	override fun toString(): String {
-//		return value.toString()
-//	}
+	override fun toString(): String {
+		return value.toString()
+	}
 }

@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaOperation
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import java.time.LocalDateTime
 
-class NyDeltakerCommand(private val input: DeltakerInput) : DeltakerCommand(input.tiltakDeltakerId) {
+class NyDeltakerCommand(private val input: DeltakerInput) : DeltakerCommand(input.tiltakDeltakelseId) {
 	override fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto = ArenaKafkaMessageDto(
 		table = ArenaTableName.DELTAKER,
 		opType = ArenaOperation.I.name,

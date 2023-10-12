@@ -64,8 +64,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val tiltak: TiltakDbo = TiltakDbo(UUID.randomUUID(), "TILT", "Tiltak navn", "IND")
 	)
 
-	private fun setup(): TestData {
-		val tiltak = tiltakExecutor.execute(NyttTiltakCommand())
+	private fun setup(administrasjonskode: Tiltak.Administrasjonskode = Tiltak.Administrasjonskode.IND): TestData {
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(administrasjonskode = administrasjonskode))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }.tiltak
 		return TestData(tiltak = tiltak)
 			.also { testData ->
@@ -78,7 +78,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	fun `ingest deltaker`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -91,7 +91,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			handledResult.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 			handledResult.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			handledResult.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
-			handledResult.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+			handledResult.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakelseId
 			handledResult.headers.oppfolgingsperiode shouldNotBe null
 			handledResult.headers.oppfolgingsSluttDato shouldBe null
 			handledResult.aktivitetskort {
@@ -127,7 +127,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val opprettetTidspunkt = gammelPeriode.startDato.plusSeconds(1)
 
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -141,7 +141,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			it.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == it.output.aktivitetskort.id} shouldBe true
 			it.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			it.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
-			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakerId
+			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakelseId
 			it.headers.oppfolgingsperiode shouldBe gammelPeriode.uuid
 			it.headers.oppfolgingsSluttDato!!.shouldBeWithin(Duration.ofMillis(1), gammelPeriode.sluttDato!!)
 		}
@@ -153,7 +153,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val (gjennomforingId, deltakerId) = setup()
 		val opprettetTidspunkt = LocalDateTime.now().minusMonths(6)
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			endretAv = Ident(ident = "SIG123"),
 			endretTidspunkt = opprettetTidspunkt
@@ -168,7 +168,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = TestData()
 
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			deltakerStatusKode = "INFOMOETE", // Aktivitetstatus: Planlagt
@@ -223,7 +223,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	fun `process deltakelse in the correct order also when failed`() {
 		val (gjennomforingId, deltakerId, gjennomforingInput) = TestData()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			deltakerStatusKode = "INFOMOETE", // Aktivitetstatus: Planlagt
@@ -277,7 +277,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val (gjennomforingId, deltakerId, gjennomforingInput, tiltak) = setup()
 
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			datoFra = LocalDate.now().minusDays(10),
@@ -287,7 +287,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val result = deltakerExecutor.execute(deltakerCommand)
 
 		val deltakerInputUpdated = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			datoTil = LocalDate.now().plusDays(30),
@@ -313,7 +313,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	fun `ignore deltaker before aktivitetsplan launch`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -340,7 +340,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		val endretDato = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -375,7 +375,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		val endretDato = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -409,7 +409,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val endretDato = OppfolgingClientMock.defaultOppfolgingsperioder.last().startDato.toLocalDateTime()
 
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -435,7 +435,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = oppfolgingsperioder
 		val opprettetTidspunkt = LocalDateTime.now().minusDays(7).plusSeconds(20)
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -456,7 +456,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = oppfolgingsperioder
 		val opprettetTidspunkt = LocalDateTime.now().minusDays(7).minusSeconds(20)
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -480,7 +480,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val opprettetTidspunkt = LocalDateTime.now().minusWeeks(1).plusSeconds(20) // litt mindre enn en uke gammel aktivitet
 
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -522,7 +522,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
 		val opprettetTidspunkt = LocalDateTime.now().minusDays(4)
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -580,7 +580,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
 		val opprettetTidspunkt = LocalDateTime.now().minusDays(4)
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -619,7 +619,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
 		val opprettetTidspunkt = LocalDateTime.now().minusDays(4)
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
@@ -644,6 +644,29 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `skal takle tidligere ignorerte deltakelser uten å krasje på duplicate key i arenaId til aktivitetId mapping`() {
+		val (gjennomforingId, deltakelseId, _) = setup(Tiltak.Administrasjonskode.INST)
+		val deltakerInputIgnored = DeltakerInput(
+			tiltakDeltakelseId = deltakelseId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "AKTUELL",
+		)
+		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
+		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored)
+		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.IGNORED
+
+		val deltakerInput = deltakerInputIgnored.copy(deltakerStatusKode = "GJENN")
+		val deltakerCommand = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInput)
+		val aktivitetResult = deltakerExecutor.execute(deltakerCommand)
+
+		aktivitetResult.expectHandled { result ->
+			result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1
+		}
+	}
+
+	@Test
 	fun `hvis retry av gamle deltakelser på gamle perioder, skal gamle aktiviteter oppdateres`() {
 		val (gjennomforingId, deltakerId, _) = setup()
 		val foerstePeriode = Oppfolgingsperiode(
@@ -662,7 +685,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode, gjeldendePeriode)
 		val opprettetTidspunkt = LocalDateTime.now().minusDays(6)
 		val forsteDeltakerInput = DeltakerInput(
-			tiltakDeltakerId = deltakerId,
+			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),

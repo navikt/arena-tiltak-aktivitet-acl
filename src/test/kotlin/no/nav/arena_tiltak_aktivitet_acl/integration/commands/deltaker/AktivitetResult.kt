@@ -35,7 +35,7 @@ open class AktivitetResult(
 	val deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>
 ) {
 	fun expectHandled(check: (data: HandledResult) -> Unit) {
-		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but wa ${this.arenaDataDbo.ingestStatus}")
+		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but was ${this.arenaDataDbo.ingestStatus}")
 		check(this)
 	}
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
