@@ -186,8 +186,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			registrertDato = foerstePeriode.sluttDato!!.plusDays(1).toLocalDateTime()
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
-		val result = deltakerExecutor.execute(deltakerCommand)
-		result.arenaDataDbo.ingestStatus shouldBe IngestStatus.IGNORED
+		deltakerExecutor.execute(deltakerCommand).expectHandled {
+			it.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+		}
 	}
 
 	@Test
