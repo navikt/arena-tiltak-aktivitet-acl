@@ -156,7 +156,34 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
 			endretAv = Ident(ident = "SIG123"),
-			endretTidspunkt = opprettetTidspunkt
+			endretTidspunkt = opprettetTidspunkt,
+			registrertDato = opprettetTidspunkt
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+		result.arenaDataDbo.ingestStatus shouldBe IngestStatus.IGNORED
+	}
+
+	@Test
+	fun `skal bruker regDato til å finne oppfolgingsperiode hvis ingens finnes på modDato`() {
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.now().minusDays(30),
+			sluttDato = ZonedDateTime.now().minusDays(7)
+		)
+		val arenaPersonIdent = 121212L
+		val fnr = "616161"
+		OrdsClientMock.fnrHandlers[arenaPersonIdent] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
+
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			personId = arenaPersonIdent,
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			endretAv = Ident(ident = "SIG123"),
+			endretTidspunkt = foerstePeriode.sluttDato!!.minusDays(1).toLocalDateTime(),
+			registrertDato = foerstePeriode.sluttDato!!.plusDays(1).toLocalDateTime()
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
