@@ -14,6 +14,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundException
@@ -54,7 +55,7 @@ class DeltakerProcessorTest : FunSpec({
 	val kafkaProducerService = mock<KafkaProducerService>()
 
 	lateinit var arenaDataRepository: ArenaDataRepository
-	lateinit var idTranslationRepository: TranslationRepository
+	lateinit var idArenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	lateinit var personSporingRepository: PersonSporingRepository
 
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -63,7 +64,7 @@ class DeltakerProcessorTest : FunSpec({
 	beforeEach {
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
-		idTranslationRepository = TranslationRepository(template)
+		idArenaIdTilAktivitetskortIdRepository = ArenaIdTilAktivitetskortIdRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
@@ -78,7 +79,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
-			arenaIdTranslationService = TranslationService(idTranslationRepository),
+			arenaIdArenaIdTilAktivitetskortIdService = ArenaIdTilAktivitetskortIdService(idArenaIdTilAktivitetskortIdRepository),
 			kafkaProducerService = kafkaProducerService,
 			aktivitetService = AktivitetService(AktivitetRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
@@ -130,7 +131,7 @@ class DeltakerProcessorTest : FunSpec({
 
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
 
-		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 
 		translationEntry shouldNotBe null
 	}
@@ -189,7 +190,7 @@ class DeltakerProcessorTest : FunSpec({
 			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-		val translationEntry = idTranslationRepository.get(1, AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
 

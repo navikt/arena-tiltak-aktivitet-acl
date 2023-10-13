@@ -110,7 +110,6 @@ open class IntegrationTestConfiguration(
 	open fun tiltakExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		translationRepository: TranslationRepository,
 		tiltakRepository: TiltakRepository
 	): TiltakTestExecutor {
 		return TiltakTestExecutor(kafkaProducer, arenaDataRepository,  tiltakRepository)

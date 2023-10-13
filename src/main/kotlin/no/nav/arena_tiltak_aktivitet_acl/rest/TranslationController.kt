@@ -9,7 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import no.nav.arena_tiltak_aktivitet_acl.auth.AuthService
 import no.nav.arena_tiltak_aktivitet_acl.auth.Issuer
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
-import no.nav.arena_tiltak_aktivitet_acl.services.TranslationService
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.services.ArenaIdTilAktivitetskortIdService
 import no.nav.security.token.support.core.api.Protected
 import no.nav.security.token.support.core.api.ProtectedWithClaims
 import org.springframework.http.HttpStatus
@@ -27,7 +28,7 @@ import java.util.*
 @RequestMapping("/api/translation")
 class TranslationController(
 	private val authService: AuthService,
-	private val translationService: TranslationService
+	private val arenaIdTilAktivitetskortIdService: ArenaIdTilAktivitetskortIdService
 ) {
 
 	@ProtectedWithClaims(issuer = Issuer.AZURE_AD)
@@ -42,7 +43,7 @@ class TranslationController(
 		@RequestBody query: TranslationQuery
 	): UUID {
 		authService.validerErM2MToken()
-		return translationService.hentAktivitetIdForArenaId(query.arenaId, query.aktivitetKategori)
+		return arenaIdTilAktivitetskortIdService.hentAktivitetIdForArenaId(DeltakelseId(query.arenaId), query.aktivitetKategori)
 			?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No mapping found")
 	}
 }

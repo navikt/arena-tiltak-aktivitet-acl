@@ -204,6 +204,7 @@ open class ArenaDataRepository(
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
 				AND ingest_status != 'HANDLED'
+				AND ingest_status != 'IGNORED'
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseArenaId.toString(),

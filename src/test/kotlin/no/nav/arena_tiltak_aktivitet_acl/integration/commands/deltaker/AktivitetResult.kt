@@ -5,12 +5,13 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.repositories.OppfolginsPeriodeId
 import org.junit.jupiter.api.fail
 
 class HandledResult(
 	position: String,
 	arenaDataDbo: ArenaDataDbo,
-	deltakerAktivitetMapping: MutableList<DeltakerAktivitetMappingDbo>,
+	deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>,
 	val output: KafkaMessageDto,
 	val headers: AktivitetskortHeaders
 ): AktivitetResult(position, arenaDataDbo, deltakerAktivitetMapping) {
@@ -22,7 +23,7 @@ class HandledResult(
 		check(output.aktivitetskort)
 		return this
 	}
-	override fun result(check: (arenaDataDbo: ArenaDataDbo, deltakerAktivitetMapping: MutableList<DeltakerAktivitetMappingDbo>, output: KafkaMessageDto?) -> Unit): AktivitetResult {
+	override fun result(check: (arenaDataDbo: ArenaDataDbo, deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>, output: KafkaMessageDto?) -> Unit): AktivitetResult {
 		check(arenaDataDbo, deltakerAktivitetMapping, output)
 		return this
 	}
@@ -31,10 +32,10 @@ class HandledResult(
 open class AktivitetResult(
 	val position: String,
 	val arenaDataDbo: ArenaDataDbo,
-	val deltakerAktivitetMapping: MutableList<DeltakerAktivitetMappingDbo>
+	val deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>
 ) {
 	fun expectHandled(check: (data: HandledResult) -> Unit) {
-		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but wa ${this.arenaDataDbo.ingestStatus}")
+		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but was ${this.arenaDataDbo.ingestStatus}")
 		check(this)
 	}
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
@@ -42,7 +43,7 @@ open class AktivitetResult(
 		return this
 	}
 
-	open fun result(check: (arenaDataDbo: ArenaDataDbo, deltakerAktivitetMapping: MutableList<DeltakerAktivitetMappingDbo>, output: KafkaMessageDto?) -> Unit): AktivitetResult {
+	open fun result(check: (arenaDataDbo: ArenaDataDbo, deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>, output: KafkaMessageDto?) -> Unit): AktivitetResult {
 		check(arenaDataDbo, deltakerAktivitetMapping, null)
 		return this
 	}

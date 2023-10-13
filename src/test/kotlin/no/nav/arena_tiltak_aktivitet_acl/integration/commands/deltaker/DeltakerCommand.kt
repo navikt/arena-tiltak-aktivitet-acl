@@ -2,16 +2,17 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker
 
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltaker
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
-abstract class DeltakerCommand(val tiltakDeltakerId: Long) : Command(tiltakDeltakerId.toString()) {
+abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(tiltakDeltakerId.value.toString()) {
 
 	abstract fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto
 
 	fun createPayload(input: DeltakerInput): JsonNode {
-		val data = ArenaDeltaker(
-			TILTAKDELTAKER_ID = input.tiltakDeltakerId,
+		val data = ArenaDeltakelse(
+			TILTAKDELTAKER_ID = input.tiltakDeltakelseId.value,
 			PERSON_ID = input.personId,
 			TILTAKGJENNOMFORING_ID = input.tiltakgjennomforingId,
 			DELTAKERSTATUSKODE = input.deltakerStatusKode,

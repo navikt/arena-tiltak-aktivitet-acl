@@ -85,7 +85,7 @@ open class RetryArenaMessageProcessorService(
 					)
 					ArenaTableName.DELTAKER -> deltakerProcessor.handleArenaMessage(toArenaKafkaMessage(arenaDataDbo))
 				}
-			} catch (e: Exception) {
+			} catch (e: Throwable) {
 				val currentIngestAttempts = arenaDataDbo.ingestAttempts + 1
 				val hasReachedMaxRetries = currentIngestAttempts >= MAX_INGEST_ATTEMPTS
 
@@ -95,6 +95,7 @@ open class RetryArenaMessageProcessorService(
 				} else if (arenaDataDbo.ingestStatus == IngestStatus.RETRY && hasReachedMaxRetries) {
 					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.FAILED)
 				}
+				log.error("feilet retry-behandling av medling med arenaId: ${arenaDataDbo.arenaId}, id: ${arenaDataDbo.id}, tabell: ${arenaDataDbo.arenaTableName}", e)
 				arenaDataRepository.updateIngestAttempts(arenaDataDbo.id, currentIngestAttempts, e.message)
 			}
 		}

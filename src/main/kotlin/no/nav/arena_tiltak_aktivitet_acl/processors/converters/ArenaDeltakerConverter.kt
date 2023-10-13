@@ -1,7 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors.converters
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltaker
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltakelse
 import java.util.*
 
 object ArenaDeltakerConverter {
@@ -57,16 +57,15 @@ object ArenaDeltakerConverter {
 	}
 
 	fun convertToTiltaksaktivitet(
-        deltaker: TiltakDeltaker,
-        aktivitetId: UUID,
-        personIdent: String,
-        arrangorNavn: String?,
-        gjennomforingNavn: String,
-        tiltak: Tiltak,
-        erNyAktivitet: Boolean,
+		deltaker: TiltakDeltakelse,
+		aktivitetskortId: UUID,
+		personIdent: String,
+		arrangorNavn: String?,
+		gjennomforingNavn: String,
+		tiltak: Tiltak,
 	): Aktivitetskort {
 		return Aktivitetskort(
-			id = aktivitetId,
+			id = aktivitetskortId,
 			personIdent = personIdent,
 			tittel = toTittel(gjennomforingNavn, tiltak.kode),
 			aktivitetStatus = toAktivitetStatus(deltaker.deltakerStatusKode),
@@ -77,9 +76,8 @@ object ArenaDeltakerConverter {
 				toDeltakelseStatus(deltaker.deltakerStatusKode)?.toEtikett()
 			),
 			beskrivelse = if (tiltak.kode == JOBBKLUBB) gjennomforingNavn else null,
-			endretTidspunkt = if (erNyAktivitet) deltaker.regDato else deltaker.modDato ?: throw IllegalArgumentException("Missing modDato"),
-			endretAv = if (erNyAktivitet) Ident(ident = deltaker.regUser ?: throw IllegalArgumentException("Missing regUser"))
-			           else Ident(ident = deltaker.modUser ?: throw IllegalArgumentException("Missing modUser")),
+			endretTidspunkt = deltaker.modDato ?: deltaker.regDato,
+			endretAv = Ident(ident = deltaker.modUser ?: deltaker.regUser ?: throw IllegalArgumentException("Missing modUser")),
 			detaljer = listOfNotNull(
 				if (arrangorNavn != null) Attributt("Arrangør", arrangorNavn) else null,
 				if (deltaker.prosentDeltid != null) Attributt("Deltakelse", "${deltaker.prosentDeltid}%") else null,

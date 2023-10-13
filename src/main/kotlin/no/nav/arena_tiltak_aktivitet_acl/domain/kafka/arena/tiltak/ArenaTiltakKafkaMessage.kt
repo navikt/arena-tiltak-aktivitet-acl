@@ -6,4 +6,4 @@ typealias ArenaTiltakKafkaMessage = ArenaKafkaMessage<ArenaTiltak>
 
 typealias ArenaGjennomforingKafkaMessage = ArenaKafkaMessage<ArenaGjennomforingDto>
 
-typealias ArenaDeltakerKafkaMessage = ArenaKafkaMessage<ArenaDeltaker>
+typealias ArenaDeltakerKafkaMessage = ArenaKafkaMessage<ArenaDeltakelse>

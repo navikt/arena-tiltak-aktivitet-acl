@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 class OppdaterDeltakerCommand(
 	val oldDeltakerData: DeltakerInput,
 	val updatedDeltakerData: DeltakerInput
-) : DeltakerCommand(updatedDeltakerData.tiltakDeltakerId) {
+) : DeltakerCommand(updatedDeltakerData.tiltakDeltakelseId) {
 	override fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto =
 		ArenaKafkaMessageDto(
 			table = ArenaTableName.DELTAKER,

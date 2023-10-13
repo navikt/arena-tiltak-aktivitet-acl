@@ -3,10 +3,11 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker
 import java.time.LocalDate
 import java.time.LocalDateTime
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Ident
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import kotlin.random.Random
 
 data class DeltakerInput(
-	val tiltakDeltakerId: Long,
+	val tiltakDeltakelseId: DeltakelseId,
 	val tiltakgjennomforingId: Long,
 	val personId: Long? = Random.nextLong(),
 	val datoFra: LocalDate = LocalDate.now().minusDays(2),

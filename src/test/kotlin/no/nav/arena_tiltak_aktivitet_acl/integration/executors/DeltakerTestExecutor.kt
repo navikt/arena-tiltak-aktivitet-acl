@@ -1,19 +1,16 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import io.kotest.common.runBlocking
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withTimeout
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.HandledResult
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakerAktivitetMappingRepository
@@ -46,8 +43,8 @@ class DeltakerTestExecutor(
 			command.tiltakDeltakerId.toString()
 		)
 	}
-	private suspend fun waitForRecord(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
-		return withTimeout(50000) {
+	private suspend fun waitForAktivitetskortOnOutgoingTopic(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
+		return withTimeout(5000) {
 			messageFlow.first { isCorrectRecord(it) }
 		}
 	}
@@ -58,13 +55,14 @@ class DeltakerTestExecutor(
 	}
 
 	private fun getResults(wrapper: ArenaKafkaMessageDto): AktivitetResult {
-		val arenaData = getArenaData(
+		val arenaData = pollArenaData(
 			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
 			wrapper.pos
 		)
 
-		var deltakerAktivitetMapping: MutableList<DeltakerAktivitetMappingDbo> = deltakerAktivitetMappingRepository.get(arenaData.arenaId.toLong(), AktivitetKategori.TILTAKSAKTIVITET)
+		val deltakelseId = DeltakelseId(arenaData.arenaId.toLong())
+		var deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		// There is no ack for messages which are put in retry,
 		// use translation-table for checking if record is processed <- GJELDER IKKE LENGER
 		when (arenaData.ingestStatus) {
@@ -74,10 +72,10 @@ class DeltakerTestExecutor(
 			}
 			IngestStatus.HANDLED -> {
 				val message: TestRecord = runBlocking {
-					waitForRecord {
-						deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(arenaData.arenaId.toLong(), AktivitetKategori.TILTAKSAKTIVITET)
-						deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == it.melding.aktivitetskort.id
-						}}
+					waitForAktivitetskortOnOutgoingTopic {
+						deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+						deltakerAktivitetMapping.any { a -> it.melding.aktivitetskort.id == a.aktivitetId }
+					}
 				}
 				return HandledResult(
 					arenaData.operationPosition,

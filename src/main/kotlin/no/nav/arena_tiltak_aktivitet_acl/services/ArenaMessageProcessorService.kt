@@ -68,7 +68,7 @@ open class ArenaMessageProcessorService(
 
 		try {
 			processor.handleArenaMessage(msg)
-		} catch (e: Exception) {
+		} catch (e: Throwable) {
 			when (e) {
 				is DependencyNotIngestedException -> {
 					log.info("Dependency for $arenaId in table $arenaTableName is not ingested: '${e.message}'")
