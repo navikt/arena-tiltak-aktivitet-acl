@@ -4,6 +4,7 @@ import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.ints.exactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
@@ -22,10 +23,10 @@ import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
-import org.mockito.ArgumentMatchers.anyLong
-import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.*
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -136,26 +137,28 @@ class DeltakerProcessorTest : FunSpec({
 		translationEntry shouldNotBe null
 	}
 
-	test("Skal kaste ignored exception for ignorerte statuser") {
+	test("Skal ikke sende ut aktivitetskort for ignorerte statuser") {
 		val statuser = listOf("VENTELISTE", "AKTUELL", "JATAKK", "INFOMOETE")
 
-		shouldThrowExactly<IgnoredException> {
-			createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
-				tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
-				deltakerArenaId = 1,
-				deltakerStatusKode = "AKTUELL"
-			))
+		createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
+			tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
+			deltakerArenaId = 1,
+			deltakerStatusKode = "AKTUELL"
+		))
+		verify(exactly = 0)  {
+			kafkaProducerService.sendTilAktivitetskortTopic(any(), any(), any())
 		}
 
 		statuser.forEachIndexed { idx, status ->
-
 			createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
 				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 				deltakerArenaId = idx.toLong() + 1,
 				deltakerStatusKode = status
 			))
-
 			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
+			verify(exactly(1)) {
+				kafkaProducerService.sendTilAktivitetskortTopic(any(), any(), any())
+			}
 		}
 	}
 

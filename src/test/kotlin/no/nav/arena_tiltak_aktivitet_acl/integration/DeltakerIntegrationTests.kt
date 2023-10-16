@@ -683,7 +683,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
 		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored)
-		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.IGNORED
+		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
 
 		val deltakerInput = deltakerInputIgnored.copy(deltakerStatusKode = "GJENN")
 		val deltakerCommand = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInput)
