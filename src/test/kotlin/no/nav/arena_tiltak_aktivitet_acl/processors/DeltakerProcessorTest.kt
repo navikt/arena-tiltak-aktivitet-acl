@@ -6,6 +6,7 @@ import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.mockk.*
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
@@ -22,10 +23,6 @@ import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
-import org.mockito.ArgumentMatchers.anyLong
-import org.mockito.ArgumentMatchers.anyString
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.mock
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -35,8 +32,10 @@ class DeltakerProcessorTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
 
-	val ordsClient = mock<ArenaOrdsProxyClient> {
-		on { hentFnr(anyLong()) } doReturn "01010051234"
+	val ordsClient by lazy {
+		val client = mockk<ArenaOrdsProxyClient>()
+		every { client.hentFnr(any<Long>()) } returns "01010051234"
+		client
 	}
 
 	val defaultOppfolgingsperioder = listOf(
@@ -52,12 +51,13 @@ class DeltakerProcessorTest : FunSpec({
 		)
 	)
 
-	val kafkaProducerService = mock<KafkaProducerService>()
+	val kafkaProducerService = mockk<KafkaProducerService>(relaxUnitFun = true)
 
 	lateinit var arenaDataRepository: ArenaDataRepository
 	lateinit var idArenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	lateinit var personSporingRepository: PersonSporingRepository
 
+	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
 	val ignoredGjennomforingArenaId = 2L
 
@@ -66,6 +66,7 @@ class DeltakerProcessorTest : FunSpec({
 		arenaDataRepository = ArenaDataRepository(template)
 		idArenaIdTilAktivitetskortIdRepository = ArenaIdTilAktivitetskortIdRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
+		clearMocks(kafkaProducerService)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
 	}
@@ -73,9 +74,8 @@ class DeltakerProcessorTest : FunSpec({
 	fun createDeltakerProcessor(oppfolgingsperioder: List<Oppfolgingsperiode> = defaultOppfolgingsperioder): DeltakerProcessor {
 		val template = NamedParameterJdbcTemplate(dataSource)
 
-		val oppfolgingClient = mock<OppfolgingClient> {
-			on { hentOppfolgingsperioder(anyString()) } doReturn oppfolgingsperioder
-		}
+		val oppfolgingClient = mockk<OppfolgingClient>()
+		every { oppfolgingClient.hentOppfolgingsperioder(any()) } returns oppfolgingsperioder
 
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
@@ -125,38 +125,31 @@ class DeltakerProcessorTest : FunSpec({
 			tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 			deltakerArenaId = 1L
 		)
-
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
-
-
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-
 		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
-
 		translationEntry shouldNotBe null
 	}
 
-	test("Skal kaste ignored exception for ignorerte statuser") {
+	test("Skal ikke sende ut aktivitetskort for ignorerte statuser") {
 		val statuser = listOf("VENTELISTE", "AKTUELL", "JATAKK", "INFOMOETE")
 
-		shouldThrowExactly<IgnoredException> {
-			createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
-				tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
-				deltakerArenaId = 1,
-				deltakerStatusKode = "AKTUELL"
-			))
-		}
+		createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
+			tiltakGjennomforingArenaId = ignoredGjennomforingArenaId,
+			deltakerArenaId = 1,
+			deltakerStatusKode = "AKTUELL"
+		))
+		verify { kafkaProducerService wasNot Called }
 
 		statuser.forEachIndexed { idx, status ->
-
 			createDeltakerProcessor().handleArenaMessage(createArenaDeltakerKafkaMessage(
 				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
 				deltakerArenaId = idx.toLong() + 1,
 				deltakerStatusKode = status
 			))
-
 			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
 		}
+		verify(exactly = statuser.size) { kafkaProducerService.sendTilAktivitetskortTopic(any(), any(), any()) }
 	}
 
 	test("Insert Deltaker with gjennomføring not processed should throw exception") {
