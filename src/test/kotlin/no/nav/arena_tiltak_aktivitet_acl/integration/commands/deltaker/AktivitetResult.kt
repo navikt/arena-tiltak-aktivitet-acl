@@ -23,11 +23,13 @@ class HandledResult(
 		check(output.aktivitetskort)
 		return this
 	}
-	override fun result(check: (arenaDataDbo: ArenaDataDbo, deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>, output: KafkaMessageDto?) -> Unit): AktivitetResult {
-		check(arenaDataDbo, deltakerAktivitetMapping, output)
-		return this
-	}
 }
+
+class HandledAndIgnored(
+	position: String,
+	arenaDataDbo: ArenaDataDbo,
+	deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>,
+): AktivitetResult(position, arenaDataDbo, deltakerAktivitetMapping)
 
 open class AktivitetResult(
 	val position: String,
@@ -38,13 +40,13 @@ open class AktivitetResult(
 		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but was ${this.arenaDataDbo.ingestStatus}")
 		check(this)
 	}
+
+	fun expectHandledAndIngored(check: (data: HandledAndIgnored) -> Unit) {
+		if (this !is HandledAndIgnored) fail("Expected arena message to have ingest status HANDLED and to be ignored but was ${this.arenaDataDbo.ingestStatus}")
+		check(this)
+	}
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {
 		check.invoke(arenaDataDbo)
-		return this
-	}
-
-	open fun result(check: (arenaDataDbo: ArenaDataDbo, deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>, output: KafkaMessageDto?) -> Unit): AktivitetResult {
-		check(arenaDataDbo, deltakerAktivitetMapping, null)
 		return this
 	}
 }

@@ -37,10 +37,11 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	fun execute(command: DeltakerCommand): AktivitetResult {
+	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true): AktivitetResult {
 		return sendAndCheck(
 			command.toArenaKafkaMessageDto(incrementAndGetPosition()),
-			command.tiltakDeltakerId.toString()
+			command.tiltakDeltakerId.toString(),
+			expectAktivitetskortOnTopic
 		)
 	}
 	private suspend fun waitForAktivitetskortOnOutgoingTopic(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
@@ -49,12 +50,12 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto, tiltakDeltakerId: String): AktivitetResult {
+	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto, tiltakDeltakerId: String, expectAktivitetskortOnTopic: Boolean): AktivitetResult {
 		sendKafkaMessage(topic, objectMapper.writeValueAsString(wrapper), tiltakDeltakerId)
-		return getResults(wrapper)
+		return getResults(wrapper, expectAktivitetskortOnTopic)
 	}
 
-	private fun getResults(wrapper: ArenaKafkaMessageDto): AktivitetResult {
+	private fun getResults(wrapper: ArenaKafkaMessageDto, expectAktivitetskortOnTopic: Boolean): AktivitetResult {
 		val arenaData = pollArenaData(
 			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
@@ -68,9 +69,16 @@ class DeltakerTestExecutor(
 		when (arenaData.ingestStatus) {
 			IngestStatus.IGNORED, IngestStatus.INVALID -> {}
 			IngestStatus.NEW -> {}
-			IngestStatus.QUEUED, IngestStatus.RETRY, IngestStatus.FAILED -> {
-			}
+			IngestStatus.QUEUED, IngestStatus.RETRY, IngestStatus.FAILED -> {}
 			IngestStatus.HANDLED -> {
+				if (!expectAktivitetskortOnTopic) {
+					return HandledAndIgnored(
+						arenaData.operationPosition,
+						arenaData,
+						deltakerAktivitetMapping
+					)
+				}
+
 				val message: TestRecord = runBlocking {
 					waitForAktivitetskortOnOutgoingTopic {
 						deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
