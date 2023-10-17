@@ -28,8 +28,8 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConv
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.JOBBKLUBB
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -42,13 +42,12 @@ import org.mockito.kotlin.doThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.http.HttpStatus
-import java.lang.IllegalStateException
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 import kotlin.random.Random
 
 class DeltakerIntegrationTests : IntegrationTestBase() {
@@ -763,9 +762,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	private fun <T> any(type: Class<T>): T = Mockito.any<T>(type)
 
 	@Test
-	fun `skal ikke opprettet aktivitetId (i mappingtabell) hvis sending av kafkamelding feiler`() {
-		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService)
-			.sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
+	fun `skal ikke opprettet aktivitetId (i mappingtabell) men ingeststatus oppdatereshvis sending av kafkamelding feiler`() {
+		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService).sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -775,7 +773,10 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			endretAv = Ident(ident = "SIG123"),
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
-		deltakerExecutor.execute(deltakerCommand)
+		deltakerExecutor.execute(deltakerCommand).arenaData { arenaData ->
+				arenaData.ingestStatus shouldBe IngestStatus.RETRY
+				arenaData.note shouldBe "LOL"
+		}
 		arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
 	}
 
