@@ -22,6 +22,8 @@ import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Comp
 import no.nav.arena_tiltak_aktivitet_acl.utils.SecureLog.secureLog
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
@@ -46,6 +48,7 @@ open class DeltakerProcessor(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	override fun handleArenaMessage(message: ArenaDeltakerKafkaMessage) {
 		val arenaDeltaker = message.getData()
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
@@ -118,15 +121,15 @@ open class DeltakerProcessor(
 			oppfolgingsSluttDato = oppfolgingsperiodePaaEndringsTidspunkt.sluttDato
 		)
 		val outgoingMessage = aktivitet.toKafkaMessage()
+		secureLog.info("Melding for aktivitetskort id=${endring.aktivitetskortId} arenaId=${deltakelse.tiltakdeltakelseId} personId=${deltakelse.personId} fnr=$personIdent er sendt")
+		log.info("Melding id=${outgoingMessage.messageId} aktivitetskort id=$endring.aktivitetskortId  arenaId=${deltakelse.tiltakdeltakelseId} type=${outgoingMessage.actionType} er sendt")
+		aktivitetService.upsert(aktivitet, aktivitetskortHeaders)
+		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId))
 		kafkaProducerService.sendTilAktivitetskortTopic(
 			aktivitet.id,
 			outgoingMessage,
 			aktivitetskortHeaders
 		)
-		secureLog.info("Melding for aktivitetskort id=${endring.aktivitetskortId} arenaId=${deltakelse.tiltakdeltakelseId} personId=${deltakelse.personId} fnr=$personIdent er sendt")
-		log.info("Melding id=${outgoingMessage.messageId} aktivitetskort id=$endring.aktivitetskortId  arenaId=${deltakelse.tiltakdeltakelseId} type=${outgoingMessage.actionType} er sendt")
-		aktivitetService.upsert(aktivitet, aktivitetskortHeaders)
-		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId))
 	}
 
 	//	Alle tiltaksaktiviteter hentes med unntak for tiltak av

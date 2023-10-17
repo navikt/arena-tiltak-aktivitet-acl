@@ -30,14 +30,19 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
+import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import org.mockito.Mockito
+import org.mockito.kotlin.doThrow
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.http.HttpStatus
+import java.lang.IllegalStateException
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -56,6 +61,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Autowired
 	lateinit var arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
+
+	@SpyBean
+	lateinit var kafkaProducerService: KafkaProducerService
 
 	data class TestData(
 		val gjennomforingId: Long = Random.nextLong(),
@@ -750,6 +758,25 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
 				data.aktivitetskort { it.id shouldBe foersteAktivitetsId }
 			}
+	}
+
+	private fun <T> any(type: Class<T>): T = Mockito.any<T>(type)
+
+	@Test
+	fun `skal ikke opprettet aktivitetId (i mappingtabell) hvis sending av kafkamelding feiler`() {
+		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService)
+			.sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand)
+		arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
 	}
 
 
