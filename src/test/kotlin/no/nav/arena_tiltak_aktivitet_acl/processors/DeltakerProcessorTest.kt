@@ -54,8 +54,8 @@ class DeltakerProcessorTest : FunSpec({
 	val kafkaProducerService = mockk<KafkaProducerService>(relaxUnitFun = true)
 
 	lateinit var arenaDataRepository: ArenaDataRepository
-	lateinit var idArenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	lateinit var personSporingRepository: PersonSporingRepository
+	lateinit var deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository
 
 	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -64,7 +64,6 @@ class DeltakerProcessorTest : FunSpec({
 	beforeEach {
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
-		idArenaIdTilAktivitetskortIdRepository = ArenaIdTilAktivitetskortIdRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
 		clearMocks(kafkaProducerService)
 
@@ -79,7 +78,6 @@ class DeltakerProcessorTest : FunSpec({
 
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
-			arenaIdArenaIdTilAktivitetskortIdService = ArenaIdTilAktivitetskortIdService(idArenaIdTilAktivitetskortIdRepository),
 			kafkaProducerService = kafkaProducerService,
 			aktivitetService = AktivitetService(AktivitetRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
@@ -127,7 +125,7 @@ class DeltakerProcessorTest : FunSpec({
 		)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = deltakerAktivitetMappingRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
 
@@ -183,7 +181,7 @@ class DeltakerProcessorTest : FunSpec({
 			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = deltakerAktivitetMappingRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
 

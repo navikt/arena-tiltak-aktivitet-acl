@@ -5,7 +5,6 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
-import no.nav.arena_tiltak_aktivitet_acl.repositories.OppfolginsPeriodeId
 import org.junit.jupiter.api.fail
 
 class HandledResult(

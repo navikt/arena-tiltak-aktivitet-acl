@@ -28,7 +28,7 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConv
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.JOBBKLUBB
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakerAktivitetMappingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
@@ -59,8 +59,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	lateinit var arenaDataRepository: ArenaDataRepository
 
 	@Autowired
-	lateinit var arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
-
+	lateinit var deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository
 	@SpyBean
 	lateinit var kafkaProducerService: KafkaProducerService
 
@@ -233,7 +232,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		// Cron-job
 		processMessages()
 
-		val aktivitetId = arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
+		val aktivitetId = deltakerAktivitetMappingRepository.getCurrentAktivitetsId(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)
 		aktivitetId shouldNotBe null
 
 		val mapper = ObjectMapper.get()
@@ -291,7 +290,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		// Cron-job
 		processFailedMessages()
-		val aktivitetId = arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId!!
+		val aktivitetId = deltakerAktivitetMappingRepository.getCurrentAktivitetsId(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)!!
 
 		fun String.toAktivitetskort() = ObjectMapper.get().readValue(this, Aktivitetskort::class.java)
 
@@ -777,7 +776,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				arenaData.ingestStatus shouldBe IngestStatus.RETRY
 				arenaData.note shouldBe "LOL"
 		}
-		arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
+		deltakerAktivitetMappingRepository.getCurrentAktivitetsId(deltakerId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
 	}
 
 

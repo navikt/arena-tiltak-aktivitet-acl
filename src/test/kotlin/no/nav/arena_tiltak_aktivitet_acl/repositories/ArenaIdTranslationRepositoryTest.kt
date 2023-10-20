@@ -7,7 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import org.slf4j.LoggerFactory
@@ -18,19 +18,20 @@ class ArenaIdTranslationRepositoryTest : FunSpec({
 
 	val dataSource = SingletonPostgresContainer.getDataSource()
 
-	lateinit var repository: ArenaIdTilAktivitetskortIdRepository
+	lateinit var repository: DeltakerAktivitetMappingRepository
 
-	val testObject = TranslationDbo(
+	val testObject = DeltakerAktivitetMappingDbo(
+		deltakelseId = DeltakelseId(123L),
 		aktivitetId = UUID.randomUUID(),
-		arenaId = DeltakelseId(123L),
-		aktivitetKategori = AktivitetKategori.TILTAKSAKTIVITET
+		aktivitetKategori = AktivitetKategori.TILTAKSAKTIVITET,
+		oppfolgingsperiodeUuid = UUID.randomUUID()
 	)
 
 	beforeEach {
 		val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		rootLogger.level = Level.WARN
 
-		repository = ArenaIdTilAktivitetskortIdRepository(NamedParameterJdbcTemplate(dataSource))
+		repository = DeltakerAktivitetMappingRepository(NamedParameterJdbcTemplate(dataSource))
 
 		DatabaseTestUtils.cleanDatabase(dataSource)
 	}
@@ -38,10 +39,9 @@ class ArenaIdTranslationRepositoryTest : FunSpec({
 	test("Insert and get should return inserted object") {
 		repository.insert(testObject)
 
-		val stored = repository.get(testObject.arenaId, AktivitetKategori.TILTAKSAKTIVITET)
+		val stored = repository.getCurrentAktivitetsId(testObject.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 
 		stored shouldNotBe null
-		stored!!.aktivitetId shouldBe testObject.aktivitetId
-		stored.arenaId shouldBe testObject.arenaId
+		stored!! shouldBe testObject.aktivitetId
 	}
 })

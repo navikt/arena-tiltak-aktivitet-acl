@@ -35,7 +35,6 @@ import java.util.*
 @Component
 open class DeltakerProcessor(
 	private val arenaDataRepository: ArenaDataRepository,
-	private val arenaIdArenaIdTilAktivitetskortIdService: ArenaIdTilAktivitetskortIdService,
 	private val kafkaProducerService: KafkaProducerService,
 	private val gjennomforingRepository: GjennomforingRepository,
 	private val aktivitetService: AktivitetService,
@@ -95,10 +94,8 @@ open class DeltakerProcessor(
 				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
 					"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
 				endring.oppdaterMappingMedNyId(deltakelse.tiltakdeltakelseId)
-				arenaIdArenaIdTilAktivitetskortIdService.setCurrentAktivitetskortIdForDeltakerId(deltakelse.tiltakdeltakelseId, endring.aktivitetskortId)
 			}
 			is EndringsType.NyttAktivitetskort -> {
-				arenaIdArenaIdTilAktivitetskortIdService.opprettAktivitetsId(endring.aktivitetskortId, deltakelse.tiltakdeltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 				endring.oppdaterMappingMedNyId(deltakelse.tiltakdeltakelseId)
 			}
 			is EndringsType.OppdaterAktivitet -> {}
