@@ -14,3 +14,5 @@ update deltaker_aktivitet_mapping set gjeldende = true where aktivitet_id in (
                                        join aktivitet on deltaker_aktivitet_mapping.aktivitet_id = aktivitet.id
                               order by deltaker_id, slutt desc) nyesteEntry
 );
+
+drop table translation;
