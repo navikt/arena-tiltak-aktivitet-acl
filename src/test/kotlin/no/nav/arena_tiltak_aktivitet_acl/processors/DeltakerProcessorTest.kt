@@ -65,6 +65,7 @@ class DeltakerProcessorTest : FunSpec({
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
+		deltakerAktivitetMappingRepository = DeltakerAktivitetMappingRepository(template)
 		clearMocks(kafkaProducerService)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
