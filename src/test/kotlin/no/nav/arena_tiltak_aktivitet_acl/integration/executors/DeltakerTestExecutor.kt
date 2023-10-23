@@ -12,15 +12,15 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakerAktivitetMappingRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
 
 class DeltakerTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
 	arenaDataRepository: ArenaDataRepository,
-	val deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository
+	val aktivitetRepository: AktivitetRepository
 ) : TestExecutor(
 	kafkaProducer = kafkaProducer,
 	arenaDataRepository = arenaDataRepository,
@@ -63,7 +63,7 @@ class DeltakerTestExecutor(
 		)
 
 		val deltakelseId = DeltakelseId(arenaData.arenaId.toLong())
-		var deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+		var deltakerAktivitetMapping = aktivitetRepository.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		// There is no ack for messages which are put in retry,
 		// use translation-table for checking if record is processed <- GJELDER IKKE LENGER
 		when (arenaData.ingestStatus) {
@@ -81,8 +81,8 @@ class DeltakerTestExecutor(
 
 				val message: TestRecord = runBlocking {
 					waitForAktivitetskortOnOutgoingTopic {
-						deltakerAktivitetMapping = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
-						deltakerAktivitetMapping.any { a -> it.melding.aktivitetskort.id == a.aktivitetId }
+						deltakerAktivitetMapping = aktivitetRepository.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+						deltakerAktivitetMapping.any { a -> it.melding.aktivitetskort.id == a.id }
 					}
 				}
 				return HandledResult(

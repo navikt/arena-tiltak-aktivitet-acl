@@ -5,12 +5,13 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetIdAndOppfolgingsPeriode
 import org.junit.jupiter.api.fail
 
 class HandledResult(
 	position: String,
 	arenaDataDbo: ArenaDataDbo,
-	deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>,
+	deltakerAktivitetMapping: List<AktivitetIdAndOppfolgingsPeriode>,
 	val output: KafkaMessageDto,
 	val headers: AktivitetskortHeaders
 ): AktivitetResult(position, arenaDataDbo, deltakerAktivitetMapping) {
@@ -27,13 +28,13 @@ class HandledResult(
 class HandledAndIgnored(
 	position: String,
 	arenaDataDbo: ArenaDataDbo,
-	deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>,
+	deltakerAktivitetMapping: List<AktivitetIdAndOppfolgingsPeriode>,
 ): AktivitetResult(position, arenaDataDbo, deltakerAktivitetMapping)
 
 open class AktivitetResult(
 	val position: String,
 	val arenaDataDbo: ArenaDataDbo,
-	val deltakerAktivitetMapping: List<DeltakerAktivitetMappingDbo>
+	val deltakerAktivitetMapping: List<AktivitetIdAndOppfolgingsPeriode>
 ) {
 	fun expectHandled(check: (data: HandledResult) -> Unit) {
 		if (this !is HandledResult) fail("Expected arena message to have ingest status HANDLED but was ${this.arenaDataDbo.ingestStatus}")

@@ -128,10 +128,9 @@ open class IntegrationTestConfiguration(
 	open fun deltakerExecutor(
 		kafkaProducer: KafkaProducerClientImpl<String, String>,
 		arenaDataRepository: ArenaDataRepository,
-		deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository,
 		aktivitetRepository: AktivitetRepository
 	): DeltakerTestExecutor {
-		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, deltakerAktivitetMappingRepository)
+		return DeltakerTestExecutor(kafkaProducer, arenaDataRepository, aktivitetRepository)
 	}
 
 	@Bean

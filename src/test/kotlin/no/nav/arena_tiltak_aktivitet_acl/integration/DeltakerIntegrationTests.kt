@@ -29,7 +29,6 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConv
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.JOBBKLUBB
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakerAktivitetMappingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
@@ -102,7 +101,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			handledResult.aktivitetskort {
 				aktivitetId = it.id
 			}
-			handledResult.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == aktivitetId} shouldBe true
+			handledResult.deltakerAktivitetMapping.any { mapping -> mapping.id == aktivitetId} shouldBe true
 		}
 
 		val translation = hentTranslationMedRestClient(deltakerId)
@@ -143,7 +142,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			it.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == it.output.aktivitetskort.id} shouldBe true
+			it.deltakerAktivitetMapping.any { mapping -> mapping.id == it.output.aktivitetskort.id} shouldBe true
 			it.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			it.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakelseId
@@ -331,13 +330,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			r.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == r.output.aktivitetskort.id } shouldBe true
+			r.deltakerAktivitetMapping.any { mapping -> mapping.id == r.output.aktivitetskort.id } shouldBe true
 			r.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 		}
 
 		updatedResult.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			r.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == r.output.aktivitetskort.id } shouldBe true
+			r.deltakerAktivitetMapping.any { mapping -> mapping.id == r.output.aktivitetskort.id } shouldBe true
 			r.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak, gjennomforingInput) }
 		}
 	}

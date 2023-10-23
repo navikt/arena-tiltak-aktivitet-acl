@@ -17,7 +17,6 @@ import no.nav.arena_tiltak_aktivitet_acl.exceptions.OppfolgingsperiodeNotFoundEx
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.OutOfOrderException
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakerAktivitetMappingRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.GjennomforingRepository
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService.Companion.defaultSlakk
@@ -41,7 +40,6 @@ open class DeltakerProcessor(
 	private val tiltakService: TiltakService,
 	private val personsporingService: PersonsporingService,
 	private val oppfolgingsperiodeService: OppfolgingsperiodeService,
-	private val deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
 
 	companion object {
@@ -93,11 +91,8 @@ open class DeltakerProcessor(
 			is EndringsType.NyttAktivitetskortByttPeriode  -> {
 				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
 					"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
-				endring.oppdaterMappingMedNyId(deltakelse.tiltakdeltakelseId)
 			}
-			is EndringsType.NyttAktivitetskort -> {
-				endring.oppdaterMappingMedNyId(deltakelse.tiltakdeltakelseId)
-			}
+			is EndringsType.NyttAktivitetskort -> {}
 			is EndringsType.OppdaterAktivitet -> {}
 		}
 
@@ -164,9 +159,9 @@ open class DeltakerProcessor(
 
 	private fun utledEndringsType(oppfolgingsperiode: Oppfolgingsperiode, deltakelseId: DeltakelseId, deltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode): EndringsType {
 		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode)
-		val oppfolgingsperiodeTilAktivitetskortId = deltakerAktivitetMappingRepository.get(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+		val oppfolgingsperiodeTilAktivitetskortId = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
-			.firstOrNull { it.oppfolgingsperiodeUuid == oppfolgingsperiode.uuid }?.aktivitetId
+			.firstOrNull { it.oppfolgingsPeriode == oppfolgingsperiode.uuid }?.id
 		return when {
 			// Har tidligere deltakelse på samme oppfolgingsperiode
 			eksisterendeAktivitetsId != null -> EndringsType.OppdaterAktivitet(eksisterendeAktivitetsId, skalIgnoreres)
@@ -174,22 +169,6 @@ open class DeltakerProcessor(
 			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(oppfolgingsperiode, skalIgnoreres)
 			// Har tidligere deltakelse men ikke på samme oppfølgingsperiode
 			else -> EndringsType.NyttAktivitetskortByttPeriode(oppfolgingsperiode, skalIgnoreres)
-		}
-	}
-
-	fun EndringsType.oppdaterMappingMedNyId(deltakelseId: DeltakelseId) {
-		when (this) {
-			is EndringsType.NyttAktivitetskort ->  this.oppfolgingsperiode
-			is EndringsType.NyttAktivitetskortByttPeriode -> this.oppfolgingsperiode
-			is EndringsType.OppdaterAktivitet -> null
-		}?.let {
-			deltakerAktivitetMappingRepository.insert(
-				DeltakerAktivitetMappingDbo(
-				deltakelseId = deltakelseId,
-				aktivitetId = this.aktivitetskortId,
-				aktivitetKategori = AktivitetKategori.TILTAKSAKTIVITET,
-				oppfolgingsperiodeUuid = it.uuid)
-			)
 		}
 	}
 }
