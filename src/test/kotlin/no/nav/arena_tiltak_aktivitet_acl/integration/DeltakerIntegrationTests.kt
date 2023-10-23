@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldMatch
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
@@ -58,8 +59,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Autowired
 	lateinit var arenaDataRepository: ArenaDataRepository
 
-	@Autowired
-	lateinit var deltakerAktivitetMappingRepository: DeltakerAktivitetMappingRepository
 	@SpyBean
 	lateinit var kafkaProducerService: KafkaProducerService
 
@@ -232,7 +231,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		// Cron-job
 		processMessages()
 
-		val aktivitetId = deltakerAktivitetMappingRepository.getCurrentAktivitetsId(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)
+		val aktivitetId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second
 		aktivitetId shouldNotBe null
 
 		val mapper = ObjectMapper.get()
@@ -290,7 +289,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		// Cron-job
 		processFailedMessages()
-		val aktivitetId = deltakerAktivitetMappingRepository.getCurrentAktivitetsId(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)!!
+		val aktivitetId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second!!
 
 		fun String.toAktivitetskort() = ObjectMapper.get().readValue(this, Aktivitetskort::class.java)
 
@@ -776,14 +775,16 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				arenaData.ingestStatus shouldBe IngestStatus.RETRY
 				arenaData.note shouldBe "LOL"
 		}
-		deltakerAktivitetMappingRepository.getCurrentAktivitetsId(deltakerId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
+		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldBe null
 	}
 
+	private val idMappingClient: IdMappingClient by lazy {
+		val token = issueAzureAdM2MToken()
+		IdMappingClient(port!!) { token }
+	}
 
 	private fun hentTranslationMedRestClient(deltakerId: DeltakelseId): UUID? {
-		val token = issueAzureAdM2MToken()
-		val client = IdMappingClient(port!!) { token }
-		return client.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+		return idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
 			.let { (response, result) ->
 				response.isSuccessful shouldBe true
 				result
