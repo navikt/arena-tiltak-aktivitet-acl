@@ -676,7 +676,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `skal takle tidligere ignorerte deltakelser uten å krasje på duplicate key i arenaId til aktivitetId mapping`() {
+	fun `skal lage id-mapping på tidligere ignorerte deltakelser men ikke publisere aktivitetskort før ikke-ignorert tilstand`() {
 		val (gjennomforingId, deltakelseId, _) = setup(Tiltak.Administrasjonskode.INST)
 		val deltakerInputIgnored = DeltakerInput(
 			tiltakDeltakelseId = deltakelseId,
@@ -688,6 +688,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
 		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
 		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
+		aktivitetResultIgnored.arenaDataDbo.note shouldBe "foreløpig ignorert"
+
+		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
 
 		val deltakerInput = deltakerInputIgnored.copy(deltakerStatusKode = "GJENN")
 		val deltakerCommand = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInput)

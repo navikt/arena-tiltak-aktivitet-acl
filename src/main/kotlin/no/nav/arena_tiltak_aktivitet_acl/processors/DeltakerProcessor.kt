@@ -1,7 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
@@ -96,12 +95,6 @@ open class DeltakerProcessor(
 			is EndringsType.OppdaterAktivitet -> {}
 		}
 
-		if (endring.skalIgnoreres) {
-			log.info("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
-			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId))
-			return
-		}
-
 		val aktivitet = ArenaDeltakerConverter
 			.convertToTiltaksaktivitet(
 				deltaker = deltakelse,
@@ -117,10 +110,16 @@ open class DeltakerProcessor(
 			oppfolgingsperiode = oppfolgingsperiodePaaEndringsTidspunkt.uuid,
 			oppfolgingsSluttDato = oppfolgingsperiodePaaEndringsTidspunkt.sluttDato
 		)
-		val outgoingMessage = aktivitet.toKafkaMessage()
 		aktivitetService.upsert(aktivitet, aktivitetskortHeaders)
-		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId))
 
+		if (endring.skalIgnoreres) {
+			log.info("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
+			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "foreløpig ignorert"))
+			return
+		}
+
+		arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId))
+		val outgoingMessage = aktivitet.toKafkaMessage()
 		secureLog.info("Sender melding for aktivitetskort id=${endring.aktivitetskortId} arenaId=${deltakelse.tiltakdeltakelseId} personId=${deltakelse.personId} fnr=$personIdent")
 		log.info("Sender medling messageId=${outgoingMessage.messageId} aktivitetskort id=$endring.aktivitetskortId  arenaId=${deltakelse.tiltakdeltakelseId} type=${outgoingMessage.actionType}")
 		kafkaProducerService.sendTilAktivitetskortTopic(
