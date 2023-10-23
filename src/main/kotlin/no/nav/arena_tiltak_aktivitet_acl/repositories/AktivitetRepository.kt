@@ -1,5 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.repositories
 
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.AvsluttetOppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.*
@@ -94,6 +96,23 @@ open class AktivitetRepository(
 		val params = mapOf("arenaId" to "${aktivitetKategori.prefix}${deltakelseId.value}")
 		return template.query(sql, params) { row, _ ->
 			AktivitetIdAndOppfolgingsPeriode(row.getUUID("id"), row.getUUID("oppfolgingsPeriode")) }
+	}
+
+	fun closeClosedPerioder(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, oppfolgingsperioder: List<AvsluttetOppfolgingsperiode>) {
+		@Language("PostgreSQL")
+		val sql = """
+			UPDATE aktivitet SET oppfolgingsperiode_slutt_tidspunkt = :slutt
+			WHERE arena_id = :arenaId and oppfolgingsperiode_uuid = :oppfolgingsperiode
+		""".trimIndent()
+		val params = oppfolgingsperioder
+			.map {
+				mapOf(
+					"arenaId" to "${aktivitetKategori.prefix}${deltakelseId.value}",
+					"slutt" to it.sluttDato.toOffsetDateTime(),
+					"oppfolgingsperiode" to it.uuid
+				)
+			}.toTypedArray()
+		template.batchUpdate(sql, params)
 	}
 }
 

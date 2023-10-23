@@ -15,3 +15,9 @@ data class Oppfolgingsperiode (
 		return startetIPeriode && foerSluttDato
 	}
 }
+
+data class AvsluttetOppfolgingsperiode (
+	val uuid: UUID,
+	val startDato: ZonedDateTime,
+	val sluttDato: ZonedDateTime
+)

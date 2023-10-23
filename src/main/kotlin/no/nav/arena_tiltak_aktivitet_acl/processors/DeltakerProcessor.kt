@@ -25,9 +25,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.lang.IllegalStateException
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
+import java.time.ZonedDateTime
 import java.util.*
 
 @Component
@@ -84,12 +86,13 @@ open class DeltakerProcessor(
 		 hopper vi ut her, enten med retry eller ignored, siden handleOppfolgingsperiodeNull kaster exception alltid.
 		 Dette er viktig for å ikke opprette ny aktivitetsid før vi faktisk lagrer et aktivitetskort.
 		*/
-		val oppfolgingsperiodePaaEndringsTidspunkt = getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
-		val endring = utledEndringsType(oppfolgingsperiodePaaEndringsTidspunkt, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)
+		val periodeMatch = getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
+		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)
 		when (endring) {
 			is EndringsType.NyttAktivitetskortByttPeriode  -> {
-				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${oppfolgingsperiodePaaEndringsTidspunkt}. " +
+				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${periodeMatch.oppfolgingsperiode.uuid}. " +
 					"Oppretter nytt aktivitetskort for personIdent $personIdent og endrer eksisterende translation entry")
+				syncOppfolgingsperioder(deltakelse.tiltakdeltakelseId, periodeMatch.allePerioder)
 			}
 			is EndringsType.NyttAktivitetskort -> {}
 			is EndringsType.OppdaterAktivitet -> {}
@@ -107,8 +110,8 @@ open class DeltakerProcessor(
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = "${KafkaProducerService.TILTAK_ID_PREFIX}${deltakelse.tiltakdeltakelseId}",
 			tiltakKode = tiltak.kode,
-			oppfolgingsperiode = oppfolgingsperiodePaaEndringsTidspunkt.uuid,
-			oppfolgingsSluttDato = oppfolgingsperiodePaaEndringsTidspunkt.sluttDato
+			oppfolgingsperiode = periodeMatch.oppfolgingsperiode.uuid,
+			oppfolgingsSluttDato = periodeMatch.oppfolgingsperiode.sluttDato
 		)
 		aktivitetService.upsert(aktivitet, aktivitetskortHeaders)
 
@@ -149,26 +152,41 @@ open class DeltakerProcessor(
 		}
 	}
 
-	private fun getOppfolgingsPeriodeOrThrow(deltaker: TiltakDeltakelse, personIdent: String): Oppfolgingsperiode {
-		return deltaker.modDato?.let { modDato -> oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, modDato) }
+	private fun getOppfolgingsPeriodeOrThrow(deltaker: TiltakDeltakelse, personIdent: String): FinnOppfolgingResult.FunnetPeriodeResult {
+		val funnetPeriode = deltaker.modDato
+			?.let { modDato -> oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, modDato) }
 			?: oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, deltaker.regDato)
 				.also { log.info("arenaId: ${deltaker.tiltakdeltakelseId} Fant ikke oppfolgingsperiode på modDato, bruker fallback til regDato") }
-			?: handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakelseId)
+		return when (funnetPeriode) {
+			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
+			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakelseId)
+		}
 	}
 
-	private fun utledEndringsType(oppfolgingsperiode: Oppfolgingsperiode, deltakelseId: DeltakelseId, deltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode): EndringsType {
+	private fun utledEndringsType(
+		periodeMatch: FinnOppfolgingResult.FunnetPeriodeResult,
+		deltakelseId: DeltakelseId,
+		deltakerStatusKode: String,
+		administrasjonskode: Tiltak.Administrasjonskode,
+	): EndringsType {
 		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode)
 		val oppfolgingsperiodeTilAktivitetskortId = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
-			.firstOrNull { it.oppfolgingsPeriode == oppfolgingsperiode.uuid }?.id
+			.firstOrNull { it.oppfolgingsPeriode == periodeMatch.oppfolgingsperiode.uuid }?.id
 		return when {
 			// Har tidligere deltakelse på samme oppfolgingsperiode
 			eksisterendeAktivitetsId != null -> EndringsType.OppdaterAktivitet(eksisterendeAktivitetsId, skalIgnoreres)
 			// Har ingen tidligere aktivitetskort
-			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(oppfolgingsperiode, skalIgnoreres)
+			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(periodeMatch.oppfolgingsperiode, skalIgnoreres)
 			// Har tidligere deltakelse men ikke på samme oppfølgingsperiode
-			else -> EndringsType.NyttAktivitetskortByttPeriode(oppfolgingsperiode, skalIgnoreres)
+			else -> {
+				EndringsType.NyttAktivitetskortByttPeriode(periodeMatch.oppfolgingsperiode, skalIgnoreres)
+			}
 		}
+	}
+
+	fun syncOppfolgingsperioder(deltakelseId: DeltakelseId, oppfolginsperioder: List<Oppfolgingsperiode>) {
+		aktivitetService.closeClosedPerioder(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, oppfolginsperioder)
 	}
 }
 

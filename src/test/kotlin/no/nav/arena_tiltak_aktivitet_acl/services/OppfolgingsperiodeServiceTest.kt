@@ -2,6 +2,7 @@ package no.nav.veilarbaktivitet.aktivitetskort
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
+import no.nav.arena_tiltak_aktivitet_acl.services.FinnOppfolgingResult
 import no.nav.arena_tiltak_aktivitet_acl.services.OppfolgingsperiodeService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -148,7 +149,11 @@ class OppfolgingsperiodeServiceTest {
 		Mockito.`when`(oppfolgingClient.hentOppfolgingsperioder(ArgumentMatchers.anyString()))
 			.thenReturn(perioder)
 
-		return oppfolgingsperiodeService.finnOppfolgingsperiode(FNR, opprettetTidspunkt)
+		val result = oppfolgingsperiodeService.finnOppfolgingsperiode(FNR, opprettetTidspunkt)
+		return when (result) {
+			is FinnOppfolgingResult.FunnetPeriodeResult -> result.oppfolgingsperiode
+			else -> null
+		}
 	}
 
 	private fun oppfperiodeDTO(startDato: ZonedDateTime, sluttDato: ZonedDateTime?): Oppfolgingsperiode {
