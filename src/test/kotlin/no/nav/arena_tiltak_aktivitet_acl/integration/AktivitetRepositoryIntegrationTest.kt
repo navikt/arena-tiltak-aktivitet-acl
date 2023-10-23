@@ -75,7 +75,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			personIdent = "123123123",
 			kategori = AktivitetKategori.TILTAKSAKTIVITET,
 			data = "{}",
-			arenaId = "ARENATA-114",
+			arenaId = "ARENATA-116",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
 			oppfolgingsSluttTidspunkt = ZonedDateTime.now().minusDays(2))
