@@ -27,23 +27,27 @@ open class OppfolgingsperiodeService(
 		val defaultSlakk = Duration.of(7, ChronoUnit.DAYS)
 	}
 
-
-	fun finnOppfolgingsperiode(fnr: String, tidspunkt: LocalDateTime): Oppfolgingsperiode? {
-		val oppfolgingsperioder = oppfolgingClient.hentOppfolgingsperioder(fnr)
+	fun hentAlleOppfolgingsperioder(fnr: String): List<Oppfolgingsperiode> {
+		return oppfolgingClient.hentOppfolgingsperioder(fnr)
 			.sortedByDescending { it.startDato }
+	}
+
+	fun finnOppfolgingsperiode(fnr: String, tidspunkt: LocalDateTime): FinnOppfolgingResult {
+		val oppfolgingsperioder = hentAlleOppfolgingsperioder(fnr)
 		if (oppfolgingsperioder.isEmpty()) {
 			secureLog.info(
 				"Arenatiltak finn oppfølgingsperiode - bruker har ingen oppfølgingsperioder - fnr={}, tidspunkt={}, oppfolgingsperioder={}",
 				fnr, tidspunkt, listOf<Oppfolgingsperiode>()
 			)
-			return null
+			return FinnOppfolgingResult.IngenPeriodeResult( emptyList())
 		}
 
 		val tidspunktCZDT = ChronoZonedDateTime.from(tidspunkt.atZone(ZoneId.systemDefault()))
 		val oppfolgingsperiode = oppfolgingsperioder
 			.find {periode -> periode.tidspunktInnenforPeriode(tidspunktCZDT) }
+		if (oppfolgingsperiode != null) return FinnOppfolgingResult.FunnetPeriodeResult(oppfolgingsperiode, oppfolgingsperioder)
 
-		return oppfolgingsperiode ?: oppfolgingsperioder
+		return oppfolgingsperioder
 				.filter { it.sluttDato == null || it.sluttDato.isAfter(tidspunktCZDT) }
 				.minByOrNull { abs(ChronoUnit.MILLIS.between(tidspunktCZDT, it.startDato)) }
 				.let { periodeMatch ->
@@ -61,5 +65,14 @@ open class OppfolgingsperiodeService(
 						periodeMatch
 					}
 				}
+				?.let { FinnOppfolgingResult.FunnetPeriodeResult(it, oppfolgingsperioder) }
+		?: FinnOppfolgingResult.IngenPeriodeResult(emptyList())
 	}
+}
+
+sealed class FinnOppfolgingResult(
+	val allePerioder: List<Oppfolgingsperiode>
+) {
+	class IngenPeriodeResult(allePerioder: List<Oppfolgingsperiode>): FinnOppfolgingResult(allePerioder)
+	class FunnetPeriodeResult(val oppfolgingsperiode: Oppfolgingsperiode, allePerioder: List<Oppfolgingsperiode>): FinnOppfolgingResult(allePerioder)
 }

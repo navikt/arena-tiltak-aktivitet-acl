@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldMatch
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
@@ -28,7 +29,6 @@ import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConv
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.JOBBKLUBB
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaIdTilAktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.TiltakDbo
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService
 import no.nav.arena_tiltak_aktivitet_acl.services.KafkaProducerService.Companion.TILTAK_ID_PREFIX
@@ -57,9 +57,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Autowired
 	lateinit var arenaDataRepository: ArenaDataRepository
-
-	@Autowired
-	lateinit var arenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 
 	@SpyBean
 	lateinit var kafkaProducerService: KafkaProducerService
@@ -104,7 +101,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			handledResult.aktivitetskort {
 				aktivitetId = it.id
 			}
-			handledResult.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == aktivitetId} shouldBe true
+			handledResult.deltakerAktivitetMapping.any { mapping -> mapping.id == aktivitetId} shouldBe true
 		}
 
 		val translation = hentTranslationMedRestClient(deltakerId)
@@ -145,7 +142,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled {
 			it.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			it.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == it.output.aktivitetskort.id} shouldBe true
+			it.deltakerAktivitetMapping.any { mapping -> mapping.id == it.output.aktivitetskort.id} shouldBe true
 			it.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 			it.headers.tiltakKode shouldBe gjennomforingInput.tiltakKode
 			it.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakelseId
@@ -233,7 +230,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		// Cron-job
 		processMessages()
 
-		val aktivitetId = arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId
+		val aktivitetId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second
 		aktivitetId shouldNotBe null
 
 		val mapper = ObjectMapper.get()
@@ -291,7 +288,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		// Cron-job
 		processFailedMessages()
-		val aktivitetId = arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET)?.aktivitetId!!
+		val aktivitetId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second!!
 
 		fun String.toAktivitetskort() = ObjectMapper.get().readValue(this, Aktivitetskort::class.java)
 
@@ -333,13 +330,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		result.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			r.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == r.output.aktivitetskort.id } shouldBe true
+			r.deltakerAktivitetMapping.any { mapping -> mapping.id == r.output.aktivitetskort.id } shouldBe true
 			r.aktivitetskort { it.isSame(deltakerInput, tiltak, gjennomforingInput) }
 		}
 
 		updatedResult.expectHandled { r ->
 			r.output { it.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
-			r.deltakerAktivitetMapping.any { mapping -> mapping.aktivitetId == r.output.aktivitetskort.id } shouldBe true
+			r.deltakerAktivitetMapping.any { mapping -> mapping.id == r.output.aktivitetskort.id } shouldBe true
 			r.aktivitetskort { it.isSame(deltakerInputUpdated, tiltak, gjennomforingInput) }
 		}
 	}
@@ -679,7 +676,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `skal takle tidligere ignorerte deltakelser uten å krasje på duplicate key i arenaId til aktivitetId mapping`() {
+	fun `skal lage id-mapping på tidligere ignorerte deltakelser men ikke publisere aktivitetskort før ikke-ignorert tilstand`() {
 		val (gjennomforingId, deltakelseId, _) = setup(Tiltak.Administrasjonskode.INST)
 		val deltakerInputIgnored = DeltakerInput(
 			tiltakDeltakelseId = deltakelseId,
@@ -691,6 +688,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
 		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
 		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
+		aktivitetResultIgnored.arenaDataDbo.note shouldBe "foreløpig ignorert"
+
+		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
 
 		val deltakerInput = deltakerInputIgnored.copy(deltakerStatusKode = "GJENN")
 		val deltakerCommand = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInput)
@@ -777,14 +777,16 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				arenaData.ingestStatus shouldBe IngestStatus.RETRY
 				arenaData.note shouldBe "LOL"
 		}
-		arenaIdTilAktivitetskortIdRepository.get(deltakerId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
+		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldBe null
 	}
 
+	private val idMappingClient: IdMappingClient by lazy {
+		val token = issueAzureAdM2MToken()
+		IdMappingClient(port!!) { token }
+	}
 
 	private fun hentTranslationMedRestClient(deltakerId: DeltakelseId): UUID? {
-		val token = issueAzureAdM2MToken()
-		val client = IdMappingClient(port!!) { token }
-		return client.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+		return idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
 			.let { (response, result) ->
 				response.isSuccessful shouldBe true
 				result

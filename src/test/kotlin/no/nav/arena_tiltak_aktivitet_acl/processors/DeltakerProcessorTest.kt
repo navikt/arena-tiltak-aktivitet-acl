@@ -4,6 +4,7 @@ import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.reflection.beLateInit
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.*
@@ -54,8 +55,8 @@ class DeltakerProcessorTest : FunSpec({
 	val kafkaProducerService = mockk<KafkaProducerService>(relaxUnitFun = true)
 
 	lateinit var arenaDataRepository: ArenaDataRepository
-	lateinit var idArenaIdTilAktivitetskortIdRepository: ArenaIdTilAktivitetskortIdRepository
 	lateinit var personSporingRepository: PersonSporingRepository
+	lateinit var aktivitetRepository: AktivitetRepository
 
 	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -64,8 +65,8 @@ class DeltakerProcessorTest : FunSpec({
 	beforeEach {
 		val template = NamedParameterJdbcTemplate(dataSource)
 		arenaDataRepository = ArenaDataRepository(template)
-		idArenaIdTilAktivitetskortIdRepository = ArenaIdTilAktivitetskortIdRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
+		aktivitetRepository = AktivitetRepository(template)
 		clearMocks(kafkaProducerService)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
@@ -79,14 +80,12 @@ class DeltakerProcessorTest : FunSpec({
 
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
-			arenaIdArenaIdTilAktivitetskortIdService = ArenaIdTilAktivitetskortIdService(idArenaIdTilAktivitetskortIdRepository),
 			kafkaProducerService = kafkaProducerService,
 			aktivitetService = AktivitetService(AktivitetRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
 			personsporingService = PersonsporingService(personSporingRepository, ordsClient),
-			deltakerAktivitetMappingRepository = DeltakerAktivitetMappingRepository(template)
 		)
 	}
 
@@ -127,7 +126,7 @@ class DeltakerProcessorTest : FunSpec({
 		)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
 
@@ -183,7 +182,7 @@ class DeltakerProcessorTest : FunSpec({
 			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
 		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
-		val translationEntry = idArenaIdTilAktivitetskortIdRepository.get(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
+		val translationEntry = aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
 

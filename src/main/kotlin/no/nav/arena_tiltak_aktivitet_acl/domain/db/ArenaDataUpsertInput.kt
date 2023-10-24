@@ -41,8 +41,8 @@ fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: Long): ArenaDat
 	return this.toUpsertInput(arenaId.toString(), IngestStatus.HANDLED, null)
 }
 
-fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: DeltakelseId): ArenaDataUpsertInput {
-	return this.toUpsertInput(arenaId.value.toString(), IngestStatus.HANDLED, null)
+fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: DeltakelseId, note: String? = null): ArenaDataUpsertInput {
+	return this.toUpsertInput(arenaId.value.toString(), IngestStatus.HANDLED, note)
 }
 
 fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: String): ArenaDataUpsertInput {
