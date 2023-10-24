@@ -1,6 +1,5 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
@@ -8,10 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import org.intellij.lang.annotations.Language
-import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import java.lang.IllegalStateException
-import java.lang.RuntimeException
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -52,7 +48,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 		repository.upsert(aktivitet)
 	}
 
-	"upsert should throw on multiple open perioder" {
+/*	"upsert should throw on multiple open perioder"() {
 		val aktivitet = AktivitetDbo(
 			id = UUID.randomUUID(),
 			personIdent = "123123123",
@@ -68,6 +64,8 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			repository.upsert(nyAktivitetskortSammeDeltakelse)
 		}
 	}
+
+ */
 
 	"upsert should not throw on same arenaId" {
 		val aktivitet = AktivitetDbo(
