@@ -93,7 +93,10 @@ open class DeltakerProcessor(
 				syncOppfolgingsperioder(deltakelse.tiltakdeltakelseId, periodeMatch.allePerioder)
 			}
 			is EndringsType.NyttAktivitetskort -> {}
-			is EndringsType.OppdaterAktivitet -> {}
+			is EndringsType.OppdaterAktivitet -> {
+				log.info("Patcher oppfølgingsperiode sluttdato for aktivitet deltakerId:${deltakelse.tiltakdeltakelseId}")
+				syncOppfolgingsperioder(deltakelse.tiltakdeltakelseId, periodeMatch.allePerioder)
+			}
 		}
 
 		val aktivitet = ArenaDeltakerConverter
