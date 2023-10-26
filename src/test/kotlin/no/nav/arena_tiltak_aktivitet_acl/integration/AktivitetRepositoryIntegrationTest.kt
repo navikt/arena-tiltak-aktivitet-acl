@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
@@ -7,6 +8,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import org.intellij.lang.annotations.Language
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.ZonedDateTime
 import java.util.*
@@ -48,7 +50,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 		repository.upsert(aktivitet)
 	}
 
-/*	"upsert should throw on multiple open perioder"() {
+	"upsert should throw on multiple open perioder" {
 		val aktivitet = AktivitetDbo(
 			id = UUID.randomUUID(),
 			personIdent = "123123123",
@@ -65,7 +67,22 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 		}
 	}
 
- */
+	"should throw on multiple same periode + arenaId" {
+		val aktivitet = AktivitetDbo(
+			id = UUID.randomUUID(),
+			personIdent = "123123123",
+			kategori = AktivitetKategori.TILTAKSAKTIVITET,
+			data = "{}",
+			arenaId = "ARENATA-114",
+			tiltakKode = "MIDLONNTIL",
+			oppfolgingsperiodeUUID = UUID.randomUUID(),
+			oppfolgingsSluttTidspunkt = ZonedDateTime.now())
+		val nyAktivitetskortSammeDeltakelse = aktivitet.copy(id = UUID.randomUUID())
+		repository.upsert(aktivitet)
+		shouldThrow<DuplicateKeyException> {
+			repository.upsert(nyAktivitetskortSammeDeltakelse)
+		}
+	}
 
 	"upsert should not throw on same arenaId" {
 		val aktivitet = AktivitetDbo(
