@@ -9,7 +9,6 @@ import io.kotest.matchers.string.shouldMatch
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId

@@ -39,6 +39,7 @@ open class DeltakerProcessor(
 	private val tiltakService: TiltakService,
 	private val personsporingService: PersonsporingService,
 	private val oppfolgingsperiodeService: OppfolgingsperiodeService,
+	private val aktivitetskortIdService: AktivitetskortIdService
 ) : ArenaMessageProcessor<ArenaDeltakerKafkaMessage> {
 
 	companion object {
@@ -178,12 +179,17 @@ open class DeltakerProcessor(
 			// Har tidligere deltakelse på samme oppfolgingsperiode
 			eksisterendeAktivitetsId != null -> EndringsType.OppdaterAktivitet(eksisterendeAktivitetsId, skalIgnoreres)
 			// Har ingen tidligere aktivitetskort
-			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(periodeMatch.oppfolgingsperiode, skalIgnoreres)
+			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(getAkivitetskortId(deltakelseId), periodeMatch.oppfolgingsperiode, skalIgnoreres)
 			// Har tidligere deltakelse men ikke på samme oppfølgingsperiode
 			else -> {
 				EndringsType.NyttAktivitetskortByttPeriode(periodeMatch.oppfolgingsperiode, skalIgnoreres)
 			}
 		}
+	}
+
+	fun getAkivitetskortId(deltakelseId: DeltakelseId): UUID {
+		// TODO: NOe service som fikser id-er for ikke opprettet
+		return aktivitetskortIdService.getOrCreate(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 	}
 
 	fun syncOppfolgingsperioder(deltakelseId: DeltakelseId, oppfolginsperioder: List<Oppfolgingsperiode>) {
@@ -193,7 +199,7 @@ open class DeltakerProcessor(
 
 sealed class EndringsType(val aktivitetskortId: UUID, val skalIgnoreres: Boolean) {
 	class OppdaterAktivitet(aktivitetskortId: UUID, skalIgnoreres: Boolean): EndringsType(aktivitetskortId, skalIgnoreres)
-	class NyttAktivitetskort(val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: Boolean): EndringsType(UUID.randomUUID(), skalIgnoreres)
+	class NyttAktivitetskort(aktivitetskortId:UUID, val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: Boolean): EndringsType(aktivitetskortId, skalIgnoreres)
 	class NyttAktivitetskortByttPeriode(val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: Boolean): EndringsType(UUID.randomUUID(), skalIgnoreres)
 }
 
