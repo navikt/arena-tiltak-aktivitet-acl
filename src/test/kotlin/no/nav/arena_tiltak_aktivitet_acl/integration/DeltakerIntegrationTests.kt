@@ -108,11 +108,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `skal gi 404 når id-mapping ikke finnes`() {
+	fun `skal gi 200 når id-mapping ikke finnes (og lage mapping)`() {
 		val token = issueAzureAdM2MToken()
 		val client = IdMappingClient(port!!) { token }
 		val (response, _) = client.hentMapping(TranslationQuery(123123, AktivitetKategori.TILTAKSAKTIVITET))
-		response.code shouldBe HttpStatus.NOT_FOUND.value()
+		response.code shouldBe HttpStatus.OK.value()
 	}
 
 	@Test
@@ -762,7 +762,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `skal ikke opprettet aktivitetId (i mappingtabell) men ingeststatus oppdatereshvis sending av kafkamelding feiler`() {
-		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService).sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
+		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService)
+			.sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -782,7 +783,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Test
 	fun `skal opprette mapping selvom aktivitet ikke finnes enda`() {
 		val (gjennomforingId, deltakerId) = setup()
-		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldNotBe null
+		val generertId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+			.second
+		generertId shouldNotBe null
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
 			tiltakgjennomforingId = gjennomforingId,
@@ -791,11 +794,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			endretAv = Ident(ident = "SIG123"),
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
-		deltakerExecutor.execute(deltakerCommand).arenaData { arenaData ->
-			arenaData.ingestStatus shouldBe IngestStatus.RETRY
-			arenaData.note shouldBe "LOL"
+		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+			arenaData.output.aktivitetskort.id shouldBe generertId
 		}
-		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldNotBe null
+		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+			.second shouldBe generertId
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {

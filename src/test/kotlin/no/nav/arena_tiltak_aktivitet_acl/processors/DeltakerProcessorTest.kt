@@ -58,6 +58,7 @@ class DeltakerProcessorTest : FunSpec({
 	lateinit var personSporingRepository: PersonSporingRepository
 	lateinit var aktivitetRepository: AktivitetRepository
 	lateinit var aktivitetskortIdRespository: AktivitetskortIdRepository
+	lateinit var deltakelseLockRepository: DeltakelseLockRepository
 
 	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -68,6 +69,8 @@ class DeltakerProcessorTest : FunSpec({
 		arenaDataRepository = ArenaDataRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
 		aktivitetRepository = AktivitetRepository(template)
+		aktivitetskortIdRespository = AktivitetskortIdRepository(template)
+		deltakelseLockRepository = DeltakelseLockRepository(template)
 		clearMocks(kafkaProducerService)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
@@ -82,12 +85,12 @@ class DeltakerProcessorTest : FunSpec({
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
 			kafkaProducerService = kafkaProducerService,
-			aktivitetService = AktivitetService(AktivitetRepository(template)),
+			aktivitetService = AktivitetService(AktivitetRepository(template), DeltakelseLockRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
 			personsporingService = PersonsporingService(personSporingRepository, ordsClient),
-			aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository)
+			aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
 		)
 	}
 
