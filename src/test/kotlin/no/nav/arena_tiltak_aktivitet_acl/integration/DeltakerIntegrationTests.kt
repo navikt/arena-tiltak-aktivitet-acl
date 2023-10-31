@@ -764,9 +764,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	fun `skal ikke opprettet aktivitetId (i mappingtabell) men ingeststatus oppdatereshvis sending av kafkamelding feiler`() {
 		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService)
 			.sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
-		val (gjennomforingId, deltakerId) = setup()
+		val (gjennomforingId, deltakelseId) = setup()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakelseId = deltakerId,
+			tiltakDeltakelseId = deltakelseId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			datoFra = LocalDate.now().minusDays(1),
@@ -777,7 +777,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				arenaData.ingestStatus shouldBe IngestStatus.RETRY
 				arenaData.note shouldBe "LOL"
 		}
-		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldBe null
+		aktivitetRepository.getCurrentAktivitetsId(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
 	}
 
 	@Test
