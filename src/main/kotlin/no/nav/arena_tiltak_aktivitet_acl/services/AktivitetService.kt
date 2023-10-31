@@ -7,6 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakelseLockRepository
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -14,11 +15,13 @@ import java.util.UUID
 @Service
 class AktivitetService(
 	val aktivitetRepository: AktivitetRepository,
+	val aktivitetskortIdRepository: AktivitetskortIdRepository,
 	val deltakerLockRepository: DeltakelseLockRepository
 ) {
 	fun upsert(aktivitet: Aktivitetskort, headers: AktivitetskortHeaders, deltakelseId: DeltakelseId) {
 		deltakerLockRepository.safeDeltakelse(deltakelseId).use {
 			aktivitetRepository.upsert(aktivitet.toDbo(headers))
+			aktivitetskortIdRepository.deleteDeltakelseId(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		}
 	}
 	fun get(aktivitetId: UUID) = aktivitetRepository.getAktivitet(aktivitetId)

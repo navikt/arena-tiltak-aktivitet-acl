@@ -11,6 +11,18 @@ import java.util.UUID
 class AktivitetskortIdRepository(
 	private val template: NamedParameterJdbcTemplate
 ) {
+
+	fun deleteDeltakelseId(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): Int {
+		val sql = """
+			DELETE FROM forelopig_aktivitet_id WHERE deltakelse_id = :deltakelseId and kategori = :kategori
+		""".trimIndent()
+		return template.update(sql,
+			mapOf(
+				"kategori" to aktivitetKategori.name,
+				"deltakelseId" to deltakelseId.value,
+			))
+	}
+
 	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID {
 		val currentId = getCurrentId(deltakelseId, aktivitetKategori)
 		if (currentId != null) return currentId

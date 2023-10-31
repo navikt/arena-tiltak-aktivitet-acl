@@ -85,7 +85,7 @@ class DeltakerProcessorTest : FunSpec({
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
 			kafkaProducerService = kafkaProducerService,
-			aktivitetService = AktivitetService(AktivitetRepository(template), DeltakelseLockRepository(template)),
+			aktivitetService = AktivitetService(AktivitetRepository(template), AktivitetskortIdRepository(template), DeltakelseLockRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
