@@ -779,6 +779,25 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldBe null
 	}
 
+	@Test
+	fun `skal opprette mapping selvom aktivitet ikke finnes enda`() {
+		val (gjennomforingId, deltakerId) = setup()
+		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldNotBe null
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand).arenaData { arenaData ->
+			arenaData.ingestStatus shouldBe IngestStatus.RETRY
+			arenaData.note shouldBe "LOL"
+		}
+		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldNotBe null
+	}
+
 	private val idMappingClient: IdMappingClient by lazy {
 		val token = issueAzureAdM2MToken()
 		IdMappingClient(port!!) { token }

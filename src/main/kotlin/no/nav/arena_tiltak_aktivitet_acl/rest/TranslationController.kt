@@ -29,7 +29,6 @@ import java.util.*
 @RequestMapping("/api/translation")
 class TranslationController(
 	private val authService: AuthService,
-	private val aktivitetRepository: AktivitetRepository,
 	private val aktivitetskortIdService: AktivitetskortIdService
 ) {
 
@@ -46,8 +45,6 @@ class TranslationController(
 	): UUID {
 		authService.validerErM2MToken()
 		return aktivitetskortIdService.getOrCreate(DeltakelseId(query.arenaId), query.aktivitetKategori)
-//		return aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(query.arenaId), query.aktivitetKategori)
-//			?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No mapping found")
 	}
 }
 

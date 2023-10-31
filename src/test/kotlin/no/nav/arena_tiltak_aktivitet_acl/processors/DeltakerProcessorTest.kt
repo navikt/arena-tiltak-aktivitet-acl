@@ -57,6 +57,7 @@ class DeltakerProcessorTest : FunSpec({
 	lateinit var arenaDataRepository: ArenaDataRepository
 	lateinit var personSporingRepository: PersonSporingRepository
 	lateinit var aktivitetRepository: AktivitetRepository
+	lateinit var aktivitetskortIdRespository: AktivitetskortIdRepository
 
 	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -86,6 +87,7 @@ class DeltakerProcessorTest : FunSpec({
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
 			personsporingService = PersonsporingService(personSporingRepository, ordsClient),
+			aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository)
 		)
 	}
 
