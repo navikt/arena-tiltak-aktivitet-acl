@@ -6,6 +6,10 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
@@ -799,6 +803,39 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		}
 		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
 			.second shouldBe generertId
+	}
+
+	@Test
+	fun `skal ha riktig mapping selv om translationcontroller og deltakerprocessor kjoerer samtidig`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val generertId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+			.second
+		generertId shouldNotBe null
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		var generertId1: UUID? = null
+		var generertId2: UUID? = null
+		runBlocking {
+			async(Dispatchers.IO) {// NB Ikke bruk default-dispatcher for async. Den håndterer ikke blokkerende kall
+				deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+					generertId1 = arenaData.output.aktivitetskort.id
+				}
+			}
+			async(Dispatchers.IO) {
+				var delayTime = Random.nextLong(50, 200)
+				delay(delayTime)
+				generertId2 = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second
+			}
+		}
+		generertId1 shouldNotBe null
+		generertId1 shouldBe generertId2
+
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {

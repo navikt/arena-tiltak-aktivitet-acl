@@ -4,18 +4,20 @@ import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.reflection.beLateInit
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.OppfolgingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
@@ -24,13 +26,13 @@ import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.repositories.*
 import no.nav.arena_tiltak_aktivitet_acl.services.*
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
+import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 
 class DeltakerProcessorTest : FunSpec({
-
 	val dataSource = SingletonPostgresContainer.getDataSource()
 
 	val ordsClient by lazy {
@@ -59,6 +61,24 @@ class DeltakerProcessorTest : FunSpec({
 	lateinit var aktivitetRepository: AktivitetRepository
 	lateinit var aktivitetskortIdRespository: AktivitetskortIdRepository
 	lateinit var deltakelseLockRepository: DeltakelseLockRepository
+
+	val logger = LoggerFactory.getLogger(javaClass)
+
+	val aktivitetDboSlot = slot<AktivitetDbo>()
+	val slowAktivitetRepository by lazy {
+		val spyRepo = mockk<AktivitetRepository>()
+		var delayed = true
+		coEvery {spyRepo.upsert(aktivitet = capture(aktivitetDboSlot))} coAnswers {
+			logger.info("In mockrepo for deltakelse: ${aktivitetDboSlot.captured.arenaId}")
+			if (delayed) {
+				delayed = false
+				logger.info("Sleeping 50ms for deltakelse ${aktivitetDboSlot.captured.arenaId}")
+				delay(50)
+			}
+			aktivitetRepository.upsert(aktivitetDboSlot.captured)
+		}
+		spyRepo
+	}
 
 	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -253,5 +273,49 @@ class DeltakerProcessorTest : FunSpec({
 			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
 		}
 	}
-})
 
+	test("testing race condition in repo - not deltakerprocessor") {
+		val firstTimeSlowAktivitetskortService = AktivitetService(slowAktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
+		val aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
+
+		val deltakelse = DeltakelseId(12345L)
+		val aktivitetskort1 = Aktivitetskort(
+			id = UUID.randomUUID(),
+			personIdent = "12345678901",
+			tittel = "Tittel",
+			aktivitetStatus = AktivitetStatus.GJENNOMFORES,
+			etiketter = emptyList(),
+			startDato = null,
+			sluttDato = null,
+			beskrivelse = null,
+			endretAv = Ident("ARENAIDENT","AKS999"),
+			endretTidspunkt = LocalDateTime.now(),
+			avtaltMedNav = true,
+			detaljer = emptyList()
+		)
+		val headers1 = AktivitetskortHeaders(
+			arenaId = "ARENATA${deltakelse.value}",
+			tiltakKode = "VASV",
+			oppfolgingsperiode = UUID.randomUUID(),
+			oppfolgingsSluttDato = ZonedDateTime.now().minusDays(5)
+		)
+		val aktivitetskort2 = aktivitetskort1.copy(id = UUID.randomUUID())
+		val headers2 = headers1.copy( oppfolgingsperiode = UUID.randomUUID(), oppfolgingsSluttDato = null)
+
+		coroutineScope {
+			async(Dispatchers.IO) {// Do not use available default dispatcher, as it is not meant for blocking calls
+				logger.info("First upsert start")
+				firstTimeSlowAktivitetskortService.upsert(aktivitetskort1, headers1, deltakelse)
+				logger.info("First upsert end")
+			}
+			async(Dispatchers.IO) {
+				logger.info("Second upsert start")
+				firstTimeSlowAktivitetskortService.upsert(aktivitetskort2, headers2, deltakelse)
+				logger.info("Second upsert end")
+			}
+		}.await()
+		val gimmeId = aktivitetskortIdService.getOrCreate(deltakelse, AktivitetKategori.TILTAKSAKTIVITET)
+		gimmeId shouldBe aktivitetskort2.id // den uten oppfølgingsluttdato
+	}
+
+})
