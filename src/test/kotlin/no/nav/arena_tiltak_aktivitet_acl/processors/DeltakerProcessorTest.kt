@@ -4,6 +4,7 @@ import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContainInOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.*
@@ -31,6 +32,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
+import kotlin.random.Random
 
 class DeltakerProcessorTest : FunSpec({
 	val dataSource = SingletonPostgresContainer.getDataSource()
@@ -72,8 +74,9 @@ class DeltakerProcessorTest : FunSpec({
 			logger.info("In mockrepo for deltakelse: ${aktivitetDboSlot.captured.arenaId}")
 			if (delayed) {
 				delayed = false
-				logger.info("Sleeping 50ms for deltakelse ${aktivitetDboSlot.captured.arenaId}")
-				delay(50)
+				val delayTime = Random.nextLong(50L, 200L)
+				logger.info("Sleeping $delayTime ms for deltakelse ${aktivitetDboSlot.captured.arenaId}")
+				delay(delayTime)
 			}
 			aktivitetRepository.upsert(aktivitetDboSlot.captured)
 		}
@@ -274,7 +277,7 @@ class DeltakerProcessorTest : FunSpec({
 		}
 	}
 
-	test("testing race condition in repo - not deltakerprocessor") {
+	test("Block processing when concurrent calls on same deltakelseId") {
 		val firstTimeSlowAktivitetskortService = AktivitetService(slowAktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
 		val aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
 
@@ -302,20 +305,72 @@ class DeltakerProcessorTest : FunSpec({
 		val aktivitetskort2 = aktivitetskort1.copy(id = UUID.randomUUID())
 		val headers2 = headers1.copy( oppfolgingsperiode = UUID.randomUUID(), oppfolgingsSluttDato = null)
 
+
+		val processOrder = mutableListOf<Long>()
 		coroutineScope {
 			async(Dispatchers.IO) {// Do not use available default dispatcher, as it is not meant for blocking calls
 				logger.info("First upsert start")
 				firstTimeSlowAktivitetskortService.upsert(aktivitetskort1, headers1, deltakelse)
 				logger.info("First upsert end")
+				processOrder.add(1L)
 			}
 			async(Dispatchers.IO) {
 				logger.info("Second upsert start")
 				firstTimeSlowAktivitetskortService.upsert(aktivitetskort2, headers2, deltakelse)
 				logger.info("Second upsert end")
+				processOrder.add(2L)
 			}
 		}.await()
 		val gimmeId = aktivitetskortIdService.getOrCreate(deltakelse, AktivitetKategori.TILTAKSAKTIVITET)
 		gimmeId shouldBe aktivitetskort2.id // den uten oppfølgingsluttdato
+		processOrder shouldContainInOrder listOf(1L, 2L)
+	}
+
+	test("Do not block processing when concurrent calls on different deltakelseId") {
+		val firstTimeSlowAktivitetskortService = AktivitetService(slowAktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
+		val aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository, deltakelseLockRepository)
+
+		val deltakelse1 = DeltakelseId(12345L)
+		val deltakelse2 = DeltakelseId(23456L)
+		val aktivitetskort1 = Aktivitetskort(
+			id = UUID.randomUUID(),
+			personIdent = "12345678901",
+			tittel = "Tittel",
+			aktivitetStatus = AktivitetStatus.GJENNOMFORES,
+			etiketter = emptyList(),
+			startDato = null,
+			sluttDato = null,
+			beskrivelse = null,
+			endretAv = Ident("ARENAIDENT","AKS999"),
+			endretTidspunkt = LocalDateTime.now(),
+			avtaltMedNav = true,
+			detaljer = emptyList()
+		)
+		val headers1 = AktivitetskortHeaders(
+			arenaId = "ARENATA${deltakelse1.value}",
+			tiltakKode = "VASV",
+			oppfolgingsperiode = UUID.randomUUID(),
+			oppfolgingsSluttDato = null
+		)
+		val aktivitetskort2 = aktivitetskort1.copy(id = UUID.randomUUID())
+		val headers2 = headers1.copy( oppfolgingsperiode = UUID.randomUUID(), arenaId = "ARENATA${deltakelse2.value}")
+
+		val processOrder = mutableListOf<Long>()
+		coroutineScope {
+			async(Dispatchers.IO) {// Do not use available default dispatcher, as it is not meant for blocking calls
+				logger.info("First upsert start")
+				firstTimeSlowAktivitetskortService.upsert(aktivitetskort1, headers1, deltakelse1)
+				logger.info("First upsert end")
+				processOrder.add(1L)
+			}
+			async(Dispatchers.IO) {
+				logger.info("Second upsert start")
+				firstTimeSlowAktivitetskortService.upsert(aktivitetskort2, headers2, deltakelse1)
+				logger.info("Second upsert end")
+				processOrder.add(2L)
+			}
+		}.await()
+		processOrder shouldContainInOrder listOf(2L, 1L)
 	}
 
 })
