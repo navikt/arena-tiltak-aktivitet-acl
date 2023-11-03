@@ -199,7 +199,8 @@ class AktivitetServiceTest : IntegrationTestBase() {
 			listOf(first, second).awaitAll()
 		}
 		log.info("Lock automatically released on transaction commit or rollback")
-		finishOrder shouldContainInOrder startOrder
+		startOrder shouldContainInOrder listOf(1, 2)
+		finishOrder shouldContainInOrder listOf(1, 2)
 
 	}
 }
