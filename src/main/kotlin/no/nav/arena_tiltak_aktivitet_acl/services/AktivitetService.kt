@@ -6,29 +6,37 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AdvisoryLockRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakelseLockRepository
 import org.springframework.stereotype.Service
-import java.util.UUID
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
 @Service
-class AktivitetService(
+open class AktivitetService(
 	val aktivitetRepository: AktivitetRepository,
 	val aktivitetskortIdRepository: AktivitetskortIdRepository,
-	val deltakerLockRepository: DeltakelseLockRepository
+	val deltakerLockRepository: AdvisoryLockRepository
 ) {
-	fun upsert(aktivitet: Aktivitetskort, headers: AktivitetskortHeaders, deltakelseId: DeltakelseId) {
+	/**
+	 * SafeDeltakelse will make sure no other transaction is processing the same deltakelse for the duration of the ongoing transaction.
+	 * If another transaction is processing the same deltakelse (i.e. TranslationController, AktivitetskortIdService) this transaction will wait its turn until the other transaction is complete.
+	 * @see no.nav.arena_tiltak_aktivitet_acl.services.AktivitetskortIdService.getOrCreate
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	open fun upsert(aktivitet: Aktivitetskort, headers: AktivitetskortHeaders, deltakelseId: DeltakelseId) {
 		deltakerLockRepository.safeDeltakelse(deltakelseId).use {
 			aktivitetRepository.upsert(aktivitet.toDbo(headers))
 			aktivitetskortIdRepository.deleteDeltakelseId(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		}
 	}
-	fun get(aktivitetId: UUID) = aktivitetRepository.getAktivitet(aktivitetId)
-	fun getAllBy(aktivitetId: DeltakelseId, aktivitetsKategori: AktivitetKategori) =
+	open fun get(aktivitetId: UUID) = aktivitetRepository.getAktivitet(aktivitetId)
+	open fun getAllBy(aktivitetId: DeltakelseId, aktivitetsKategori: AktivitetKategori) =
 		aktivitetRepository.getAllBy(aktivitetId, aktivitetsKategori)
 
-	fun closeClosedPerioder(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, oppfolgingsperioder: List<Oppfolgingsperiode>) {
+	open fun closeClosedPerioder(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, oppfolgingsperioder: List<Oppfolgingsperiode>) {
 		val avsluttedePerioder = oppfolgingsperioder
 			.mapNotNull {
 				it.sluttDato

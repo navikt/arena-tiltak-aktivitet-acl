@@ -1,31 +1,45 @@
 package no.nav.arena_tiltak_aktivitet_acl.services
 
 import io.kotest.common.runBlocking
-import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContainInOrder
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.*
-import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.integration.IntegrationTestBase
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AdvisoryLockRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
-import no.nav.arena_tiltak_aktivitet_acl.repositories.DeltakelseLockRepository
+import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.random.Random
 
-class AktivitetServiceTest : StringSpec({
+class AktivitetServiceTest : IntegrationTestBase() {
 	val log = LoggerFactory.getLogger(javaClass)
 
-	val dataSource = SingletonPostgresContainer.getDataSource()
-	val template = NamedParameterJdbcTemplate(dataSource)
-	val aktivitetRepository = AktivitetRepository(template)
+	@Autowired
+	lateinit var advisoryLockRepository: AdvisoryLockRepository
+
+	@Autowired
+	lateinit var aktivitetRepository: AktivitetRepository
+
+	@Autowired
+	lateinit var aktivitetskortIdRepository: AktivitetskortIdRepository
+
+	@Autowired
+	lateinit var transactionTemplate: TransactionTemplate
 
 	fun slowAktivitetRepository(): AktivitetRepository {
 		val mock = mockk<AktivitetRepository>()
@@ -45,8 +59,6 @@ class AktivitetServiceTest : StringSpec({
 		}
 		return mock
 	}
-	val aktivitetskortIdRepository = AktivitetskortIdRepository(template)
-	val deltakerLockRepository = DeltakelseLockRepository(template)
 
 	val aktivitetskort = Aktivitetskort(
 		id = UUID.randomUUID(),
@@ -71,17 +83,20 @@ class AktivitetServiceTest : StringSpec({
 			null
 		)
 	}
+
 	fun aktivitetskort(): Aktivitetskort {
 		return aktivitetskort
 			.copy(id = UUID.randomUUID())
 	}
+
 	fun firstSlowAktivitetsService() = AktivitetService(
 		slowAktivitetRepository(),
 		aktivitetskortIdRepository,
-		deltakerLockRepository
+		advisoryLockRepository
 	)
 
-	"skal blokkere prossessring på samme deltakelse-id" {
+	@Test
+	fun `skal blokkere prossessring på samme deltakelse-id`() {
 		val firstSlowAktivitetsService = firstSlowAktivitetsService()
 		val deltakelseId = DeltakelseId(1123)
 		val aktivitetskort = aktivitetskort()
@@ -89,55 +104,102 @@ class AktivitetServiceTest : StringSpec({
 
 		val startOrder = mutableListOf<Long>()
 		val excutionOrder = mutableListOf<Long>()
-		val first =  async(Dispatchers.IO) {
-			startOrder.add(1)
-			firstSlowAktivitetsService.upsert(
-				aktivitetskort,
-				headers,
-				deltakelseId,
-			)
-			excutionOrder.add(1)
+		kotlinx.coroutines.runBlocking {
+			val first = async(Dispatchers.IO) {
+				transactionTemplate.executeWithoutResult {
+					startOrder.add(1)
+					firstSlowAktivitetsService.upsert(
+						aktivitetskort,
+						headers,
+						deltakelseId,
+					)
+					excutionOrder.add(1)
+				}
+			}
+			val second = async(Dispatchers.IO) {
+				delay(100)
+				transactionTemplate.executeWithoutResult {
+					startOrder.add(2)
+					firstSlowAktivitetsService.upsert(
+						aktivitetskort,
+						headers.copy(oppfolgingsSluttDato = ZonedDateTime.now()),
+						deltakelseId,
+					)
+					excutionOrder.add(2)
+				}
+			}
+			listOf(first, second).awaitAll()
 		}
-		val second = async(Dispatchers.IO) {
-			delay(10)
-			startOrder.add(2)
-			firstSlowAktivitetsService.upsert(
-				aktivitetskort,
-				headers.copy(oppfolgingsSluttDato = ZonedDateTime.now()),
-				deltakelseId,
-			)
-			excutionOrder.add(2)
-		}
-		listOf(first, second).awaitAll()
-		startOrder shouldBe listOf(1,2)
-		excutionOrder shouldBe listOf(1,2)
+		startOrder shouldBe listOf(1, 2)
+		excutionOrder shouldBe listOf(1, 2)
 	}
 
-	"skal ikke blokke andre deltakelse-id-er" {
+	@Test
+	fun `skal ikke blokke andre deltakelse-id-er`() {
 		val firstSlowAktivitetsService = firstSlowAktivitetsService()
 		val deltakelseId = DeltakelseId(2123)
 		val deltakelseId2 = DeltakelseId(2321)
 
 		val excutionOrder = mutableListOf<Long>()
-		val first =  async(Dispatchers.IO) {
-			firstSlowAktivitetsService.upsert(
-				aktivitetskort(),
-				headers(deltakelseId),
-				deltakelseId,
-			)
-			excutionOrder.add(deltakelseId.value)
+		kotlinx.coroutines.runBlocking {
+			val first = async(Dispatchers.IO) {
+				transactionTemplate.executeWithoutResult {
+					firstSlowAktivitetsService.upsert(
+						aktivitetskort(),
+						headers(deltakelseId),
+						deltakelseId,
+					)
+					excutionOrder.add(deltakelseId.value)
+				}
+			}
+			val second = async(Dispatchers.IO) {
+				delay(10)
+				transactionTemplate.executeWithoutResult {
+					firstSlowAktivitetsService.upsert(
+						aktivitetskort(),
+						headers(deltakelseId2),
+						deltakelseId2,
+					)
+					excutionOrder.add(deltakelseId2.value)
+				}
+			}
+			listOf(first, second).awaitAll()
 		}
-		val second =  async(Dispatchers.IO) {
-			delay(10)
-			firstSlowAktivitetsService.upsert(
-				aktivitetskort(),
-				headers(deltakelseId2),
-				deltakelseId2,
-			)
-			excutionOrder.add(deltakelseId2.value)
-		}
-		listOf(first, second).awaitAll()
 		excutionOrder shouldBe listOf(deltakelseId2.value, deltakelseId.value)
 	}
 
-})
+	@Test
+	fun `test advisory locking`() {
+		val OFFSET = 99999L
+		val startOrder = mutableListOf<Int>()
+		val finishOrder = mutableListOf<Int>()
+
+		val lockId = Random.nextLong(0, 1000) + OFFSET
+		kotlinx.coroutines.runBlocking {
+			val first = async(Dispatchers.IO) {
+				startOrder.add(1)
+				transactionTemplate.executeWithoutResult {
+					advisoryLockRepository.aquireTransactionalAdvisoryLock(lockId)
+					log.info("Lock acquired first")
+					log.info("waiting in first")
+					Thread.sleep(100)
+					log.info("Releasing first lock")
+				}
+				finishOrder.add(1)
+			}
+			val second = async(Dispatchers.IO) {
+				delay(20)
+				startOrder.add(2)
+				transactionTemplate.executeWithoutResult {
+					advisoryLockRepository.aquireTransactionalAdvisoryLock(lockId)
+					log.info("Lock acquired second")
+				}
+				finishOrder.add(2)
+			}
+			listOf(first, second).awaitAll()
+		}
+		log.info("Lock automatically released on transaction commit or rollback")
+		finishOrder shouldContainInOrder startOrder
+
+	}
+}

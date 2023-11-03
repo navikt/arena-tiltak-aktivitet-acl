@@ -3,7 +3,8 @@ package no.nav.arena_tiltak_aktivitet_acl.repositories
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.AvsluttetOppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
-import no.nav.arena_tiltak_aktivitet_acl.utils.*
+import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableZonedDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.intellij.lang.annotations.Language
 import org.slf4j.LoggerFactory
 import org.springframework.dao.IncorrectResultSizeDataAccessException
@@ -15,12 +16,12 @@ import java.sql.ResultSet
 import java.util.*
 
 @Component
-open class AktivitetRepository(
+class AktivitetRepository(
 	private val template: NamedParameterJdbcTemplate
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
 	fun upsert(aktivitet: AktivitetDbo) {
-		log.info("In repo ${aktivitet.id} ${aktivitet.oppfolgingsperiodeUUID} ${aktivitet.arenaId}")
+		log.info("In repo ${aktivitet.id} ${aktivitet.oppfolgingsperiodeUUID} ${aktivitet.arenaId} ${aktivitet.oppfolgingsSluttTidspunkt}")
 		@Language("PostgreSQL")
 		val sql = """
 			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt)
