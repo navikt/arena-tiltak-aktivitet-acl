@@ -6,10 +6,13 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import no.nav.arena_tiltak_aktivitet_acl.clients.IdMappingClient
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.TranslationDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
@@ -109,11 +112,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `skal gi 404 når id-mapping ikke finnes`() {
+	fun `skal gi 200 når id-mapping ikke finnes (og lage mapping)`() {
 		val token = issueAzureAdM2MToken()
 		val client = IdMappingClient(port!!) { token }
 		val (response, _) = client.hentMapping(TranslationQuery(123123, AktivitetKategori.TILTAKSAKTIVITET))
-		response.code shouldBe HttpStatus.NOT_FOUND.value()
+		response.code shouldBe HttpStatus.OK.value()
 	}
 
 	@Test
@@ -763,10 +766,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `skal ikke opprettet aktivitetId (i mappingtabell) men ingeststatus oppdatereshvis sending av kafkamelding feiler`() {
-		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService).sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
-		val (gjennomforingId, deltakerId) = setup()
+		doThrow(IllegalStateException("LOL")).`when`(kafkaProducerService)
+			.sendTilAktivitetskortTopic(this.any(UUID::class.java), any(KafkaMessageDto::class.java), any(AktivitetskortHeaders::class.java))
+		val (gjennomforingId, deltakelseId) = setup()
 		val deltakerInput = DeltakerInput(
-			tiltakDeltakelseId = deltakerId,
+			tiltakDeltakelseId = deltakelseId,
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			datoFra = LocalDate.now().minusDays(1),
@@ -777,7 +781,61 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 				arenaData.ingestStatus shouldBe IngestStatus.RETRY
 				arenaData.note shouldBe "LOL"
 		}
-		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second shouldBe null
+		aktivitetRepository.getCurrentAktivitetsId(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET) shouldBe null
+	}
+
+	@Test
+	fun `skal opprette mapping selvom aktivitet ikke finnes enda`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val generertId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+			.second
+		generertId shouldNotBe null
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+			arenaData.output.aktivitetskort.id shouldBe generertId
+		}
+		idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+			.second shouldBe generertId
+	}
+
+	@Test
+	fun `skal ha riktig mapping selv om translationcontroller og deltakerprocessor kjoerer samtidig`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val generertId = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET))
+			.second
+		generertId shouldNotBe null
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		var generertId1: UUID? = null
+		var generertId2: UUID? = null
+		runBlocking {
+			async(Dispatchers.IO) {// NB Ikke bruk default-dispatcher for async. Den håndterer ikke blokkerende kall
+				deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+					generertId1 = arenaData.output.aktivitetskort.id
+				}
+			}
+			async(Dispatchers.IO) {
+				var delayTime = Random.nextLong(50, 200)
+				delay(delayTime)
+				generertId2 = idMappingClient.hentMapping(TranslationQuery(deltakerId.value, AktivitetKategori.TILTAKSAKTIVITET)).second
+			}
+		}
+		generertId1 shouldNotBe null
+		generertId1 shouldBe generertId2
+
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {
