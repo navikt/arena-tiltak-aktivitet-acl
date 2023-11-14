@@ -66,7 +66,7 @@ object SingletonPostgresContainer {
 		config.jdbcUrl = container.jdbcUrl
 		config.username = container.username
 		config.password = container.password
-		config.maximumPoolSize = 3
+		config.maximumPoolSize = 10
 		config.minimumIdle = 1
 
 		return HikariDataSource(config)

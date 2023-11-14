@@ -4,7 +4,6 @@ import ArenaOrdsProxyClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.reflection.beLateInit
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.*
@@ -31,7 +30,6 @@ import java.time.ZonedDateTime
 import java.util.*
 
 class DeltakerProcessorTest : FunSpec({
-
 	val dataSource = SingletonPostgresContainer.getDataSource()
 
 	val ordsClient by lazy {
@@ -58,6 +56,8 @@ class DeltakerProcessorTest : FunSpec({
 	lateinit var arenaDataRepository: ArenaDataRepository
 	lateinit var personSporingRepository: PersonSporingRepository
 	lateinit var aktivitetRepository: AktivitetRepository
+	lateinit var aktivitetskortIdRespository: AktivitetskortIdRepository
+	lateinit var advisoryLockRepository: AdvisoryLockRepository
 
 	// Se SQL inserted før hver test
 	val nonIgnoredGjennomforingArenaId = 1L
@@ -68,6 +68,8 @@ class DeltakerProcessorTest : FunSpec({
 		arenaDataRepository = ArenaDataRepository(template)
 		personSporingRepository = PersonSporingRepository(template)
 		aktivitetRepository = AktivitetRepository(template)
+		aktivitetskortIdRespository = AktivitetskortIdRepository(template)
+		advisoryLockRepository = AdvisoryLockRepository(template)
 		clearMocks(kafkaProducerService)
 
 		DatabaseTestUtils.cleanAndInitDatabase(dataSource, "/deltaker-processor_test-data.sql")
@@ -82,11 +84,12 @@ class DeltakerProcessorTest : FunSpec({
 		return DeltakerProcessor(
 			arenaDataRepository = arenaDataRepository,
 			kafkaProducerService = kafkaProducerService,
-			aktivitetService = AktivitetService(AktivitetRepository(template)),
+			aktivitetService = AktivitetService(AktivitetRepository(template), AktivitetskortIdRepository(template), AdvisoryLockRepository(template)),
 			gjennomforingRepository = GjennomforingRepository(template),
 			tiltakService = TiltakService(TiltakRepository(template)),
 			oppfolgingsperiodeService = OppfolgingsperiodeService(oppfolgingClient),
 			personsporingService = PersonsporingService(personSporingRepository, ordsClient),
+			aktivitetskortIdService = AktivitetskortIdService(aktivitetRepository, aktivitetskortIdRespository, advisoryLockRepository)
 		)
 	}
 
@@ -249,5 +252,5 @@ class DeltakerProcessorTest : FunSpec({
 			createDeltakerProcessor(oppfolgingsperioder).handleArenaMessage(newDeltaker)
 		}
 	}
-})
 
+})
