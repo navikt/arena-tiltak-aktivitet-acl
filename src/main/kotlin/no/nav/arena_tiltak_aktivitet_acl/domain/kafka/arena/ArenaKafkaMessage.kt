@@ -2,7 +2,6 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
-import java.lang.IllegalArgumentException
 import java.time.LocalDateTime
 
 data class ArenaKafkaMessage<D>(
@@ -30,5 +29,6 @@ class OperationPos private constructor(val value: String) {
 
 fun padUntil20Characters(stringValue: String): String {
 	if (stringValue.toDoubleOrNull() == null) throw IllegalArgumentException("Operation-pos må være et tall")
-	return stringValue.padStart(20 - stringValue.length, '0')
+	if (stringValue.length > 20) throw IllegalArgumentException("Operation-pos må være et tall")
+	return stringValue.padStart(20, '0')
 }
