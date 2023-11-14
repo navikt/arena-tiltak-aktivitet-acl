@@ -21,7 +21,7 @@ data class ArenaKafkaMessage<D>(
 	}
 }
 
-class OperationPos private constructor(val value: String) {
+data class OperationPos private constructor(val value: String) {
 	companion object {
 		fun of(posString: String): OperationPos = OperationPos(padUntil20Characters(posString))
 	}

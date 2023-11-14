@@ -9,7 +9,6 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
@@ -222,7 +221,7 @@ open class ArenaDataRepository(
 			SELECT count(*) as antallNyereMeldinger FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
-				AND ingest_status == 'HANDLED'
+				AND ingest_status = 'HANDLED'
 				AND operation_pos > :operationPos
 		""".trimIndent()
 		val params = sqlParameters(
@@ -241,8 +240,8 @@ open class ArenaDataRepository(
 
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.id in (
-				SELECT MIN(a.operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
+			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.operation_pos in (
+				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
 				WHERE ingest_status = 'QUEUED' AND NOT EXISTS(
 					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id)
 				GROUP BY arena_id
