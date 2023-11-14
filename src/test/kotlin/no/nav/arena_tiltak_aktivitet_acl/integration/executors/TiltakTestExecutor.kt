@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.TiltakResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.Retry.nullableAsyncRetryHandler
@@ -34,7 +35,7 @@ class TiltakTestExecutor(
 		val data = pollArenaData(
 			ArenaTableName.TILTAK,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
-			arenaWrapper.pos
+			OperationPos.of(arenaWrapper.pos)
 		)
 		val storedTiltak = nullableAsyncRetryHandler("get tiltak by kode: $kode") { tiltakRepository.getByKode(kode) }
 			?: fail("Forventet at tiltak med kode $kode ligger i tiltak databasen.")

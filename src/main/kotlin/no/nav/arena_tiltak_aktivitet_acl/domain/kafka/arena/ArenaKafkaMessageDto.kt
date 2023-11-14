@@ -21,7 +21,7 @@ data class ArenaKafkaMessageDto(
 	@JsonProperty("op_ts")
 	val opTs: String,
 
-	val pos: OperationPos,
+	val pos: String,
 	val before: JsonNode?,
 	val after: JsonNode?
 )

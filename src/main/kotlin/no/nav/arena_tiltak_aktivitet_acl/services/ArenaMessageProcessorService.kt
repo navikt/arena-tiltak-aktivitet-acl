@@ -110,7 +110,7 @@ open class ArenaMessageProcessorService(
 			arenaTableName = messageDto.table,
 			operationType = Operation.fromArenaOperationString(messageDto.opType),
 			operationTimestamp = parseArenaDateTime(messageDto.opTs),
-			operationPosition = messageDto.pos,
+			operationPosition = OperationPos.of(messageDto.pos),
 			before = messageDto.before?.let { mapper.treeToValue(it, D::class.java) },
 			after =  messageDto.after?.let { mapper.treeToValue(it, D::class.java) }
 		)
