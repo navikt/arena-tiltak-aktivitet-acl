@@ -136,7 +136,7 @@ open class ArenaDataRepository(
 	fun getByIngestStatus(
 		tableName: ArenaTableName,
 		status: IngestStatus,
-		fromId: Int,
+		fromPos: OperationPos,
 		limit: Int = 500
 	): List<ArenaDataDbo> {
 		//language=PostgreSQL
@@ -145,19 +145,19 @@ open class ArenaDataRepository(
 			FROM arena_data
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
-			AND id >= :fromId
-			ORDER BY id ASC
+			AND operation_pos >= :fromPos
+			ORDER BY operation_pos ASC
 			LIMIT :limit
 		""".trimIndent()
 
 		val parameters = sqlParameters(
 			"ingestStatus" to status.name,
 			"tableName" to tableName.tableName,
-			"fromId" to fromId,
+			"fromPos" to fromPos.value,
 			"limit" to limit
 		)
-
-		return template.query(sql, parameters, rowMapper)
+		val resultat = template.query(sql, parameters, rowMapper)
+		return resultat
 	}
 
 	fun getStatusCount(): List<LogStatusCountDto> {
