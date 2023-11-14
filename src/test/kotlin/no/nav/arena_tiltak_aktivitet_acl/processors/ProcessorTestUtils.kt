@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.processors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltak
@@ -51,7 +52,7 @@ fun createArenaDeltakerKafkaMessage(
 		arenaTableName = ArenaTableName.DELTAKER,
 		operationType = operation,
 		operationTimestamp = LocalDateTime.now(),
-		operationPosition = incrementAndGetPos().toString(),
+		operationPosition = OperationPos.of(incrementAndGetPos().toString()),
 		after = if (operation != Operation.DELETED) deltaker else null,
 		before = if (operation != Operation.CREATED) deltaker else null
 	)

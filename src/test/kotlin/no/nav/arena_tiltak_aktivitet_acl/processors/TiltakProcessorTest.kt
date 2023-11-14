@@ -11,6 +11,7 @@ import no.nav.arena_tiltak_aktivitet_acl.database.DatabaseTestUtils
 import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaTiltakKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
 import java.util.*
+import kotlin.random.Random
 
 class TiltakProcessorTest : FunSpec({
 
@@ -49,7 +51,7 @@ class TiltakProcessorTest : FunSpec({
 	}
 
 	test("Add Tiltak") {
-		val position = UUID.randomUUID().toString()
+		val position = OperationPos.of(Random.nextLong().toString())
 		val tiltakKode = "Tiltak1_KODE"
 		val tiltakNavn = "Tiltak1_NAVN"
 
@@ -83,7 +85,7 @@ class TiltakProcessorTest : FunSpec({
 	}
 
 	test("Update Tiltak") {
-		val newPosition = UUID.randomUUID().toString()
+		val newPosition = OperationPos.of(Random.nextLong().toString())
 		val tiltakKode = "Tiltak1_KODE"
 		val tiltakNavn = "Tiltak1_NAVN"
 
@@ -95,7 +97,7 @@ class TiltakProcessorTest : FunSpec({
 
 		tiltakProcessor.handleArenaMessage(kafkaMessageInsertOp)
 
-		val updatedPosition = UUID.randomUUID().toString()
+		val updatedPosition = OperationPos.of(Random.nextLong().toString())
 		val updatedNavn = "TILTAK1_UPDATED_NAVN"
 
 		val kafkaMessageUpdateOp = createArenaTiltakKafkaMessage(
@@ -125,7 +127,7 @@ class TiltakProcessorTest : FunSpec({
 	}
 
 	test("Delete Tiltak should throw exception") {
-		val newPosition = UUID.randomUUID().toString()
+		val newPosition = OperationPos.of(Random.nextLong().toString())
 		val tiltakKode = "Tiltak1_KODE"
 		val tiltakNavn = "Tiltak1_NAVN"
 
@@ -137,7 +139,7 @@ class TiltakProcessorTest : FunSpec({
 
 		tiltakProcessor.handleArenaMessage(kafkaMessageInsertOp)
 
-		val deletePosition = UUID.randomUUID().toString()
+		val deletePosition = OperationPos.of(Random.nextLong().toString())
 
 		val kafkaMessageDeleteOp = createArenaTiltakKafkaMessage(
 			operationPosition = deletePosition,
@@ -188,7 +190,7 @@ private fun createArenaTiltak(
 }
 
 private fun createArenaTiltakKafkaMessage(
-    operationPosition: String = "1",
+    operationPosition: OperationPos = OperationPos.of("1"),
     operationType: Operation = Operation.CREATED,
     operationTimestamp: LocalDateTime = LocalDateTime.now(),
     arenaTiltak: ArenaTiltak,

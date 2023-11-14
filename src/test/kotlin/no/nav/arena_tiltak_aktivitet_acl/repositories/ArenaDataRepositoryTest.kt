@@ -10,12 +10,14 @@ import no.nav.arena_tiltak_aktivitet_acl.database.SingletonPostgresContainer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DbUtils.isEqualTo
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.LocalDateTime
+import kotlin.random.Random
 
 class ArenaDataRepositoryTest : FunSpec({
 
@@ -39,7 +41,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = "1",
+			operationPosition = OperationPos.of(Random.nextLong().toString()),
 			operationTimestamp = LocalDateTime.now(),
 			after = after
 		)
@@ -62,14 +64,14 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = "1",
+			operationPosition = OperationPos.of(Random.nextLong().toString()),
 			operationTimestamp = LocalDateTime.now(),
 			after = gammelAfter
 		)
 		repository.upsert(data)
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(gammelAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(nyAfter)) shouldBe false
-		repository.upsert(data.copy(after = nyAfter, operationPosition = "2"))
+		repository.upsert(data.copy(after = nyAfter, operationPosition = OperationPos.of(Random.nextLong().toString())))
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(nyAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(gammelAfter)) shouldBe false
 	}
@@ -79,7 +81,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = "1",
+			operationPosition = OperationPos.of(Random.nextLong().toString()),
 			operationTimestamp = LocalDateTime.now(),
 			after = "{\"test\": \"test\"}"
 		)
@@ -113,7 +115,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = "1",
+			operationPosition = OperationPos.of(Random.nextLong().toString()),
 			operationTimestamp = LocalDateTime.now(),
 			after = afterData
 		)
@@ -122,7 +124,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = "2",
+			operationPosition = OperationPos.of(Random.nextLong().toString()),
 			operationTimestamp = LocalDateTime.now(),
 			ingestStatus = IngestStatus.IGNORED,
 			after = afterData
@@ -132,7 +134,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = "3",
+			operationPosition = OperationPos.of(Random.nextLong().toString()),
 			operationTimestamp = LocalDateTime.now(),
 			ingestStatus = IngestStatus.IGNORED,
 			after = afterData

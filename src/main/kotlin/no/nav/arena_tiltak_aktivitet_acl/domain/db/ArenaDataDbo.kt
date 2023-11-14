@@ -1,6 +1,7 @@
 package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import java.time.LocalDateTime
 
@@ -19,7 +20,7 @@ data class ArenaDataDbo(
 	val arenaTableName: ArenaTableName,
 	val arenaId: String,
 	val operation: Operation,
-	val operationPosition: String,
+	val operationPosition: OperationPos,
 	val operationTimestamp: LocalDateTime,
 	val ingestStatus: IngestStatus,
 	val ingestedTimestamp: LocalDateTime?,

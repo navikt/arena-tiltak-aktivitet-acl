@@ -16,6 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.DependencyNotIngestedException
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
@@ -91,7 +92,7 @@ class DeltakerProcessorTest : FunSpec({
 
 	fun getAndCheckArenaDataRepositoryEntry(
 		operation: Operation,
-		position: String,
+		position: OperationPos,
 		expectedStatus: IngestStatus = IngestStatus.HANDLED
 	): ArenaDataDbo {
 		val arenaDataRepositoryEntry = shouldNotThrowAny {
@@ -125,7 +126,7 @@ class DeltakerProcessorTest : FunSpec({
 			deltakerArenaId = 1L
 		)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
-		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos.of(operationPos.toString()))
 		val translationEntry = aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
@@ -146,7 +147,7 @@ class DeltakerProcessorTest : FunSpec({
 				deltakerArenaId = idx.toLong() + 1,
 				deltakerStatusKode = status
 			))
-			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
+			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos.of(operationPos.toString()))
 		}
 		verify(exactly = statuser.size) { kafkaProducerService.sendTilAktivitetskortTopic(any(), any(), any()) }
 	}
@@ -181,7 +182,7 @@ class DeltakerProcessorTest : FunSpec({
 			deltakerArenaId = 1L,
 			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
-		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, (operationPos).toString())
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos.of(operationPos.toString()))
 		val translationEntry = aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}

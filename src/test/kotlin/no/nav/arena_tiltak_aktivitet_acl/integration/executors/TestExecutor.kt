@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.integration.utils.asyncRetryHandler
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -28,7 +29,7 @@ abstract class TestExecutor(
 		kafkaProducer.send(ProducerRecord(topic, key, payload))
 	}
 
-	fun pollArenaData(table: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
+	fun pollArenaData(table: ArenaTableName, operation: Operation, position: OperationPos): ArenaDataDbo {
 		return asyncRetryHandler("get arenadata $table, $operation, $position") {
 			arenaDataRepository.getAll().find {
 				it.arenaTableName == table

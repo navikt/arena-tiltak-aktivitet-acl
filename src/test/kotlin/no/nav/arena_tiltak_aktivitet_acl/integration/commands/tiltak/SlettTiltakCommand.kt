@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaOperation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import java.time.LocalDateTime
 
@@ -16,7 +17,7 @@ class SlettTiltakCommand(
 		table = ArenaTableName.TILTAK,
 		opType = ArenaOperation.D.name,
 		opTs = LocalDateTime.now().format(opTsFormatter),
-		pos = pos,
+		pos = OperationPos.of(pos),
 		before = createPayload(kode, navn, administrasjonskode.name),
 		after = null
 	)

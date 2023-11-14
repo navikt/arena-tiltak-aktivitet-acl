@@ -5,11 +5,12 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.DeltakerAktivitetMappingDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Aktivitetskort
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetIdAndOppfolgingsPeriode
 import org.junit.jupiter.api.fail
 
 class HandledResult(
-	position: String,
+	position: OperationPos,
 	arenaDataDbo: ArenaDataDbo,
 	deltakerAktivitetMapping: List<AktivitetIdAndOppfolgingsPeriode>,
 	val output: KafkaMessageDto,
@@ -26,13 +27,13 @@ class HandledResult(
 }
 
 class HandledAndIgnored(
-	position: String,
+	position: OperationPos,
 	arenaDataDbo: ArenaDataDbo,
 	deltakerAktivitetMapping: List<AktivitetIdAndOppfolgingsPeriode>,
 ): AktivitetResult(position, arenaDataDbo, deltakerAktivitetMapping)
 
 open class AktivitetResult(
-	val position: String,
+	val position: OperationPos,
 	val arenaDataDbo: ArenaDataDbo,
 	val deltakerAktivitetMapping: List<AktivitetIdAndOppfolgingsPeriode>
 ) {

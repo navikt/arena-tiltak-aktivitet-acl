@@ -7,6 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
@@ -30,7 +31,7 @@ open class ArenaDataRepository(
 			arenaTableName = ArenaTableName.fromValue(rs.getString("arena_table_name")),
 			arenaId = rs.getString("arena_id"),
 			operation = Operation.valueOf(rs.getString("operation_type")),
-			operationPosition = rs.getString("operation_pos"),
+			operationPosition = OperationPos.of(rs.getString("operation_pos")),
 			operationTimestamp = rs.getTimestamp("operation_timestamp").toLocalDateTime(),
 			ingestStatus = IngestStatus.valueOf(rs.getString("ingest_status")),
 			ingestedTimestamp = rs.getTimestamp("ingested_timestamp")?.toLocalDateTime(),
@@ -68,7 +69,7 @@ open class ArenaDataRepository(
 				"arena_table_name" to upsertData.arenaTableName.tableName,
 				"arena_id" to upsertData.arenaId,
 				"operation_type" to upsertData.operation.name,
-				"operation_pos" to upsertData.operationPosition,
+				"operation_pos" to upsertData.operationPosition.value,
 				"operation_timestamp" to upsertData.operationTimestamp,
 				"ingest_status" to upsertData.ingestStatus.name,
 				"ingested_timestamp" to upsertData.ingestedTimestamp,
@@ -113,7 +114,7 @@ open class ArenaDataRepository(
 		)
 	}
 
-	fun get(tableName: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
+	fun get(tableName: ArenaTableName, operation: Operation, position: OperationPos): ArenaDataDbo {
 		//language=PostgreSQL
 		val sql = """
 			SELECT *
@@ -126,7 +127,7 @@ open class ArenaDataRepository(
 		val parameters = sqlParameters(
 			"arena_table_name" to tableName.tableName,
 			"operation_type" to operation.name,
-			"operation_pos" to position,
+			"operation_pos" to position.value,
 		)
 
 		return template.query(sql, parameters, rowMapper).firstOrNull()
@@ -215,7 +216,7 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
-	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationPos: String): Boolean {
+	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationPos: OperationPos): Boolean {
 		//language=PostgreSQL
 		val sql = """
 			SELECT count(*) as antallNyereMeldinger FROM arena_data
@@ -227,7 +228,7 @@ open class ArenaDataRepository(
 		val params = sqlParameters(
 			"arena_id" to deltakelseId.value.toString(),
 			"deltakerTableName" to ArenaTableName.DELTAKER.tableName,
-			"operationPos" to operationPos
+			"operationPos" to operationPos.value
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antallNyereMeldinger") }
 			?.let { it > 0 } ?: false

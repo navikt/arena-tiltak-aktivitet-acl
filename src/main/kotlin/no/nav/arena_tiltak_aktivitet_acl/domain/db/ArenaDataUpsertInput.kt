@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.db
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
@@ -11,7 +12,7 @@ data class ArenaDataUpsertInput(
 	val arenaTableName: ArenaTableName,
 	val arenaId: String,
 	val operation: Operation,
-	val operationPosition: String,
+	val operationPosition: OperationPos,
 	val operationTimestamp: LocalDateTime,
 	val ingestStatus: IngestStatus = IngestStatus.NEW,
 	val ingestedTimestamp: LocalDateTime? = null,

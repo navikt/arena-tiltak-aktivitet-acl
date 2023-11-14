@@ -65,7 +65,7 @@ open class DeltakerProcessor(
 		}.getOrNull()
 
 		val hasNewerHandledMessages = arenaDataRepository.hasHandledDeltakelseWithLaterPos(DeltakelseId(arenaDeltaker.TILTAKDELTAKER_ID), message.operationPosition)
-		if (hasNewerHandledMessages) throw OldMessageException("Har behandlet nyere meldinger på id=${arenaDeltaker.TILTAKDELTAKER_ID} allerede. Hopper over melding")
+		if (hasNewerHandledMessages) throw OlderThanCurrentStateException("Har behandlet nyere meldinger på id=${arenaDeltaker.TILTAKDELTAKER_ID} allerede. Hopper over melding")
 
 		val hasUnhandled = arenaDataRepository.hasUnhandledDeltakelse(arenaDeltaker.TILTAKDELTAKER_ID)
 		val isFirstInQueue = ingestStatus == IngestStatus.RETRY || ingestStatus == IngestStatus.FAILED
