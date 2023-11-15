@@ -29,6 +29,6 @@ data class OperationPos private constructor(val value: String) {
 
 fun padUntil20Characters(stringValue: String): String {
 	if (stringValue.toDoubleOrNull() == null) throw IllegalArgumentException("Operation-pos må være et tall")
-	if (stringValue.length > 20) throw IllegalArgumentException("Operation-pos må være et tall")
+	if (stringValue.length > 20) throw IllegalArgumentException("Operation-pos kan ikke være lenger enn 20 chars")
 	return stringValue.padStart(20, '0')
 }

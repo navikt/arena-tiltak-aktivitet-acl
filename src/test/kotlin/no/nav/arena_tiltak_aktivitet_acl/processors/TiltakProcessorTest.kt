@@ -51,7 +51,7 @@ class TiltakProcessorTest : FunSpec({
 	}
 
 	test("Add Tiltak") {
-		val position = OperationPos.of(Random.nextLong().toString())
+		val position = OperationPos.of(Random.nextLong(10000).toString())
 		val tiltakKode = "Tiltak1_KODE"
 		val tiltakNavn = "Tiltak1_NAVN"
 
@@ -85,7 +85,7 @@ class TiltakProcessorTest : FunSpec({
 	}
 
 	test("Update Tiltak") {
-		val newPosition = OperationPos.of(Random.nextLong().toString())
+		val newPosition = OperationPos.of(Random.nextLong(10000).toString())
 		val tiltakKode = "Tiltak1_KODE"
 		val tiltakNavn = "Tiltak1_NAVN"
 
@@ -97,7 +97,7 @@ class TiltakProcessorTest : FunSpec({
 
 		tiltakProcessor.handleArenaMessage(kafkaMessageInsertOp)
 
-		val updatedPosition = OperationPos.of(Random.nextLong().toString())
+		val updatedPosition = OperationPos.of(Random.nextLong(10000).toString())
 		val updatedNavn = "TILTAK1_UPDATED_NAVN"
 
 		val kafkaMessageUpdateOp = createArenaTiltakKafkaMessage(
@@ -127,7 +127,7 @@ class TiltakProcessorTest : FunSpec({
 	}
 
 	test("Delete Tiltak should throw exception") {
-		val newPosition = OperationPos.of(Random.nextLong().toString())
+		val newPosition = OperationPos.of(Random.nextLong(10000).toString())
 		val tiltakKode = "Tiltak1_KODE"
 		val tiltakNavn = "Tiltak1_NAVN"
 
@@ -139,7 +139,7 @@ class TiltakProcessorTest : FunSpec({
 
 		tiltakProcessor.handleArenaMessage(kafkaMessageInsertOp)
 
-		val deletePosition = OperationPos.of(Random.nextLong().toString())
+		val deletePosition = OperationPos.of(Random.nextLong(10000).toString())
 
 		val kafkaMessageDeleteOp = createArenaTiltakKafkaMessage(
 			operationPosition = deletePosition,
