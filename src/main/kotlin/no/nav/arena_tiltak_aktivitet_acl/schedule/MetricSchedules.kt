@@ -15,24 +15,24 @@ open class MetricSchedules(
 	private val arenaDataRepository: ArenaDataRepository,
 	private val meterRegistry: MeterRegistry,
 ) {
-	private val ingestStatusGaugeName = "amt.arena-acl.ingest.status"
+	private val ingestStatusGaugeName = "dab.aktivitet-arena-acl.ingest.status"
 	private val log = LoggerFactory.getLogger(javaClass)
 
 	private fun createGauge(status: String) = meterRegistry.gauge(
 		ingestStatusGaugeName, Tags.of("status", status), AtomicInteger(0)
 	)
 
-	private var statusGauges: Map<String, AtomicInteger> = IngestStatus.values().associate {
+	private var statusGauges: Map<String, AtomicInteger> = IngestStatus.entries.associate {
 		it.name to createGauge(it.name)!!
 	}
 
-	@Scheduled(fixedDelay = 10 * ONE_MINUTE, initialDelay = ONE_MINUTE)
+//	@Scheduled(fixedDelay = 10 * ONE_MINUTE, initialDelay = ONE_MINUTE)
 	fun logIngestStatus() {
 		log.debug("Collecting metrics for ingest status")
 
 		val statusCounts = arenaDataRepository.getStatusCount()
 
-		IngestStatus.values().forEach { status ->
+		IngestStatus.entries.forEach { status ->
 			statusCounts.find { it.status == status }?.let { statusGauges.getValue(status.name).set(it.count) }
 				?: statusGauges.getValue(status.name).set(0)
 		}
