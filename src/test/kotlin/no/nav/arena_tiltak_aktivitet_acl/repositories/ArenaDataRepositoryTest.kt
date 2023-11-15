@@ -41,7 +41,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong().toString()),
+			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
 			operationTimestamp = LocalDateTime.now(),
 			after = after
 		)
