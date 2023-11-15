@@ -14,6 +14,7 @@ object ObjectMapper {
 		.registerModule(JavaTimeModule())
 		.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 		.configure(MapperFeature.USE_STD_BEAN_NAMING, true)
+		.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 		.configure(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE, false)
 
 	fun get() = instance!!
