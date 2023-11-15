@@ -80,6 +80,29 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		}
 	}
 
+	"should handle unknown properties" {
+		val tiltakdeltakereJsonFileContent =
+			javaClass.classLoader.getResource("data/arena-tiltakdeltakerendret-v1-with-unknown-column.json").readText()
+		val tiltakdeltakere: List<JsonNode> = mapper.readValue(tiltakdeltakereJsonFileContent)
+		val deltakerJson = tiltakdeltakere.toList()[0].toString()
+
+		every {
+			deltakerProcessor.handleArenaMessage(any())
+		} returns Unit
+
+		every {
+			arenaDataRepository.alreadyProcessed(any(), any(), any())
+		} returns false
+
+		messageProcessor.handleArenaGoldenGateRecord(
+			ConsumerRecord("test", 1, 1, "123456", deltakerJson)
+		)
+
+		verify(exactly = 1) {
+			deltakerProcessor.handleArenaMessage(any())
+		}
+	}
+
 	"should handle arena gjennomforing message" {
 		val tiltakgjennomforingerJsonFileContent =
 			javaClass.classLoader.getResource("data/arena-tiltakgjennomforingendret-v1.json").readText()
