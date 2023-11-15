@@ -161,7 +161,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 						deltakelseId2,
 					)
 					excutionOrder.add(deltakelseId2.value)
-				}
+				}	
 			}
 			listOf(first, second).awaitAll()
 		}
@@ -170,16 +170,15 @@ class AktivitetServiceTest : IntegrationTestBase() {
 
 	@Test
 	fun `test advisory locking`() {
-		val OFFSET = 99999L
 		val startOrder = mutableListOf<Int>()
 		val finishOrder = mutableListOf<Int>()
 
-		val lockId = Random.nextLong(0, 1000) + OFFSET
+		val lockId = DeltakelseId(3131)
 		kotlinx.coroutines.runBlocking {
 			val first = async(Dispatchers.IO) {
 				startOrder.add(1)
 				transactionTemplate.executeWithoutResult {
-					advisoryLockRepository.aquireTransactionalAdvisoryLock(lockId)
+					advisoryLockRepository.lockDeltakelse(lockId)
 					log.info("Lock acquired first")
 					log.info("waiting in first")
 					Thread.sleep(100)
@@ -191,7 +190,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 				delay(20)
 				startOrder.add(2)
 				transactionTemplate.executeWithoutResult {
-					advisoryLockRepository.aquireTransactionalAdvisoryLock(lockId)
+					advisoryLockRepository.lockDeltakelse(lockId)
 					log.info("Lock acquired second")
 				}
 				finishOrder.add(2)
