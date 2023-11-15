@@ -7,6 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.*
 import no.nav.arena_tiltak_aktivitet_acl.processors.ArenaMessageProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
@@ -81,6 +82,9 @@ open class ArenaMessageProcessorService(
 					log.info("$arenaId in table $arenaTableName is not valid: '${e.message}'")
 					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.INVALID, note = e.message))
 				}
+				is OlderThanCurrentStateException -> {
+					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.IGNORED, note = e.message))
+				}
 				is IgnoredException -> {
 					log.info("$arenaId in table $arenaTableName: '${e.message}'")
 					arenaDataRepository.upsert(msg.toUpsertInput(arenaId, ingestStatus = IngestStatus.IGNORED, note = e.message))
@@ -106,7 +110,7 @@ open class ArenaMessageProcessorService(
 			arenaTableName = messageDto.table,
 			operationType = Operation.fromArenaOperationString(messageDto.opType),
 			operationTimestamp = parseArenaDateTime(messageDto.opTs),
-			operationPosition = messageDto.pos,
+			operationPosition = OperationPos.of(messageDto.pos),
 			before = messageDto.before?.let { mapper.treeToValue(it, D::class.java) },
 			after =  messageDto.after?.let { mapper.treeToValue(it, D::class.java) }
 		)

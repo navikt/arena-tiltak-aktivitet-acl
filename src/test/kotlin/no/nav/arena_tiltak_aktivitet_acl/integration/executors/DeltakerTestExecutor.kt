@@ -1,7 +1,8 @@
 package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import io.kotest.common.runBlocking
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
@@ -9,8 +10,12 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHe
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.KafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.HandledAndIgnored
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.HandledResult
 import no.nav.arena_tiltak_aktivitet_acl.integration.kafka.KafkaAktivitetskortIntegrationConsumer
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
@@ -37,9 +42,9 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true): AktivitetResult {
+	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: String = incrementAndGetPosition()): AktivitetResult {
 		return sendAndCheck(
-			command.toArenaKafkaMessageDto(incrementAndGetPosition()),
+			command.toArenaKafkaMessageDto(pos),
 			command.tiltakDeltakerId.toString(),
 			expectAktivitetskortOnTopic
 		)
@@ -59,7 +64,7 @@ class DeltakerTestExecutor(
 		val arenaData = pollArenaData(
 			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
-			wrapper.pos
+			OperationPos.of(wrapper.pos)
 		)
 
 		val deltakelseId = DeltakelseId(arenaData.arenaId.toLong())

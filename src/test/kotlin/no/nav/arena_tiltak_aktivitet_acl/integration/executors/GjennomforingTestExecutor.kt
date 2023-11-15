@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.integration.executors
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingResult
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
@@ -36,11 +37,11 @@ class GjennomforingTestExecutor(
 		val arenaData = pollArenaData(
 			ArenaTableName.GJENNOMFORING,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
-			arenaWrapper.pos
+			OperationPos.of(arenaWrapper.pos)
 		)
 
 		val output = gjennomforingRepository.get(arenaData.arenaId.toLong())
-		return GjennomforingResult(arenaWrapper.pos, arenaData, output)
+		return GjennomforingResult(OperationPos.of(arenaWrapper.pos), arenaData, output)
 	}
 
 }

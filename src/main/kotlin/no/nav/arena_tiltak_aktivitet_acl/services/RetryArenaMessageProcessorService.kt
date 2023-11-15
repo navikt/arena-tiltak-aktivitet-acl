@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Timer
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
@@ -49,17 +50,17 @@ open class RetryArenaMessageProcessorService(
 	}
 
 	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
-		var fromId = 0
+		var fromPos = OperationPos.of("0")
 		var data: List<ArenaDataDbo>
 
 		val start = Instant.now()
 		var totalHandled = 0
 
 		do {
-			data = arenaDataRepository.getByIngestStatus(tableName, status, fromId, batchSize)
+			data = arenaDataRepository.getByIngestStatus(tableName, status, fromPos, batchSize)
 			data.forEach { process(it) }
 			totalHandled += data.size
-			fromId = data.maxOfOrNull { it.id.plus(1) } ?: Int.MAX_VALUE
+			fromPos = data.maxByOrNull { it.operationPosition.value }?.operationPosition ?: break
 		} while (data.isNotEmpty())
 
 		// Sette QUEUED med lavest ID til RETRY

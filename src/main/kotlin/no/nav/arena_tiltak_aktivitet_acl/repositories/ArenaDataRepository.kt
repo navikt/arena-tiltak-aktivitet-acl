@@ -7,7 +7,8 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.LogStatusCountDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.utils.ARENA_DELTAKER_TABLE_NAME
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
@@ -29,7 +30,7 @@ open class ArenaDataRepository(
 			arenaTableName = ArenaTableName.fromValue(rs.getString("arena_table_name")),
 			arenaId = rs.getString("arena_id"),
 			operation = Operation.valueOf(rs.getString("operation_type")),
-			operationPosition = rs.getString("operation_pos"),
+			operationPosition = OperationPos.of(rs.getString("operation_pos")),
 			operationTimestamp = rs.getTimestamp("operation_timestamp").toLocalDateTime(),
 			ingestStatus = IngestStatus.valueOf(rs.getString("ingest_status")),
 			ingestedTimestamp = rs.getTimestamp("ingested_timestamp")?.toLocalDateTime(),
@@ -67,7 +68,7 @@ open class ArenaDataRepository(
 				"arena_table_name" to upsertData.arenaTableName.tableName,
 				"arena_id" to upsertData.arenaId,
 				"operation_type" to upsertData.operation.name,
-				"operation_pos" to upsertData.operationPosition,
+				"operation_pos" to upsertData.operationPosition.value,
 				"operation_timestamp" to upsertData.operationTimestamp,
 				"ingest_status" to upsertData.ingestStatus.name,
 				"ingested_timestamp" to upsertData.ingestedTimestamp,
@@ -112,7 +113,7 @@ open class ArenaDataRepository(
 		)
 	}
 
-	fun get(tableName: ArenaTableName, operation: Operation, position: String): ArenaDataDbo {
+	fun get(tableName: ArenaTableName, operation: Operation, position: OperationPos): ArenaDataDbo {
 		//language=PostgreSQL
 		val sql = """
 			SELECT *
@@ -125,7 +126,7 @@ open class ArenaDataRepository(
 		val parameters = sqlParameters(
 			"arena_table_name" to tableName.tableName,
 			"operation_type" to operation.name,
-			"operation_pos" to position,
+			"operation_pos" to position.value,
 		)
 
 		return template.query(sql, parameters, rowMapper).firstOrNull()
@@ -135,7 +136,7 @@ open class ArenaDataRepository(
 	fun getByIngestStatus(
 		tableName: ArenaTableName,
 		status: IngestStatus,
-		fromId: Int,
+		fromPos: OperationPos,
 		limit: Int = 500
 	): List<ArenaDataDbo> {
 		//language=PostgreSQL
@@ -144,19 +145,19 @@ open class ArenaDataRepository(
 			FROM arena_data
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
-			AND id >= :fromId
-			ORDER BY id ASC
+			AND operation_pos >= :fromPos
+			ORDER BY operation_pos ASC
 			LIMIT :limit
 		""".trimIndent()
 
 		val parameters = sqlParameters(
 			"ingestStatus" to status.name,
 			"tableName" to tableName.tableName,
-			"fromId" to fromId,
+			"fromPos" to fromPos.value,
 			"limit" to limit
 		)
-
-		return template.query(sql, parameters, rowMapper)
+		val resultat = template.query(sql, parameters, rowMapper)
+		return resultat
 	}
 
 	fun getStatusCount(): List<LogStatusCountDto> {
@@ -214,6 +215,24 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
+	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationPos: OperationPos): Boolean {
+		//language=PostgreSQL
+		val sql = """
+			SELECT count(*) as antallNyereMeldinger FROM arena_data
+			where arena_id = :arena_id
+				AND arena_table_name = :deltakerTableName
+				AND ingest_status = 'HANDLED'
+				AND operation_pos > :operationPos
+		""".trimIndent()
+		val params = sqlParameters(
+			"arena_id" to deltakelseId.value.toString(),
+			"deltakerTableName" to ArenaTableName.DELTAKER.tableName,
+			"operationPos" to operationPos.value
+		)
+		return template.queryForObject(sql, params) { a, _ -> a.getInt("antallNyereMeldinger") }
+			?.let { it > 0 } ?: false
+	}
+
 	fun moveQueueForward(): Int {
 		// For en deltakelse (arena_id)
 		// Sett QUEUED til RETRY kun hvis det ikke finnes noen RETRY eller FAILED
@@ -221,8 +240,8 @@ open class ArenaDataRepository(
 
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.id in (
-				SELECT MIN(id) FROM arena_data a2
+			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.operation_pos in (
+				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
 				WHERE ingest_status = 'QUEUED' AND NOT EXISTS(
 					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id)
 				GROUP BY arena_id

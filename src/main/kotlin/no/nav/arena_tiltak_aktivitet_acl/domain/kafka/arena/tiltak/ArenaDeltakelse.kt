@@ -21,7 +21,7 @@ data class ArenaDeltakelse(
 	val BEGRUNNELSE_PRIORITERING: String? = null,
 	val REG_DATO: String? = null,
 	val REG_USER: String? = null,
-	val MOD_DATO: String? = null,
+	val MOD_DATO: String,
 	val MOD_USER: String? = null,
 	val DATO_SVARFRIST: String? = null,
 	val DATO_FRA: String? = null,
