@@ -42,9 +42,9 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true): AktivitetResult {
+	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: String = incrementAndGetPosition()): AktivitetResult {
 		return sendAndCheck(
-			command.toArenaKafkaMessageDto(incrementAndGetPosition()),
+			command.toArenaKafkaMessageDto(pos),
 			command.tiltakDeltakerId.toString(),
 			expectAktivitetskortOnTopic
 		)

@@ -172,6 +172,44 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `skal prossesere i rekkefølgen til pos`() {
+		val gjennomforingId = Random.nextLong()
+		val deltakelseId = Random.nextLong()
+		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = ENKELAMO))
+		tiltak.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		val opprettetTidspunkt = LocalDateTime.now()
+		val fullf = DeltakerInput(
+			tiltakDeltakelseId = DeltakelseId(deltakelseId),
+			tiltakgjennomforingId = gjennomforingId,
+			endretAv = Ident(ident = "SIG123"),
+			endretTidspunkt = opprettetTidspunkt,
+			registrertDato = opprettetTidspunkt,
+			deltakerStatusKode = "FULLF"
+		)
+		val fullfCommand = NyDeltakerCommand(fullf)
+		val gjennCommand = NyDeltakerCommand(fullf.copy(endretAv = Ident(ident = "HPA321"), deltakerStatusKode = "GJENN"))
+		deltakerExecutor.execute(fullfCommand, pos = "2")
+			.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
+		deltakerExecutor.execute(gjennCommand, pos = "1")
+			.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
+
+		gjennomforingExecutor.execute(NyGjennomforingCommand(GjennomforingInput(
+			gjennomforingId = gjennomforingId, tiltakKode = tiltak.tiltak.kode)))
+			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
+
+		// Max 1 per arenaId melding blir prossesert per retry-run
+		processMessages()
+		processMessages()
+		val mapper = ObjectMapper.get()
+		val aktivitetId = idMappingClient.hentMapping(TranslationQuery(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)).second
+		aktivitetId shouldNotBe null
+		val data = aktivitetRepository.getAktivitet(aktivitetId!!)!!.data
+		val aktivitetskort = mapper.readValue(data, Aktivitetskort::class.java)
+		aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
+	}
+
+	@Test
 	fun `skal bruker regDato til å finne oppfolgingsperiode hvis ingens finnes på modDato`() {
 		val foerstePeriode = Oppfolgingsperiode(
 			uuid = UUID.randomUUID(),
