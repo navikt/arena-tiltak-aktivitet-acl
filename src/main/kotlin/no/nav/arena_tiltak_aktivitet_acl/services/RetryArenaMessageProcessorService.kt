@@ -51,19 +51,21 @@ open class RetryArenaMessageProcessorService(
 	}
 
 	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
-		var fromPos = OperationPos.of("0")
-		var data: List<ArenaDataDbo>
-
+		val startPos = OperationPos.of("0")
 		val start = Instant.now()
-		var totalHandled = 0
 
-		runBlocking {
-			do {
-				data = arenaDataRepository.getByIngestStatus(tableName, status, fromPos, batchSize)
-				data.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
-				totalHandled += data.size
-				fromPos = data.maxByOrNull { it.operationPosition.value }?.operationPosition ?: break
-			} while (data.isNotEmpty())
+		val totalHandled = runBlocking {
+			tailrec suspend fun processNextBatch(currentBatch: List<ArenaDataDbo>, totalHandled: Int = 0): Int {
+				if (currentBatch.isEmpty()) return totalHandled
+				// Prosess up to 2000 in parallel then wait for all to finish
+				currentBatch.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
+				val nextStartPos = currentBatch.maxByOrNull { it.operationPosition.value }?.operationPosition
+				val nextBatch = nextStartPos?.let { arenaDataRepository.getByIngestStatus(tableName, status, nextStartPos, batchSize) }
+					?: emptyList()
+				return processNextBatch(nextBatch, totalHandled + nextBatch.size)
+			}
+			val startBatch = arenaDataRepository.getByIngestStatus(tableName, status, startPos, batchSize)
+			return@runBlocking processNextBatch(startBatch)
 		}
 
 		// Sette QUEUED med lavest ID til RETRY
