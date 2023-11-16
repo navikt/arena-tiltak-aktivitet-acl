@@ -236,21 +236,21 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
-	fun moveQueueForward(): Int {
+	fun moveQueueForward(arenaTableName: ArenaTableName): Int {
 		// For en deltakelse (arena_id)
 		// Sett QUEUED til RETRY kun hvis det ikke finnes noen RETRY eller FAILED
 		// Alt som er RETRY eller FAILED er alltid først i køen
 
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.operation_pos in (
+			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos in (
 				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
-				WHERE ingest_status = 'QUEUED' AND NOT EXISTS(
-					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id)
+				WHERE a2.arena_table_name = :arenaTableName AND ingest_status = 'QUEUED' AND NOT EXISTS(
+					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id AND a3.arena_table_name = :arenaTableName)
 				GROUP BY arena_id
 			)
 		""".trimIndent()
-		return template.update(sql, MapSqlParameterSource())
+		return template.update(sql, mapOf("arenaTableName" to arenaTableName.tableName))
 	}
 
 	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, after: JsonNode?): Boolean {

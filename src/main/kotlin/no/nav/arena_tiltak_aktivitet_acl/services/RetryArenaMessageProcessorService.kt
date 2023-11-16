@@ -69,7 +69,7 @@ open class RetryArenaMessageProcessorService(
 		}
 
 		// Sette QUEUED med lavest ID til RETRY
-		val messagesMovedToRetry = arenaDataRepository.moveQueueForward()
+		val messagesMovedToRetry = arenaDataRepository.moveQueueForward(tableName)
 		log.info("Moved $messagesMovedToRetry messages from QUEUED to RETRY")
 
 		val duration = Duration.between(start, Instant.now())
