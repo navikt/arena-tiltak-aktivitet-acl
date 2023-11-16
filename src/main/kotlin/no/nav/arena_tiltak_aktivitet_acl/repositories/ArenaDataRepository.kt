@@ -145,7 +145,7 @@ open class ArenaDataRepository(
 			FROM arena_data
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
-			AND operation_pos >= :fromPos
+			AND operation_pos > :fromPos
 			ORDER BY operation_pos ASC
 			LIMIT :limit
 		""".trimIndent()
