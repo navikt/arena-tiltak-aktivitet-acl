@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
+import kotlin.time.measureTimedValue
 
 @Service
 open class RetryArenaMessageProcessorService(
@@ -36,7 +37,7 @@ open class RetryArenaMessageProcessorService(
 		private const val MAX_INGEST_ATTEMPTS = 10
 	}
 
-	fun processMessages(batchSize: Int = 2000) {
+	fun processMessages(batchSize: Int = 500) {
 		processMessagesWithStatus(IngestStatus.RETRY, batchSize)
 	}
 
@@ -51,6 +52,7 @@ open class RetryArenaMessageProcessorService(
 	}
 
 	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
+		log.info("processMessages $tableName ingestStatus: $status")
 		val startPos = OperationPos.of("0")
 		val start = Instant.now()
 
@@ -58,24 +60,33 @@ open class RetryArenaMessageProcessorService(
 			tailrec suspend fun processNextBatch(currentBatch: List<ArenaDataDbo>, totalHandled: Int = 0): Int {
 				log.info("Next batch: ${currentBatch.size} messages")
 				if (currentBatch.isEmpty()) return totalHandled
-				// Prosess up to 2000 in parallel then wait for all to finish
+				// Prosess up to batchSize in parallel then wait for all to finish
 				currentBatch.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
 				log.info("Finished processing ${currentBatch.size} in parallel(?)")
 				val nextStartPos = currentBatch.maxByOrNull { it.operationPosition.value }?.operationPosition
 				if (nextStartPos != null) log.info("Next pos ${nextStartPos.value}") else log.info("No next pos, batch finished")
-				val nextBatch = nextStartPos?.let { arenaDataRepository.getByIngestStatus(tableName, status, nextStartPos, batchSize) }
-					?: emptyList()
+				val nextBatch = nextStartPos?.let {
+					val timedStartBatch = measureTimedValue {
+						arenaDataRepository.getByIngestStatus(tableName, status, nextStartPos, batchSize)
+					}
+					log.info("Fetched next part of batch in :${timedStartBatch.duration.inWholeSeconds} seconds")
+					timedStartBatch.value
+				} ?: emptyList()
 				return processNextBatch(nextBatch, totalHandled + nextBatch.size)
 			}
 			log.info("Fetching batch by ingestStatus: ${status.name} table: $tableName $batchSize")
-			val startBatch = arenaDataRepository.getByIngestStatus(tableName, status, startPos, batchSize)
-			log.info("starting on batch with ${startBatch.size} messages")
-			return@runBlocking processNextBatch(startBatch)
+			val timedStartBatch = measureTimedValue {
+				 arenaDataRepository.getByIngestStatus(tableName, status, startPos, batchSize)
+			}
+			log.info("Starting on batch with ${timedStartBatch.value.size} messages table: $tableName fetched in :${timedStartBatch.duration.inWholeSeconds} seconds")
+			return@runBlocking processNextBatch(timedStartBatch.value)
 		}
 
 		// Sette QUEUED med lavest ID til RETRY
-		val messagesMovedToRetry = arenaDataRepository.moveQueueForward(tableName)
-		log.info("Moved $messagesMovedToRetry messages from QUEUED to RETRY")
+		val messagesMovedToRetry = measureTimedValue {
+			arenaDataRepository.moveQueueForward(tableName)
+		}
+		log.info("Moved ${messagesMovedToRetry.value} messages from QUEUED to RETRY $tableName in ${messagesMovedToRetry.duration.inWholeSeconds} seconds")
 
 		val duration = Duration.between(start, Instant.now())
 
