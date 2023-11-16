@@ -60,7 +60,7 @@ open class RetryArenaMessageProcessorService(
 			tailrec suspend fun processNextBatch(currentBatch: List<ArenaDataDbo>, totalHandled: Int = 0): Int {
 				log.info("Next batch: ${currentBatch.size} messages")
 				if (currentBatch.isEmpty()) return totalHandled
-				// Prosess up to 2000 in parallel then wait for all to finish
+				// Prosess up to batchSize in parallel then wait for all to finish
 				currentBatch.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
 				log.info("Finished processing ${currentBatch.size} in parallel(?)")
 				val nextStartPos = currentBatch.maxByOrNull { it.operationPosition.value }?.operationPosition
