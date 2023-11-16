@@ -2,9 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.services
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
@@ -62,7 +60,7 @@ open class RetryArenaMessageProcessorService(
 		runBlocking {
 			do {
 				data = arenaDataRepository.getByIngestStatus(tableName, status, fromPos, batchSize)
-				data.map { async { process(it) } }.awaitAll()
+				data.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
 				totalHandled += data.size
 				fromPos = data.maxByOrNull { it.operationPosition.value }?.operationPosition ?: break
 			} while (data.isNotEmpty())
