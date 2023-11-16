@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.services
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import kotlinx.coroutines.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
@@ -50,21 +51,25 @@ open class RetryArenaMessageProcessorService(
 	}
 
 	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
-		var fromPos = OperationPos.of("0")
-		var data: List<ArenaDataDbo>
-
+		val startPos = OperationPos.of("0")
 		val start = Instant.now()
-		var totalHandled = 0
 
-		do {
-			data = arenaDataRepository.getByIngestStatus(tableName, status, fromPos, batchSize)
-			data.forEach { process(it) }
-			totalHandled += data.size
-			fromPos = data.maxByOrNull { it.operationPosition.value }?.operationPosition ?: break
-		} while (data.isNotEmpty())
+		val totalHandled = runBlocking {
+			tailrec suspend fun processNextBatch(currentBatch: List<ArenaDataDbo>, totalHandled: Int = 0): Int {
+				if (currentBatch.isEmpty()) return totalHandled
+				// Prosess up to 2000 in parallel then wait for all to finish
+				currentBatch.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
+				val nextStartPos = currentBatch.maxByOrNull { it.operationPosition.value }?.operationPosition
+				val nextBatch = nextStartPos?.let { arenaDataRepository.getByIngestStatus(tableName, status, nextStartPos, batchSize) }
+					?: emptyList()
+				return processNextBatch(nextBatch, totalHandled + nextBatch.size)
+			}
+			val startBatch = arenaDataRepository.getByIngestStatus(tableName, status, startPos, batchSize)
+			return@runBlocking processNextBatch(startBatch)
+		}
 
 		// Sette QUEUED med lavest ID til RETRY
-		val messagesMovedToRetry = arenaDataRepository.moveQueueForward()
+		val messagesMovedToRetry = arenaDataRepository.moveQueueForward(tableName)
 		log.info("Moved $messagesMovedToRetry messages from QUEUED to RETRY")
 
 		val duration = Duration.between(start, Instant.now())
@@ -96,7 +101,7 @@ open class RetryArenaMessageProcessorService(
 				} else if (arenaDataDbo.ingestStatus == IngestStatus.RETRY && hasReachedMaxRetries) {
 					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.FAILED)
 				}
-				log.error("feilet retry-behandling av medling med arenaId: ${arenaDataDbo.arenaId}, id: ${arenaDataDbo.id}, tabell: ${arenaDataDbo.arenaTableName}", e)
+				log.error("feilet retry-behandling av medling med arenaId: ${arenaDataDbo.arenaId}, id: ${arenaDataDbo.id}, tabell: ${arenaDataDbo.arenaTableName}, attempts: $currentIngestAttempts", e)
 				arenaDataRepository.updateIngestAttempts(arenaDataDbo.id, currentIngestAttempts, e.message)
 			}
 		}
