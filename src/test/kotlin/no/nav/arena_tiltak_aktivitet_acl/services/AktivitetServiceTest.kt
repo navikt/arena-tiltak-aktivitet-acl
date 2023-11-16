@@ -161,7 +161,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 						deltakelseId2,
 					)
 					excutionOrder.add(deltakelseId2.value)
-				}	
+				}
 			}
 			listOf(first, second).awaitAll()
 		}
@@ -170,8 +170,8 @@ class AktivitetServiceTest : IntegrationTestBase() {
 
 	@Test
 	fun `test advisory locking`() {
-		val startOrder = mutableListOf<Int>()
-		val finishOrder = mutableListOf<Int>()
+		val startOrder = Collections.synchronizedList(mutableListOf<Int>())
+		val finishOrder = Collections.synchronizedList(mutableListOf<Int>())
 
 		val lockId = DeltakelseId(3131)
 		kotlinx.coroutines.runBlocking {
