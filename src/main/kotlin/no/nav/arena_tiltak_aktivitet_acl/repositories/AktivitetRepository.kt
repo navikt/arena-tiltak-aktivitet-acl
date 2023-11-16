@@ -21,7 +21,6 @@ class AktivitetRepository(
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
 	fun upsert(aktivitet: AktivitetDbo) {
-		log.info("In repo ${aktivitet.id} ${aktivitet.oppfolgingsperiodeUUID} ${aktivitet.arenaId} ${aktivitet.oppfolgingsSluttTidspunkt}")
 		@Language("PostgreSQL")
 		val sql = """
 			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt)
