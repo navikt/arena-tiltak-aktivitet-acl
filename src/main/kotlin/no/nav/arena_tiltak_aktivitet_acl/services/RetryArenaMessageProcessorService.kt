@@ -101,7 +101,7 @@ open class RetryArenaMessageProcessorService(
 				} else if (arenaDataDbo.ingestStatus == IngestStatus.RETRY && hasReachedMaxRetries) {
 					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.FAILED)
 				}
-				log.error("feilet retry-behandling av medling med arenaId: ${arenaDataDbo.arenaId}, id: ${arenaDataDbo.id}, tabell: ${arenaDataDbo.arenaTableName}", e)
+				log.error("feilet retry-behandling av medling med arenaId: ${arenaDataDbo.arenaId}, id: ${arenaDataDbo.id}, tabell: ${arenaDataDbo.arenaTableName}, attempts: $currentIngestAttempts", e)
 				arenaDataRepository.updateIngestAttempts(arenaDataDbo.id, currentIngestAttempts, e.message)
 			}
 		}
