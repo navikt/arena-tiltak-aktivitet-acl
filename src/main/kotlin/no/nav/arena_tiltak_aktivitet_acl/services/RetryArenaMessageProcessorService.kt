@@ -56,15 +56,20 @@ open class RetryArenaMessageProcessorService(
 
 		val totalHandled = runBlocking {
 			tailrec suspend fun processNextBatch(currentBatch: List<ArenaDataDbo>, totalHandled: Int = 0): Int {
+				log.info("Next batch: ${currentBatch.size} messages")
 				if (currentBatch.isEmpty()) return totalHandled
 				// Prosess up to 2000 in parallel then wait for all to finish
 				currentBatch.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
+				log.info("Finished processing ${currentBatch.size} in parallel(?)")
 				val nextStartPos = currentBatch.maxByOrNull { it.operationPosition.value }?.operationPosition
+				if (nextStartPos != null) log.info("Next pos ${nextStartPos.value}") else log.info("No next pos, batch finished")
 				val nextBatch = nextStartPos?.let { arenaDataRepository.getByIngestStatus(tableName, status, nextStartPos, batchSize) }
 					?: emptyList()
 				return processNextBatch(nextBatch, totalHandled + nextBatch.size)
 			}
+			log.info("Fetching batch by ingestStatus: ${status.name} table: $tableName $batchSize")
 			val startBatch = arenaDataRepository.getByIngestStatus(tableName, status, startPos, batchSize)
+			log.info("starting on batch with ${startBatch.size} messages")
 			return@runBlocking processNextBatch(startBatch)
 		}
 
