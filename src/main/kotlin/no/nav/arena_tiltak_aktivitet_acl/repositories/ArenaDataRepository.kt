@@ -82,13 +82,16 @@ open class ArenaDataRepository(
 	fun updateIngestStatus(id: Int, ingestStatus: IngestStatus) {
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data SET ingest_status = :ingest_status WHERE id = :id
+			UPDATE arena_data
+			SET ingest_status = :ingest_status, last_attempted = :last_attempted
+			WHERE id = :id
 		""".trimIndent()
 
 		template.update(
 			sql, sqlParameters(
 				"ingest_status" to ingestStatus.name,
-				"id" to id
+				"id" to id,
+				"last_attempted" to LocalDateTime.now(),
 			)
 		)
 	}
