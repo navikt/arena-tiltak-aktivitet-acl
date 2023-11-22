@@ -25,7 +25,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGj
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OppfolgingClientMock
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
-import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
+import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor.Companion.AKTIVITETSPLAN_LANSERINGSDATO
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.AMO
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.ENKELAMO
 import no.nav.arena_tiltak_aktivitet_acl.processors.converters.ArenaDeltakerConverter.GRUPPEAMO
@@ -45,10 +45,7 @@ import org.mockito.kotlin.doThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.http.HttpStatus
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
+import java.time.*
 import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.random.Random
@@ -390,12 +387,47 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
-			registrertDato = DeltakerProcessor.AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1)
+			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1)
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
 
 		result.arenaData { it.ingestStatus shouldBe IngestStatus.IGNORED }
+	}
+
+	@Test
+	fun `dont ignore deltaker before aktivitetsplan launch if oppfolgingsperiode`() {
+		val (gjennomforingId, deltakerId) = setup()
+
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.of(AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1), ZoneId.systemDefault()),
+			sluttDato = null
+		)
+
+		val deltakerInput = DeltakerInput(
+			personId = 345L,
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusYears(1),
+			endretTidspunkt = AKTIVITETSPLAN_LANSERINGSDATO.minusYears(1),
+			datoTil = LocalDate.now().plusYears(25)
+		)
+
+		val fnr = "12345678901"
+		OrdsClientMock.fnrHandlers[deltakerInput.personId!!] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
+
+
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.expectHandled {
+			data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+		}
 	}
 
 	@Test
