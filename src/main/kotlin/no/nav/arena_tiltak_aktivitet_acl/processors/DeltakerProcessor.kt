@@ -54,8 +54,16 @@ open class DeltakerProcessor(
 		if (message.operationType == Operation.DELETED) {
 			throw IgnoredException("Skal ignorere deltakelse med operation type DELETE")
 		}
+
+		var opprettetFoerMenAktivEtterLansering = false
 		if (deltakelse.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
-			throw IgnoredException("Deltakeren registrert=${deltakelse.regDato} opprettet før aktivitetsplan skal ikke håndteres")
+			// Hvis deltakelsen er opprettet før aktivitetsplan lanseringsdato,
+			// _men_ datoTil er etter aktivitetsplan lanseringsdato,
+			// _og_ bruker hadde en aktiv oppfølgingsperiode ved aktivitetsplan lanseringsdato
+			// så skal vi opprette aktivitetskort
+			if (deltakelse.datoTil?.isAfter(AKTIVITETSPLAN_LANSERINGSDATO.toLocalDate()) == true) {
+				opprettetFoerMenAktivEtterLansering = true
+			} else throw IgnoredException("Deltakeren registrert=${deltakelse.regDato} opprettet før aktivitetsplan skal ikke håndteres")
 		}
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
@@ -83,9 +91,11 @@ open class DeltakerProcessor(
 		/*
 		 Hvis oppfølgingsperiode ikke finnes,
 		 hopper vi ut her, enten med retry eller ignored, siden handleOppfolgingsperiodeNull kaster exception alltid.
-		 Dette er viktig for å ikke opprette ny aktivitetsid før vi faktisk lagrer et aktivitetskort.
 		*/
-		val periodeMatch = getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
+		val periodeMatch =
+			if (opprettetFoerMenAktivEtterLansering) {
+				getOppfolgingsperiodeForPersonVedLansering(personIdent)
+			} else getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
 		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)
 		when (endring) {
 			is EndringsType.NyttAktivitetskortByttPeriode  -> {
@@ -162,6 +172,14 @@ open class DeltakerProcessor(
 		return when (funnetPeriode) {
 			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
 			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakelseId)
+		}
+	}
+
+	private fun getOppfolgingsperiodeForPersonVedLansering(personIdent: String): FinnOppfolgingResult.FunnetPeriodeResult {
+		val oppfolgingsperiodeVedAktivitetsplanLansering = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, AKTIVITETSPLAN_LANSERINGSDATO)
+		return when (oppfolgingsperiodeVedAktivitetsplanLansering) {
+			is FinnOppfolgingResult.FunnetPeriodeResult -> oppfolgingsperiodeVedAktivitetsplanLansering
+			is FinnOppfolgingResult.IngenPeriodeResult -> throw IgnoredException("Deltakelse aktiv ved aktivitetsplan lansering, men bruker ikke under oppfølging på det tidspunktet.")
 		}
 	}
 
