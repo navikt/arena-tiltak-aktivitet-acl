@@ -380,7 +380,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `ignore deltaker before aktivitetsplan launch if tilDato before aktivitetsplan launch`() {
+	fun `ignore deltaker moddato before aktivitetsplan launch if tilDato before aktivitetsplan launch`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -388,6 +388,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
 			datoTil = AKTIVITETSPLAN_LANSERINGSDATO.toLocalDate().minusDays(1),
+			endretTidspunkt = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1),
 			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(2)
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
@@ -400,7 +401,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `ignore deltaker before aktivitetsplan launch if tilDato after aktivitetplan launch, but no oppfolgingsperiode`() {
+	fun `ignore deltaker moddato before aktivitetsplan launch if tilDato after aktivitetplan launch, but no oppfolgingsperiode`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -408,6 +409,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
 			datoTil = AKTIVITETSPLAN_LANSERINGSDATO.plusMonths(1).toLocalDate(),
+			endretTidspunkt = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1),
 			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1)
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
@@ -420,7 +422,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `dont ignore deltaker before aktivitetsplan launch if tildato after aktivitetsplan launch and oppfolgingsperiode was active`() {
+	fun `dont ignore deltaker moddato before aktivitetsplan launch if tildato after aktivitetsplan launch and oppfolgingsperiode was active`() {
 		val (gjennomforingId, deltakerId) = setup()
 
 		val foerstePeriode = Oppfolgingsperiode(
