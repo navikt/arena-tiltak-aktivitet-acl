@@ -166,8 +166,9 @@ open class DeltakerProcessor(
 	}
 
 	private fun getOppfolgingsPeriodeOrThrow(deltaker: TiltakDeltakelse, personIdent: String): FinnOppfolgingResult.FunnetPeriodeResult {
-		val funnetPeriode = deltaker.modDato
-			.let { modDato -> oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, modDato) }
+		val oppslagsDato = deltaker.datoTil
+			?.let { tilDato -> minOf(tilDato.atStartOfDay(), deltaker.modDato) } ?: deltaker.modDato
+		val funnetPeriode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, oppslagsDato)
 		return when (funnetPeriode) {
 			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
 			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakelseId)

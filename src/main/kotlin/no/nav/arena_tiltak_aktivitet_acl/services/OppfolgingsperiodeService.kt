@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.chrono.ChronoZonedDateTime
+import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAmount
 import kotlin.math.abs
@@ -42,14 +42,14 @@ open class OppfolgingsperiodeService(
 			return FinnOppfolgingResult.IngenPeriodeResult( emptyList())
 		}
 
-		val tidspunktCZDT = ChronoZonedDateTime.from(tidspunkt.atZone(ZoneId.systemDefault()))
+		val tidspunktZDT = ZonedDateTime.from(tidspunkt.atZone(ZoneId.systemDefault()))
 		val oppfolgingsperiode = oppfolgingsperioder
-			.find {periode -> periode.tidspunktInnenforPeriode(tidspunktCZDT) }
+			.find {periode -> periode.tidspunktInnenforPeriode(tidspunktZDT) }
 		if (oppfolgingsperiode != null) return FinnOppfolgingResult.FunnetPeriodeResult(oppfolgingsperiode, oppfolgingsperioder)
 
 		return oppfolgingsperioder
-				.filter { it.sluttDato == null || it.sluttDato.isAfter(tidspunktCZDT) }
-				.minByOrNull { abs(ChronoUnit.MILLIS.between(tidspunktCZDT, it.startDato)) }
+				.filter { it.sluttDato == null || it.sluttDato.isAfter(tidspunktZDT) }
+				.minByOrNull { abs(ChronoUnit.MILLIS.between(tidspunktZDT, it.startDato)) }
 				.let { periodeMatch ->
 					if (periodeMatch == null || !tidspunktRettFoerStartDatoEllerSenere(tidspunkt, periodeMatch.startDato.toLocalDateTime(), defaultSlakk)) {
 						secureLog.info(
