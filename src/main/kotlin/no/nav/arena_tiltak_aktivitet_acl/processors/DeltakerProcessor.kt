@@ -56,7 +56,8 @@ open class DeltakerProcessor(
 		}
 
 		var opprettetFoerMenAktivEtterLansering = false
-		if (deltakelse.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)) {
+		if (deltakelse.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO) && deltakelse.modDato.isBefore(
+				AKTIVITETSPLAN_LANSERINGSDATO)) {
 			// Hvis deltakelsen er opprettet før aktivitetsplan lanseringsdato,
 			// _men_ datoTil er etter aktivitetsplan lanseringsdato,
 			// _og_ bruker hadde en aktiv oppfølgingsperiode ved aktivitetsplan lanseringsdato
@@ -165,10 +166,9 @@ open class DeltakerProcessor(
 	}
 
 	private fun getOppfolgingsPeriodeOrThrow(deltaker: TiltakDeltakelse, personIdent: String): FinnOppfolgingResult.FunnetPeriodeResult {
-		val funnetPeriode = deltaker.modDato
-			?.let { modDato -> oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, modDato) }
-			?: oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, deltaker.regDato)
-				.also { log.info("arenaId: ${deltaker.tiltakdeltakelseId} Fant ikke oppfolgingsperiode på modDato, bruker fallback til regDato") }
+		val oppslagsDato = deltaker.datoTil
+			?.let { tilDato -> minOf(tilDato.atStartOfDay(), deltaker.modDato) } ?: deltaker.modDato
+		val funnetPeriode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, oppslagsDato)
 		return when (funnetPeriode) {
 			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
 			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato ?: deltaker.regDato, deltaker.tiltakdeltakelseId)

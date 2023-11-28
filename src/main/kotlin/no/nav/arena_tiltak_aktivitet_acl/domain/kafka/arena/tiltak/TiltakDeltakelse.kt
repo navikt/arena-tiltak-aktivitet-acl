@@ -18,7 +18,7 @@ data class TiltakDeltakelse(
 	val innsokBegrunnelse: String?,
 	val regUser: String?,
 	val modUser: String?,
-	val modDato: LocalDateTime?,
+	val modDato: LocalDateTime,
 )
 
 data class DeltakelseId(

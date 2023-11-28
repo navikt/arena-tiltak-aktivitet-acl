@@ -66,7 +66,7 @@ data class ArenaDeltakelse(
 			innsokBegrunnelse = BEGRUNNELSE_BESTILLING,
 			modUser = MOD_USER,
 			regUser = REG_USER,
-			modDato = MOD_DATO?.asValidatedLocalDateTime("MOD_DATO"),
+			modDato = MOD_DATO.asValidatedLocalDateTime("MOD_DATO"),
 		)
 	}
 

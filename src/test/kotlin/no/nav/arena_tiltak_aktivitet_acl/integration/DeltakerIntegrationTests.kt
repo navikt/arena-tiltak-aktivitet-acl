@@ -380,7 +380,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `ignore deltaker before aktivitetsplan launch if tilDato before aktivitetsplan launch`() {
+	fun `ignore deltaker moddato before aktivitetsplan launch if tilDato before aktivitetsplan launch`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -388,6 +388,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
 			datoTil = AKTIVITETSPLAN_LANSERINGSDATO.toLocalDate().minusDays(1),
+			endretTidspunkt = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1),
 			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(2)
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
@@ -400,7 +401,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `ignore deltaker before aktivitetsplan launch if tilDato after aktivitetplan launch, but no oppfolgingsperiode`() {
+	fun `ignore deltaker moddato before aktivitetsplan launch if tilDato after aktivitetplan launch, but no oppfolgingsperiode`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -408,6 +409,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
 			datoTil = AKTIVITETSPLAN_LANSERINGSDATO.plusMonths(1).toLocalDate(),
+			endretTidspunkt = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1),
 			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1)
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
@@ -420,7 +422,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `dont ignore deltaker before aktivitetsplan launch if tildato after aktivitetsplan launch and oppfolgingsperiode was active`() {
+	fun `dont ignore deltaker moddato before aktivitetsplan launch if tildato after aktivitetsplan launch and oppfolgingsperiode was active`() {
 		val (gjennomforingId, deltakerId) = setup()
 
 		val foerstePeriode = Oppfolgingsperiode(
@@ -453,6 +455,42 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
 		}
 	}
+
+	@Test
+	fun `find correct periode for deltakelse before aktivitetsplan launch when moddato is very recent`() {
+		val (gjennomforingId, deltakerId) = setup()
+
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.of(AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1), ZoneId.systemDefault()),
+			sluttDato = null
+		)
+
+		val deltakerInput = DeltakerInput(
+			personId = 345L,
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusYears(1),
+			endretTidspunkt = LocalDateTime.now(),
+			datoTil = LocalDate.now().plusYears(25)
+		)
+
+		val fnr = "12345678901"
+		OrdsClientMock.fnrHandlers[deltakerInput.personId!!] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
+
+
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.expectHandled {
+				data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+		}
+	}
+
 
 	@Test
 	fun `tittel should be set to default value when gjennomforing navn is null`() {
