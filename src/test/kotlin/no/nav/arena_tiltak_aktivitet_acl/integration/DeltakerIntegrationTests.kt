@@ -457,6 +457,42 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `find correct periode for deltakelse before aktivitetsplan launch when moddato is very recent`() {
+		val (gjennomforingId, deltakerId) = setup()
+
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.of(AKTIVITETSPLAN_LANSERINGSDATO.minusDays(1), ZoneId.systemDefault()),
+			sluttDato = null
+		)
+
+		val deltakerInput = DeltakerInput(
+			personId = 345L,
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = AKTIVITETSPLAN_LANSERINGSDATO.minusYears(1),
+			endretTidspunkt = LocalDateTime.now(),
+			datoTil = LocalDate.now().plusYears(25)
+		)
+
+		val fnr = "12345678901"
+		OrdsClientMock.fnrHandlers[deltakerInput.personId!!] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
+
+
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+
+		result.expectHandled {
+				data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+		}
+	}
+
+
+	@Test
 	fun `tittel should be set to default value when gjennomforing navn is null`() {
 		val gjennomforingId: Long = Random.nextLong()
 		val deltakerId = DeltakelseId()
