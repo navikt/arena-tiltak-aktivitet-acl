@@ -27,8 +27,10 @@ abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(til
 			MOD_DATO = dateFormatter.format(input.endretTidspunkt),
 			MOD_USER = input.endretAv.ident,
 			DATO_SVARFRIST = GENERIC_STRING,
-			DATO_FRA = dateFormatter.format(input.datoFra.atStartOfDay()),
-			DATO_TIL = dateFormatter.format(input.datoTil.atStartOfDay()),
+			DATO_FRA = input.datoFra
+				?.let { dateFormatter.format(it.atStartOfDay()) },
+			DATO_TIL = input.datoTil
+				?.let { dateFormatter.format(it.atStartOfDay()) },
 			BEGRUNNELSE_STATUS = GENERIC_STRING,
 			PROSENT_DELTID = input.prosentDeltid,
 			BRUKERID_STATUSENDRING = GENERIC_STRING,
