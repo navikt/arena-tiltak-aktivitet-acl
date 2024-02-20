@@ -1036,13 +1036,11 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
-			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 		}
 
 		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
-		deltakerExecutor.execute(slettetDeltakerCommand).expectHandledAndIngored {
-			data -> data.arenaDataDbo.ingestStatus == IngestStatus.IGNORED
-		}
+		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {

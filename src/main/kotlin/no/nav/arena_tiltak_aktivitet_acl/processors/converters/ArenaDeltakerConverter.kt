@@ -30,6 +30,15 @@ object ArenaDeltakerConverter {
 		}
 	}
 
+	fun toDeleteStatus(deltakerStatusKode: String): AktivitetStatus {
+		val lastStatus = toAktivitetStatus(deltakerStatusKode)
+		return when (lastStatus) {
+			AktivitetStatus.FULLFORT -> AktivitetStatus.FULLFORT
+			AktivitetStatus.GJENNOMFORES -> AktivitetStatus.FULLFORT
+			else -> AktivitetStatus.AVBRUTT
+		}
+	}
+
 	fun toDeltakelseStatus(status: String): DeltakelseStatus? {
 		return when (status) {
 			"AKTUELL" -> DeltakelseStatus.SOKT_INN
@@ -63,12 +72,13 @@ object ArenaDeltakerConverter {
 		arrangorNavn: String?,
 		gjennomforingNavn: String,
 		tiltak: Tiltak,
+		isDelete: Boolean // Slettemeldinger inneholder bare forrige state og skal settes i en ferdig-status
 	): Aktivitetskort {
 		return Aktivitetskort(
 			id = aktivitetskortId,
 			personIdent = personIdent,
 			tittel = toTittel(gjennomforingNavn, tiltak.kode),
-			aktivitetStatus = toAktivitetStatus(deltaker.deltakerStatusKode),
+			aktivitetStatus = if (isDelete) toDeleteStatus(deltaker.deltakerStatusKode) else toAktivitetStatus(deltaker.deltakerStatusKode),
 			startDato = deltaker.datoFra,
 			sluttDato = deltaker.datoTil,
 			avtaltMedNav = true, // Arenatiltak er alltid Avtalt med NAV

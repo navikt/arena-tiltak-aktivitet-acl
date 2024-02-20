@@ -51,21 +51,9 @@ open class DeltakerProcessor(
 		val arenaGjennomforingId = arenaDeltaker.TILTAKGJENNOMFORING_ID
 		val deltakelse = arenaDeltaker.mapTiltakDeltakelse()
 
-		if (message.operationType == Operation.DELETED) {
-			throw IgnoredException("Skal ignorere deltakelse med operation type DELETE")
-		}
+		// Ikke behandle aktiviteter som ikke var "aktive" ved lansering
+		deltakelse.sjekkIkkeFerdigFørLansering()
 
-		var opprettetFoerMenAktivEtterLansering = false
-		if (deltakelse.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO) && deltakelse.modDato.isBefore(
-				AKTIVITETSPLAN_LANSERINGSDATO)) {
-			// Hvis deltakelsen er opprettet før aktivitetsplan lanseringsdato,
-			// _men_ datoTil er etter aktivitetsplan lanseringsdato,
-			// _og_ bruker hadde en aktiv oppfølgingsperiode ved aktivitetsplan lanseringsdato
-			// så skal vi opprette aktivitetskort
-			if (deltakelse.datoTil?.isAfter(AKTIVITETSPLAN_LANSERINGSDATO.toLocalDate()) == true) {
-				opprettetFoerMenAktivEtterLansering = true
-			} else throw IgnoredException("Deltakeren registrert=${deltakelse.regDato} opprettet før aktivitetsplan skal ikke håndteres")
-		}
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
 				message.arenaTableName,
@@ -87,6 +75,12 @@ open class DeltakerProcessor(
 		val tiltak = tiltakService.getByKode(gjennomforing.tiltakKode)
 			?: throw DependencyNotIngestedException("Venter på at tiltak med id=${gjennomforing.tiltakKode} skal bli håndtert")
 
+		if (message.operationType == Operation.DELETED && deltakelse.erAvsluttet()) {
+			log.info("Mottok slettemelding men deltaker var allerede i en ferdig-status")
+			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
+			return
+		}
+
 		val personIdent = personsporingService.get(deltakelse.personId, arenaGjennomforingId).fodselsnummer
 
 		/*
@@ -94,7 +88,7 @@ open class DeltakerProcessor(
 		 hopper vi ut her, enten med retry eller ignored, siden handleOppfolgingsperiodeNull kaster exception alltid.
 		*/
 		val periodeMatch =
-			if (opprettetFoerMenAktivEtterLansering) {
+			if (deltakelse.opprettetFørMenAktivEtterLansering()) {
 				getOppfolgingsperiodeForPersonVedLansering(personIdent)
 			} else getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
 		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)
@@ -119,7 +113,9 @@ open class DeltakerProcessor(
 				arrangorNavn = gjennomforing.arrangorNavn,
 				gjennomforingNavn = gjennomforing.navn ?: "Ukjent navn",
 				tiltak = tiltak,
+				isDelete = message.operationType == Operation.DELETED
 			)
+
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = "${KafkaProducerService.TILTAK_ID_PREFIX}${deltakelse.tiltakdeltakelseId}",
 			tiltakKode = tiltak.kode,
@@ -152,12 +148,11 @@ open class DeltakerProcessor(
 			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
 	}
 
-	private fun handleOppfolgingsperiodeNull(deltaker: TiltakDeltakelse, personIdent: String, tidspunkt: LocalDateTime, tiltakDeltakelseId: DeltakelseId): Nothing {
+	private fun handleOppfolgingsperiodeNull(deltakelse: TiltakDeltakelse, personIdent: String, tidspunkt: LocalDateTime, tiltakDeltakelseId: DeltakelseId): Nothing {
 		secureLog.info("Fant ikke oppfølgingsperiode for personIdent=$personIdent")
-		val aktivitetStatus = ArenaDeltakerConverter.toAktivitetStatus(deltaker.deltakerStatusKode)
-		val erFerdig = deltaker.datoTil?.isBefore(LocalDate.now()) ?: false
+		val erFerdig = deltakelse.datoTil?.isBefore(LocalDate.now()) ?: false
 		when {
-			aktivitetStatus.erAvsluttet() || erFerdig ->
+			deltakelse.erAvsluttet() || erFerdig ->
 				throw IgnoredException("Avsluttet deltakelse og ingen oppfølgingsperiode, id=${tiltakDeltakelseId.value}")
 			tidspunktTidligereEnnRettFoerStartDato(tidspunkt, LocalDateTime.now(), defaultSlakk) ->
 				throw IgnoredException("Opprettet for mer enn $defaultSlakk siden og ingen oppfølgingsperiode, id=${tiltakDeltakelseId.value}")
@@ -211,6 +206,30 @@ open class DeltakerProcessor(
 
 	fun syncOppfolgingsperioder(deltakelseId: DeltakelseId, oppfolginsperioder: List<Oppfolgingsperiode>) {
 		aktivitetService.closeClosedPerioder(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, oppfolginsperioder)
+	}
+
+	private fun TiltakDeltakelse.opprettetFørLansering(): Boolean {
+		return this.regDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)
+			&& this.modDato.isBefore(AKTIVITETSPLAN_LANSERINGSDATO)
+	}
+	private fun TiltakDeltakelse.varAktivEtterLansering(): Boolean {
+		return this.datoTil?.isAfter(AKTIVITETSPLAN_LANSERINGSDATO.toLocalDate()) == true
+	}
+	private fun TiltakDeltakelse.sjekkIkkeFerdigFørLansering() {
+		if (this.opprettetFørLansering() && !this.varAktivEtterLansering()) {
+			throw IgnoredException("Deltakeren registrert=${this.regDato} opprettet før aktivitetsplan skal ikke håndteres")
+		}
+	}
+	private fun TiltakDeltakelse.opprettetFørMenAktivEtterLansering(): Boolean {
+		// Hvis deltakelsen er opprettet før aktivitetsplan lanseringsdato,
+		// _men_ datoTil er etter aktivitetsplan lanseringsdato,
+		// _og_ bruker hadde en aktiv oppfølgingsperiode ved aktivitetsplan lanseringsdato
+		// så skal vi opprette aktivitetskort
+		return this.opprettetFørLansering() && this.varAktivEtterLansering()
+	}
+
+	private fun TiltakDeltakelse.erAvsluttet(): Boolean {
+		return ArenaDeltakerConverter.toAktivitetStatus(this.deltakerStatusKode).erAvsluttet()
 	}
 }
 
