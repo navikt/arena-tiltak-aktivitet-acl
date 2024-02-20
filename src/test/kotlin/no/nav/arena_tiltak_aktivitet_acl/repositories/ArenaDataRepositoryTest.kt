@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
+import com.fasterxml.jackson.databind.JsonNode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -57,7 +58,15 @@ class ArenaDataRepositoryTest : FunSpec({
 		stored.after shouldBe after
 	}
 
-	test("allreadyProcessed - skal være true hvis nyeste behandlede medling sin after er lik innkommende melding") {
+	fun stringToJsonNode(payload: String?): JsonNode? {
+		return payload?.let {
+			ObjectMapper.get().readTree(payload)
+		}
+	}
+
+	test("alreadyProcessed - skal være true hvis nyeste behandlede melding sin before/after er lik innkommende melding sin before/after") {
+		val gammelBefore = "{\"test\":     \"tast\"}"
+		val nyBefore = "{\"lol\": \"lil\"}"
 		val gammelAfter = "{\"test\":     \"test\"}"
 		val nyAfter = "{\"lol\": \"lol\"}"
 		val data = ArenaDataUpsertInput(
@@ -66,14 +75,37 @@ class ArenaDataRepositoryTest : FunSpec({
 			operation = Operation.CREATED,
 			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
 			operationTimestamp = LocalDateTime.now(),
+			before = gammelBefore,
 			after = gammelAfter
 		)
 		repository.upsert(data)
-		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(gammelAfter)) shouldBe true
-		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(nyAfter)) shouldBe false
-		repository.upsert(data.copy(after = nyAfter, operationPosition = OperationPos.of(Random.nextLong(10000).toString())))
-		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(nyAfter)) shouldBe true
-		repository.alreadyProcessed(data.arenaId, data.arenaTableName, ObjectMapper.get().readTree(gammelAfter)) shouldBe false
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName,stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe true
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe false
+		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos.of(Random.nextLong(10000).toString())))
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe true
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe false
+	}
+
+	test("alreadyProcessed - skal tåle null i before og/eller after") {
+		val gammelBefore = "{\"test\":     \"tast\"}"
+		val nyBefore = null
+		val gammelAfter = null
+		val nyAfter = "{\"lol\": \"lol\"}"
+		val data = ArenaDataUpsertInput(
+			arenaTableName = ArenaTableName.TILTAK,
+			arenaId = "ARENA_ID",
+			operation = Operation.CREATED,
+			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationTimestamp = LocalDateTime.now(),
+			before = gammelBefore,
+			after = gammelAfter
+		)
+		repository.upsert(data)
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName,stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe true
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe false
+		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos.of(Random.nextLong(10000).toString())))
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe true
+		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe false
 	}
 
 	test("upsert - data finnes allerede - oppdaterer eksisterende") {

@@ -1023,6 +1023,28 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		}
 	}
 
+	@Test
+	fun `Skal ignorere slettemelding hvis aktivitet allerede er i ferdig-status`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "FULLF"
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+		}
+
+		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(slettetDeltakerCommand).expectHandledAndIngored {
+			data -> data.arenaDataDbo.ingestStatus == IngestStatus.IGNORED
+		}
+	}
+
 	private val idMappingClient: IdMappingClient by lazy {
 		val token = issueAzureAdM2MToken()
 		IdMappingClient(port!!) { token }

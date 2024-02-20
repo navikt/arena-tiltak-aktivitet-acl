@@ -13,7 +13,6 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.DatabaseUtils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
@@ -253,9 +252,7 @@ open class ArenaDataRepository(
 		return template.update(sql, mapOf("arenaTableName" to arenaTableName.tableName))
 	}
 
-	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, after: JsonNode?): Boolean {
-		if (after == null) return true // Should not reach this function but if it does, ignore it
-		//language=PostgreSQL
+	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, before: JsonNode?, after: JsonNode?): Boolean {
 		val sql = """
 			WITH latestRow AS (
 				SELECT arena_id, MAX(id) latestId
@@ -267,12 +264,13 @@ open class ArenaDataRepository(
 				SELECT 1
 				FROM arena_data
 				JOIN latestRow ON arena_data.id = latestRow.latestId
-					AND after @> :after::jsonb
+			${if (after != null) "AND after @> :after::jsonb" else "AND after IS NULL"}
+        	${if (before != null) "AND before @> :before::jsonb" else "AND before IS NULL"}
 			)
 		""".trimIndent()
 		return template.queryForObject(
 			sql,
-			mapOf("arenaId" to deltakelseArenaId, "tableName" to tableName.tableName, "after" to after.toString()),
+			mapOf("arenaId" to deltakelseArenaId, "tableName" to tableName.tableName, "before" to before?.toString(), "after" to after?.toString()),
 		) { row: ResultSet, _ -> row.getBoolean(1) }
 	}
 

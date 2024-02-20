@@ -68,7 +68,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		} returns Unit
 
 		every {
-			arenaDataRepository.alreadyProcessed(any(), any(), any())
+			arenaDataRepository.alreadyProcessed(any(), any(), any(), any())
 		} returns false
 
 		messageProcessor.handleArenaGoldenGateRecord(
@@ -91,7 +91,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		} returns Unit
 
 		every {
-			arenaDataRepository.alreadyProcessed(any(), any(), any())
+			arenaDataRepository.alreadyProcessed(any(), any(), any(), any())
 		} returns false
 
 		messageProcessor.handleArenaGoldenGateRecord(
@@ -114,7 +114,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		} returns Unit
 
 		every {
-			arenaDataRepository.alreadyProcessed(any(), any(), any())
+			arenaDataRepository.alreadyProcessed(any(), any(), any(), any())
 		} returns false
 
 		messageProcessor.handleArenaGoldenGateRecord(
@@ -137,7 +137,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		} returns Unit
 
 		every {
-			arenaDataRepository.alreadyProcessed(any(), any(), any())
+			arenaDataRepository.alreadyProcessed(any(), any(), any(), any())
 		} returns false
 
 		messageProcessor.handleArenaGoldenGateRecord(
@@ -161,7 +161,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		} returns Unit
 
 		every {
-			arenaDataRepository.alreadyProcessed(any(), any(), any())
+			arenaDataRepository.alreadyProcessed(any(), any(), any(), any())
 		} returns false
 
 		messageProcessor.handleArenaGoldenGateRecord(
@@ -190,7 +190,7 @@ class ArenaMessageProcessorServiceTest : StringSpec({
 		} returns Unit
 
 		every {
-			arenaDataRepository.alreadyProcessed(any(), any(), any())
+			arenaDataRepository.alreadyProcessed(any(), any(), any(), any())
 		} returns true
 
 		messageProcessor.handleArenaGoldenGateRecord(
