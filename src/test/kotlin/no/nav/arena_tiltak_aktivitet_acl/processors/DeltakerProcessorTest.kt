@@ -167,15 +167,13 @@ class DeltakerProcessorTest : FunSpec({
 	}
 
 	test("Should process deleted deltaker") {
-		shouldThrowExactly<IgnoredException> {
-			createDeltakerProcessor().handleArenaMessage(
-				createArenaDeltakerKafkaMessage(
-					tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
-					deltakerArenaId = 1L,
-					operation = Operation.DELETED
-				)
+		createDeltakerProcessor().handleArenaMessage(
+			createArenaDeltakerKafkaMessage(
+				tiltakGjennomforingArenaId = nonIgnoredGjennomforingArenaId,
+				deltakerArenaId = 1L,
+				operation = Operation.DELETED
 			)
-		}
+		)
 	}
 
 	test("Skal opprette translation hvis regDato (opprettetTidspunkt) er innen en oppfølgingsperiode") {
