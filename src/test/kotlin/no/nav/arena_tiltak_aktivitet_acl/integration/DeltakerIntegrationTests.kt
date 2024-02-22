@@ -1019,12 +1019,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 
 		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
 		deltakerExecutor.execute(slettetDeltakerCommand).expectHandled { arenaData ->
+			arenaData.arenaDataDbo.operation shouldBe Operation.DELETED
 			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.AVBRUTT
 		}
 	}
 
 	@Test
-	fun `Skal ignorere slettemelding hvis aktivitet allerede er i ferdig-status`() {
+	fun `Skal ignorere (handled men ingen aktivitetskort) slettemelding hvis aktivitet allerede er i ferdig-status`() {
 		val (gjennomforingId, deltakerId) = setup()
 		val deltakerInput = DeltakerInput(
 			tiltakDeltakelseId = deltakerId,
@@ -1038,9 +1039,22 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
 			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 		}
-
 		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
 		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
+	}
+
+	@Test
+	fun `Skal ikke lage aktivitetskort hvis eneste melding på deltakelse er slettemelding`() {
+		// Dette burde aldri skje
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "FULLF"
+		)
+		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandled {}
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {
