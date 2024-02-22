@@ -1054,7 +1054,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "FULLF"
 		)
 		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
-		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandled {}
+		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {
