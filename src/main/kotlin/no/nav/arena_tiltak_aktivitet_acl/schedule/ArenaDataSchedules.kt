@@ -21,7 +21,7 @@ open class ArenaDataSchedules(
 
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
+	@Scheduled(fixedDelay = 10 * 1000L, initialDelayString = "\${app.env.scheduled.default.initialDelay}")
 	open fun processArenaMessages() {
 		if (leaderElectionClient.isLeader && unleash.isEnabled("aktivitet-arena-acl.batch.enabled")) {
 			JobRunner.run("process_arena_messages", retryArenaMessageProcessorService::processMessages)
