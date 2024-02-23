@@ -6,17 +6,21 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.Gjen
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import java.util.*
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GjennomforingIntegrationTests : IntegrationTestBase() {
+	@BeforeAll
+	fun setupTiltak() {
+		tiltakExecutor.execute(NyttTiltakCommand())
+	}
 
 	@Test
 	fun `Konsumer gjennomføring - gyldig gjennomføring - ingestes uten feil`() {
-
-		val gjennomforingInput = GjennomforingInput(
-			gjennomforingId = Random().nextLong()
-		)
+		val gjennomforingInput = GjennomforingInput(gjennomforingId = Random().nextLong())
 		val arbgivId = gjennomforingInput.arbeidsgiverIdArrangor
 		val virksomhetsnummer = "123"
 		val expected = gjennomforingInput.toDbo(gjennomforingInput.gjennomforingId, virksomhetsnummer, "virksomhetnavn")
@@ -33,26 +37,18 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 	@Test
 	fun `Konsumer gjennomføring - Feilet på første forsøk - Skal settes til RETRY`() {
 		val virksomhetsId = 456785618L
-
-		tiltakExecutor.execute(NyttTiltakCommand())
-
 		OrdsClientMock.virksomhetsHandler[virksomhetsId] = { throw RuntimeException() }
-
 		val input = GjennomforingInput(
 			gjennomforingId = Random().nextLong(),
 			arbeidsgiverIdArrangor = virksomhetsId
 		)
-
 		gjennomforingExecutor.execute(NyGjennomforingCommand(input))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
 			.result { _, output -> output shouldBe null }
-
 	}
 
 	@Test
 	fun `Konsumer gjennomføring - lokaltnavn er null - gjennomføringsnavn blir satt til tiltaksnavn i deltakerprocessor`() {
-		tiltakExecutor.execute(NyttTiltakCommand())
-
 		val input = GjennomforingInput(
 			gjennomforingId = Random().nextLong(),
 			navn = null
@@ -65,8 +61,6 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `Konsumer gjennomføring - lokaltnavn har fnr - gjennomføringsnavn skal vaskes`() {
-		tiltakExecutor.execute(NyttTiltakCommand())
-
 		val input = GjennomforingInput(
 			gjennomforingId = Random().nextLong(),
 			navn = "10108094523 Brua frisør"
@@ -79,13 +73,10 @@ class GjennomforingIntegrationTests : IntegrationTestBase() {
 
 	@Test
 	fun `Konsumer gjennomføring - lokaltnavn har kun spesialkarakterer - gjennomføringsnavn skal vaskes`() {
-		tiltakExecutor.execute(NyttTiltakCommand())
-
 		val input = GjennomforingInput(
 			gjennomforingId = Random().nextLong(),
 			navn = "....-#$%___"
 		)
-
 		gjennomforingExecutor.execute(NyGjennomforingCommand(input))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
 			.result { _, output -> output?.navn shouldBe null }

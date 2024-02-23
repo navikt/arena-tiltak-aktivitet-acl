@@ -16,10 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.dto.TranslationQuery
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.AktivitetResult
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.DeltakerInput
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.NyDeltakerCommand
-import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.OppdaterDeltakerCommand
+import no.nav.arena_tiltak_aktivitet_acl.integration.commands.deltaker.*
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.GjennomforingInput
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
@@ -1002,6 +999,62 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		generertId1 shouldNotBe null
 		generertId1 shouldBe generertId2
 
+	}
+
+	@Test
+	fun `Skal sette aktivitet med planlegger-status til avbrutt-status når vi mottar melding med status DELETED`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "TILBUD"
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+		}
+
+		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(slettetDeltakerCommand).expectHandled { arenaData ->
+			arenaData.arenaDataDbo.operation shouldBe Operation.DELETED
+			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.AVBRUTT
+		}
+	}
+
+	@Test
+	fun `Skal ignorere (handled men ingen aktivitetskort) slettemelding hvis aktivitet allerede er i ferdig-status`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			datoFra = LocalDate.now().minusDays(1),
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "FULLF"
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand).expectHandled { arenaData ->
+			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
+		}
+		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
+	}
+
+	@Test
+	fun `Skal ikke lage aktivitetskort hvis eneste melding på deltakelse er slettemelding`() {
+		// Dette burde aldri skje
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "FULLF"
+		)
+		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {
