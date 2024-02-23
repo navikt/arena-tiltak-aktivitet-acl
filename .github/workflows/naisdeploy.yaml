@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Deploy application to ${{ inputs.environment }}
         uses: nais/deploy/actions/deploy@v1
         env:
@@ -24,10 +24,3 @@ jobs:
           CLUSTER: ${{ inputs.environment }}-gcp
           RESOURCE: .nais/nais-${{ inputs.environment }}.yaml
           VAR: version=${{ github.sha }}
-      - name: Create release for prod
-        uses: softprops/action-gh-release@v1
-        if: inputs.environment == 'prod'
-        with:
-          name: Release to prod
-          tag_name: release/prod@${{ github.sha }}
-          prerelease: false
