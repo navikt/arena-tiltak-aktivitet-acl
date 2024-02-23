@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 
 fun <T> asyncRetryHandler(
 	message: String,
-	maxAttempts: Int = 12,
+	maxAttempts: Int = 20,
 	sleepTime: Long = 250,
 	executor: () -> T?,
 ): T {
