@@ -35,7 +35,7 @@ enum class DeltakerStatusKode { AKTUELL, INFOMOETE, JATAKK, TILBUD, VENTELISTE, 
 data class ArenaDeltakelseLogg(
 	val JN_OPERATION: JnOperation,
 	val JN_ORACLE_USER: String,
-	val JN_DATETIME: LocalDate? = null, //10.01.23 16:19
+	val JN_DATETIME: LocalDateTime? = null, //10.01.23 16:19
 	val JN_APPLN: String? = null,
 	val JN_SESSION: String? = null,
 	val JN_TIMESTAMP: LocalDateTime? = null,   // 10.01.2023 16.19.12,792457000
@@ -53,8 +53,8 @@ data class ArenaDeltakelseLogg(
 	val DATO_TIL: LocalDate? = null,
 	val PROSENT_DELTID: Int? = null,
 	val BRUKERID_STATUSENDRING: String,
-	val DATO_STATUSENDRING: String? = null,
+	val DATO_STATUSENDRING: LocalDateTime,
 	val AKTIVITET_ID: Long,
 	val BRUKERID_ENDRING_PRIORITERING: String? = null,
-	val DATO_ENDRING_PRIORITERING: String? = null,
+	val DATO_ENDRING_PRIORITERING: LocalDateTime? = null,
 )

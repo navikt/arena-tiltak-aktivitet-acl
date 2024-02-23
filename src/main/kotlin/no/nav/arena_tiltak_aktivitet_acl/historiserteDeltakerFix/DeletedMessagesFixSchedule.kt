@@ -17,7 +17,7 @@ import java.time.LocalDateTime
 *   */
 @Component
 class DeletedMessagesFixSchedule(
-	val journalfoertArenaDeltakelseRepo: JournalfoertArenaDeltakelseRepo,
+	val arenaDeltakelseLoggRepo: ArenaDeltakelseLoggRepo,
 	val arenaDataRepository: ArenaDataRepository
 ) {
 
@@ -29,7 +29,7 @@ class DeletedMessagesFixSchedule(
 	}
 
 	fun hentNesteBatch(): List<ArenaDeltakelseLogg> {
-		return  journalfoertArenaDeltakelseRepo.get("lol")
+		return  arenaDeltakelseLoggRepo.get("lol")
 	}
 
 	fun sjekkAtTrengerOppdatering(arenaDeltakelseLogg: ArenaDeltakelseLogg): Boolean {
