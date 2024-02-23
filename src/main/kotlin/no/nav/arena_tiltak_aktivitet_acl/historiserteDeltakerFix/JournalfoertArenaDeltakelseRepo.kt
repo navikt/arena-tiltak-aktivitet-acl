@@ -8,7 +8,7 @@ import java.sql.ResultSet
 class JournalfoertArenaDeltakelseRepo(
 	private val template: NamedParameterJdbcTemplate
 ) {
-	fun get(input: String): List<JournalfoertArenaDeltakelse> {
+	fun get(input: String): List<ArenaDeltakelseLogg> {
 		val query = """
 			SELECT * FROM tablename
 		""".trimIndent()
@@ -16,8 +16,8 @@ class JournalfoertArenaDeltakelseRepo(
 	}
 }
 
-fun ResultSet.toJournalfoertArenaDeltakelse(): JournalfoertArenaDeltakelse {
-	return JournalfoertArenaDeltakelse(
+fun ResultSet.toJournalfoertArenaDeltakelse(): ArenaDeltakelseLogg {
+	return ArenaDeltakelseLogg(
 
 	)
 }

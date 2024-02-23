@@ -28,26 +28,26 @@ class DeletedMessagesFixSchedule(
 			.forEach { insertIntoAreanData(it) }
 	}
 
-	fun hentNesteBatch(): List<JournalfoertArenaDeltakelse> {
+	fun hentNesteBatch(): List<ArenaDeltakelseLogg> {
 		return  journalfoertArenaDeltakelseRepo.get("lol")
 	}
 
-	fun sjekkAtTrengerOppdatering(journalfoertArenaDeltakelse: JournalfoertArenaDeltakelse): Boolean {
+	fun sjekkAtTrengerOppdatering(arenaDeltakelseLogg: ArenaDeltakelseLogg): Boolean {
 		// TODO: Finn gammel deltakelse og sjekk mot den
 		return true
 	}
 
-	fun insertIntoAreanData(journalfoertArenaDeltakelse: JournalfoertArenaDeltakelse) {
+	fun insertIntoAreanData(arenaDeltakelseLogg: ArenaDeltakelseLogg) {
 		arenaDataRepository.upsert(
 			ArenaDataUpsertInput(
 				ArenaTableName.DELTAKER,
-				arenaId = journalfoertArenaDeltakelse.TILTAKDELTAKER_ID.toString(),
+				arenaId = arenaDeltakelseLogg.TILTAKDELTAKER_ID.toString(),
 				operation = Operation.MODIFIED, // TODO: Eller created hvis ikke finnes?
 				operationPosition = OperationPos.of("0"), // TODO: Bruk hullet
 				operationTimestamp = LocalDateTime.MAX,
 				ingestStatus = IngestStatus.NEW,
 				ingestedTimestamp = LocalDateTime.now(),
-				before = journalfoertArenaDeltakelse.toString(), // TODO: Gjør om til skikkelig JSON
+				before = arenaDeltakelseLogg.toString(), // TODO: Gjør om til skikkelig JSON
 				after = null // TODO: Dette simulerer slettemelding, er det riktig?
 			)
 		)
