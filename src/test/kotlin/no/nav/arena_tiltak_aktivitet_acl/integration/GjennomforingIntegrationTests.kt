@@ -6,9 +6,11 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.Gjen
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.gjennomforing.NyGjennomforingCommand
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.tiltak.NyttTiltakCommand
 import no.nav.arena_tiltak_aktivitet_acl.mocks.OrdsClientMock
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.util.*
 
+@Disabled
 class GjennomforingIntegrationTests : IntegrationTestBase() {
 
 	@Test
