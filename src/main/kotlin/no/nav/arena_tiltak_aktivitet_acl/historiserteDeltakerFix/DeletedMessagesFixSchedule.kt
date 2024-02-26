@@ -5,9 +5,14 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
+import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
+import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -19,8 +24,10 @@ import java.time.LocalDateTime
 @Component
 class DeletedMessagesFixSchedule(
 	val arenaDeltakelseLoggRepo: ArenaDeltakelseLoggRepo,
-	val arenaDataRepository: ArenaDataRepository
+	val arenaDataRepository: ArenaDataRepository,
+	val aktivitetskortIdRepository: AktivitetskortIdRepository
 ) {
+	private val mapper = ObjectMapper.get()
 
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraJNTabell() {
@@ -45,10 +52,26 @@ class DeletedMessagesFixSchedule(
 
 	fun ArenaDeltakelseLogg.hentStatus(): FixStatus {
 		val sisteArenaOppdatering = arenaDataRepository.getMostRecentDeltakelse(this.TILTAKDELTAKER_ID.toString())
-		when {
-			sisteArenaOppdatering?.operation == Operation.DELETED -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
-			sisteArenaOppdatering?.aktivitetStatus == this.DELTAKERSTATUSKODE
+		return when {
+			sisteArenaOppdatering == null -> {
+				val legacyId = aktivitetskortIdRepository.getLegacyId(DeltakelseId(this.TILTAKDELTAKER_ID))
+				when {
+					legacyId != null -> FixStatus.HAR_IKKE_DELTAKELSE_MEN_HAR_TRANSLATION
+					else -> FixStatus.HAR_IKKE_DELTAKELSE_NOEN_PLASSER
+				}
+			}
+			sisteArenaOppdatering.operation == Operation.DELETED -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
+			harRelevanteForskjeller(sisteArenaOppdatering.toArenaDeltakelse(), this) -> FixStatus.HAR_DELTAKELSE_FEIL_STATUS
+			!harRelevanteForskjeller(sisteArenaOppdatering.toArenaDeltakelse(), this) -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
+			else -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
 		}
+	}
+
+	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, logg: ArenaDeltakelseLogg): Boolean {
+		return arenaDeltakelse.DELTAKERSTATUSKODE != logg.DELTAKERSTATUSKODE.name
+			|| arenaDeltakelse.PROSENT_DELTID?.toInt() != logg.PROSENT_DELTID
+			|| arenaDeltakelse.DATO_FRA?.asValidatedLocalDate("DATO_FRA") != logg.DATO_FRA
+			|| arenaDeltakelse.DATO_TIL?.asValidatedLocalDate("DATO_TIL") != logg.DATO_TIL
 	}
 
 	fun insertIntoAreanData(arenaDeltakelseLogg: ArenaDeltakelseLogg) {
@@ -77,4 +100,13 @@ enum class FixStatus {
 
 	HAR_IKKE_DELTAKELSE_NOEN_PLASSER,
 	// Lag nytt kort, risikerer duplikater hvis kort egentlig finnes i veilarbaktivitet men ikk i ACL
+}
+
+val mapper = ObjectMapper.get()
+fun ArenaDataDbo.toArenaDeltakelse(): ArenaDeltakelse {
+	return when (this.operation) {
+		Operation.DELETED -> this.before // Skal egentlig ikke skje?
+		else -> this.after
+	}
+		.let { mapper.readValue(it, ArenaDeltakelse::class.java) }
 }

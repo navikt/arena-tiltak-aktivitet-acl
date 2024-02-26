@@ -23,11 +23,11 @@ class AktivitetskortIdRepository(
 			))
 	}
 
-	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID {
+	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, idOverride: UUID?): UUID {
 		val currentId = getCurrentId(deltakelseId, aktivitetKategori)
 		if (currentId != null) return currentId
 
-		val generatedId = UUID.randomUUID()
+		val generatedId = idOverride ?: UUID.randomUUID()
 		val insertNewId = """
 			INSERT INTO forelopig_aktivitet_id(id, kategori, deltakelse_id) VALUES (:id, :kategori, :deltakelseId)
 		""".trimIndent()
@@ -38,6 +38,16 @@ class AktivitetskortIdRepository(
 				"deltakelseId" to deltakelseId.value,
 			))
 		return generatedId
+	}
+
+	fun getLegacyId(deltakerId: DeltakelseId): UUID? {
+		val sql = """
+			SELECT aktivitet_id FROM translation
+			WHERE arena_id = :deltakerId and aktivitet_kategori = 'TILTAKSAKTIVITET'
+		""".trimIndent()
+		return template.queryForObject(sql, mapOf("deltakerId" to deltakerId))
+			{ rs, _ -> rs.getString("aktivitet_id") }
+			?.let { UUID.fromString(it) }
 	}
 
 	private fun getCurrentId(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID? {
