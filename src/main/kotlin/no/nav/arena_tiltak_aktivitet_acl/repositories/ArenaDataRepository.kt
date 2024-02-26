@@ -274,4 +274,14 @@ open class ArenaDataRepository(
 		) { row: ResultSet, _ -> row.getBoolean(1) }
 	}
 
+	fun getMostRecentDeltakelse(deltakelseArenaId: String): ArenaDataDbo? {
+		val sql = """
+				SELECT DISTINCT ON (arena_data.arena_id) *
+				FROM arena_data WHERE
+					arena_id = :arenaId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
+				ORDER BY arena_id, operation_pos;
+		""".trimIndent()
+		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId), rowMapper)
+	}
+
 }

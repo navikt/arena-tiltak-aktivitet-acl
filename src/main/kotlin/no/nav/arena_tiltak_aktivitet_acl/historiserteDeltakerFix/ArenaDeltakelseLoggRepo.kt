@@ -8,9 +8,10 @@ import java.sql.ResultSet
 class ArenaDeltakelseLoggRepo(
 	private val template: NamedParameterJdbcTemplate
 ) {
-	fun get(input: String): List<ArenaDeltakelseLogg> {
+	fun getSlettemeldinger(input: String): List<ArenaDeltakelseLogg> {
 		val query = """
 			SELECT * FROM TILTAKDELTAKER_JN
+			WHERE JN_OPERATION = DEL
 		""".trimIndent()
 		return template.query(query, mapOf("lol" to input)) { resultSet, _ -> resultSet.toJournalfoertArenaDeltakelse() }
 	}
