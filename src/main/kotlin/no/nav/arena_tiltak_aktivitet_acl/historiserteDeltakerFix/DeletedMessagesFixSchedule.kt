@@ -16,6 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
+import java.util.*
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
 * Enten har vi gått glipp av slettemelding og står i feil state
@@ -27,43 +28,47 @@ class DeletedMessagesFixSchedule(
 	val arenaDataRepository: ArenaDataRepository,
 	val aktivitetskortIdRepository: AktivitetskortIdRepository
 ) {
-	private val mapper = ObjectMapper.get()
-
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraJNTabell() {
 		hentNesteBatchMedSlettemeldinger()
-			.filter { sjekkAtTrengerOppdatering(it) }
-			.forEach { insertIntoAreanData(it) }
+			.map { it.utledFixMetode() }
+			.forEach {
+				when (it) {
+					is Ignorer -> {
+
+					}
+					is Opprett -> {
+
+					}
+					is OpprettMedLegacyId -> {
+
+					}
+					is Oppdater -> {
+
+					}
+				}
+				arenaDeltakelseLoggRepo.oppdaterFixMetode(it)
+			}
 	}
 
 	fun hentNesteBatchMedSlettemeldinger(): List<ArenaDeltakelseLogg> {
 		return  arenaDeltakelseLoggRepo.getSlettemeldinger("lol")
 	}
 
-	fun sjekkAtTrengerOppdatering(arenaDeltakelseLogg: ArenaDeltakelseLogg): Boolean {
-		// TODO: Finn gammel deltakelse og sjekk mot den
-		return when (arenaDeltakelseLogg.hentStatus()) {
-			FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS -> false
-			FixStatus.HAR_DELTAKELSE_FEIL_STATUS -> true
-			FixStatus.HAR_IKKE_DELTAKELSE_MEN_HAR_TRANSLATION -> true
-			FixStatus.HAR_IKKE_DELTAKELSE_NOEN_PLASSER -> false
-		}
-	}
 
-	fun ArenaDeltakelseLogg.hentStatus(): FixStatus {
-		val sisteArenaOppdatering = arenaDataRepository.getMostRecentDeltakelse(this.TILTAKDELTAKER_ID.toString())
+	fun ArenaDeltakelseLogg.utledFixMetode(): FixMetode {
+		val deltakelseId = DeltakelseId(this.TILTAKDELTAKER_ID)
+		val sisteArenaOppdatering = arenaDataRepository.getMostRecentDeltakelse(deltakelseId)
 		return when {
 			sisteArenaOppdatering == null -> {
-				val legacyId = aktivitetskortIdRepository.getLegacyId(DeltakelseId(this.TILTAKDELTAKER_ID))
+				val legacyId = aktivitetskortIdRepository.getLegacyId(deltakelseId)
 				when {
-					legacyId != null -> FixStatus.HAR_IKKE_DELTAKELSE_MEN_HAR_TRANSLATION
-					else -> FixStatus.HAR_IKKE_DELTAKELSE_NOEN_PLASSER
+					legacyId != null -> OpprettMedLegacyId(deltakelseId, this, legacyId)
+					else -> Opprett(deltakelseId, this)
 				}
 			}
-			sisteArenaOppdatering.operation == Operation.DELETED -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
-			harRelevanteForskjeller(sisteArenaOppdatering.toArenaDeltakelse(), this) -> FixStatus.HAR_DELTAKELSE_FEIL_STATUS
-			!harRelevanteForskjeller(sisteArenaOppdatering.toArenaDeltakelse(), this) -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
-			else -> FixStatus.HAR_DELTAKELSE_RIKTIG_STATUS
+			harRelevanteForskjeller(sisteArenaOppdatering.toArenaDeltakelse(), this) -> Oppdater(deltakelseId, sisteArenaOppdatering.toArenaDeltakelse(), this)
+			else -> Ignorer(deltakelseId)
 		}
 	}
 
@@ -91,7 +96,14 @@ class DeletedMessagesFixSchedule(
 	}
 }
 
-enum class FixStatus {
+sealed class FixMetode (val deltakelseId: DeltakelseId) {
+	}
+class Ignorer(deltakelseId: DeltakelseId) : FixMetode(deltakelseId) {}
+class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse, val arenaDeltakelseLogg: ArenaDeltakelseLogg): FixMetode(deltakelseId) {}
+class OpprettMedLegacyId(deltakelseId: DeltakelseId, val arenaDeltakelseLogg: ArenaDeltakelseLogg, funksjonellId: UUID): FixMetode(deltakelseId) {}
+class Opprett(deltakelseId: DeltakelseId, val arenaDeltakelseLogg: ArenaDeltakelseLogg): FixMetode(deltakelseId) {}
+
+	/*
 	HAR_DELTAKELSE_RIKTIG_STATUS, // All good, ikke gjør noe
 	HAR_DELTAKELSE_FEIL_STATUS, // Fix status, simuler en slettemelding
 
@@ -100,7 +112,8 @@ enum class FixStatus {
 
 	HAR_IKKE_DELTAKELSE_NOEN_PLASSER,
 	// Lag nytt kort, risikerer duplikater hvis kort egentlig finnes i veilarbaktivitet men ikk i ACL
-}
+
+	 */
 
 val mapper = ObjectMapper.get()
 fun ArenaDataDbo.toArenaDeltakelse(): ArenaDeltakelse {

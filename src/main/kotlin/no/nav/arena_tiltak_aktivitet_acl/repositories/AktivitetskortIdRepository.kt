@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
-import java.util.UUID
+import java.util.*
 
 @Component
 class AktivitetskortIdRepository(
@@ -23,7 +23,7 @@ class AktivitetskortIdRepository(
 			))
 	}
 
-	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, idOverride: UUID?): UUID {
+	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, idOverride: UUID? = null): UUID {
 		val currentId = getCurrentId(deltakelseId, aktivitetKategori)
 		if (currentId != null) return currentId
 
@@ -45,9 +45,9 @@ class AktivitetskortIdRepository(
 			SELECT aktivitet_id FROM translation
 			WHERE arena_id = :deltakerId and aktivitet_kategori = 'TILTAKSAKTIVITET'
 		""".trimIndent()
-		return template.queryForObject(sql, mapOf("deltakerId" to deltakerId))
+		return runCatching { template.queryForObject(sql, mapOf("deltakerId" to deltakerId.value))
 			{ rs, _ -> rs.getString("aktivitet_id") }
-			?.let { UUID.fromString(it) }
+			?.let { UUID.fromString(it) } }.getOrNull()
 	}
 
 	private fun getCurrentId(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID? {

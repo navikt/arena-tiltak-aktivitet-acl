@@ -21,7 +21,8 @@ data class TiltakDeltakelse(
 	val modDato: LocalDateTime,
 )
 
-data class DeltakelseId(
+@JvmInline
+value class DeltakelseId(
 	val value: Long = Random.nextLong(1, 10000)
 ) {
 	override fun toString(): String {

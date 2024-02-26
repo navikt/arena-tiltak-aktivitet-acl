@@ -63,7 +63,7 @@ open class ArenaDataRepository(
 		""".trimIndent()
 
 		template.update(
-			sql, sqlParameters(
+			sql, mapOf(
 				"arena_table_name" to upsertData.arenaTableName.tableName,
 				"arena_id" to upsertData.arenaId,
 				"operation_type" to upsertData.operation.name,
@@ -274,14 +274,14 @@ open class ArenaDataRepository(
 		) { row: ResultSet, _ -> row.getBoolean(1) }
 	}
 
-	fun getMostRecentDeltakelse(deltakelseArenaId: String): ArenaDataDbo? {
+	fun getMostRecentDeltakelse(deltakelseArenaId: DeltakelseId): ArenaDataDbo? {
 		val sql = """
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :arenaId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
 				ORDER BY arena_id, operation_pos;
 		""".trimIndent()
-		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId), rowMapper)
+		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value), rowMapper)
 	}
 
 }

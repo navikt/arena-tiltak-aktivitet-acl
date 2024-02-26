@@ -15,6 +15,15 @@ class ArenaDeltakelseLoggRepo(
 		""".trimIndent()
 		return template.query(query, mapOf("lol" to input)) { resultSet, _ -> resultSet.toJournalfoertArenaDeltakelse() }
 	}
+	fun oppdaterFixMetode(fixMetode: FixMetode) : Int {
+		val query = """
+		UPDATE TILTAKDELTAKER_JN SET FIX_METODE = :fixMetode
+		WHERE TILTAKDELTAKER_ID = :tiltakdeltakerId and JN_OPERATION = 'DEL'
+	""".trimIndent()
+		return template.update(query, mapOf("tiltakdeltakerId" to fixMetode.deltakelseId.value, "fixMetode" to fixMetode.javaClass.name))
+	}
+
+
 }
 
 fun ResultSet.toJournalfoertArenaDeltakelse(): ArenaDeltakelseLogg {
