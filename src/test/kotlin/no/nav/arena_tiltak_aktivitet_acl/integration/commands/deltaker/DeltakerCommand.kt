@@ -35,7 +35,7 @@ abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(til
 			PROSENT_DELTID = input.prosentDeltid,
 			BRUKERID_STATUSENDRING = GENERIC_STRING,
 			DATO_STATUSENDRING = dateFormatter.format(input.datoStatusEndring.atStartOfDay()),
-			AKTIVITET_ID = GENERIC_LONG,
+			AKTIVITET_ID = input.arenaAktivitetId ?: GENERIC_LONG,
 			BRUKERID_ENDRING_PRIORITERING = GENERIC_STRING,
 			DATO_ENDRING_PRIORITERING = GENERIC_STRING,
 			DOKUMENTKODE_SISTE_BREV = GENERIC_STRING,

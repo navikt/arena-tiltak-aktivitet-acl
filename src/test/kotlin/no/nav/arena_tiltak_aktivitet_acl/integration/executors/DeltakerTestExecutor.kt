@@ -96,6 +96,7 @@ class DeltakerTestExecutor(
 					deltakerAktivitetMapping,
 					message.melding,
 					message.headers,
+					deltakerAktivitetMapping.first().arenaAktivitetId
 				)
 			}
 		}

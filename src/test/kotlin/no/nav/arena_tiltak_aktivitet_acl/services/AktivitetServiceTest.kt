@@ -24,7 +24,6 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.random.Random
 
 class AktivitetServiceTest : IntegrationTestBase() {
 	val log = LoggerFactory.getLogger(javaClass)
@@ -112,6 +111,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 						aktivitetskort,
 						headers,
 						deltakelseId,
+						arenaAktivitetId = 136692858L
 					)
 					excutionOrder.add(1)
 				}
@@ -124,6 +124,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 						aktivitetskort,
 						headers.copy(oppfolgingsSluttDato = ZonedDateTime.now()),
 						deltakelseId,
+						arenaAktivitetId = 136692858
 					)
 					excutionOrder.add(2)
 				}
@@ -148,6 +149,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 						aktivitetskort(),
 						headers(deltakelseId),
 						deltakelseId,
+						arenaAktivitetId = 136692858
 					)
 					excutionOrder.add(deltakelseId.value)
 				}
@@ -159,6 +161,7 @@ class AktivitetServiceTest : IntegrationTestBase() {
 						aktivitetskort(),
 						headers(deltakelseId2),
 						deltakelseId2,
+						arenaAktivitetId = 136692858L
 					)
 					excutionOrder.add(deltakelseId2.value)
 				}

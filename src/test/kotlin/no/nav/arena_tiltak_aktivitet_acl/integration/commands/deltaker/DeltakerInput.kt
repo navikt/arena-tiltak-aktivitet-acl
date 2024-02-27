@@ -19,5 +19,6 @@ data class DeltakerInput(
 	val antallDagerPerUke: Int = 5,
 	val innsokBegrunnelse: String? = null,
 	val endretAv: Ident,
-	val endretTidspunkt: LocalDateTime = LocalDateTime.now().minusDays(2)
+	val endretTidspunkt: LocalDateTime = LocalDateTime.now().minusDays(2),
+	val arenaAktivitetId: Long? = null
 )
