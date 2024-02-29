@@ -30,7 +30,7 @@ data class ArenaDeltakelse(
 	val PROSENT_DELTID: Float? = null,
 	val BRUKERID_STATUSENDRING: String,
 	val DATO_STATUSENDRING: String? = null,
-	val AKTIVITET_ID: Long,
+	val AKTIVITET_ID: Long?,
 	val BRUKERID_ENDRING_PRIORITERING: String? = null,
 	val DATO_ENDRING_PRIORITERING: String? = null,
 	val DOKUMENTKODE_SISTE_BREV: String? = null,

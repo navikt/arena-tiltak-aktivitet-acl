@@ -18,7 +18,7 @@ class Ignorer(deltakelseId: DeltakelseId) : FixMetode(deltakelseId) {
 //	override fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput? = null
 }
 
-class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse, val arenaDeltakelseLogg: ArenaDeltakelseLogg): FixMetode(deltakelseId) {
+class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse, val historiskDeltakelse: HistoriskDeltakelse): FixMetode(deltakelseId) {
 	fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput {
 		return arenaLoggTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
@@ -26,12 +26,12 @@ class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse,
 			pos = pos,
 			operationTimestamp = LocalDateTime.MIN,
 			before = mapper.writeValueAsString(arenaDeltakelse),
-			after = mapper.writeValueAsString(arenaDeltakelseLogg.toArenaDeltakelse())
+			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
 	}
 }
 
-class OpprettMedLegacyId(deltakelseId: DeltakelseId, val arenaDeltakelseLogg: ArenaDeltakelseLogg, val funksjonellId: UUID): FixMetode(deltakelseId) {
+class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val funksjonellId: UUID): FixMetode(deltakelseId) {
 	fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput {
 		return arenaLoggTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
@@ -39,12 +39,12 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val arenaDeltakelseLogg: Ar
 			pos = pos,
 			operationTimestamp = LocalDateTime.MIN,
 			before = null,
-			after = mapper.writeValueAsString(arenaDeltakelseLogg.toArenaDeltakelse())
+			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
 	}
 }
 
-class Opprett(deltakelseId: DeltakelseId, val arenaDeltakelseLogg: ArenaDeltakelseLogg): FixMetode(deltakelseId) {
+class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse): FixMetode(deltakelseId) {
 	fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput {
 		return arenaLoggTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
@@ -52,7 +52,7 @@ class Opprett(deltakelseId: DeltakelseId, val arenaDeltakelseLogg: ArenaDeltakel
 			pos = pos,
 			operationTimestamp = LocalDateTime.MIN,
 			before = null,
-			after = mapper.writeValueAsString(arenaDeltakelseLogg.toArenaDeltakelse())
+			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
 	}
 }

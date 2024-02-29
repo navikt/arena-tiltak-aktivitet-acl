@@ -1,8 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataUpsertInput
-import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
@@ -10,14 +8,10 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakel
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
-import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
-import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
-import java.util.*
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
 * Enten har vi gått glipp av slettemelding og står i feil state
@@ -25,13 +19,13 @@ import java.util.*
 *   */
 @Component
 class DeletedMessagesFixSchedule(
-	val arenaDeltakelseLoggRepo: ArenaDeltakelseLoggRepo,
+	val historiskDeltakelseRepo: HistoriskDeltakelseRepo,
 	val arenaDataRepository: ArenaDataRepository,
 	val aktivitetskortIdRepository: AktivitetskortIdRepository
 ) {
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraJNTabell() {
-		hentNesteBatchMedSlettemeldinger()
+		hentNesteBatchMedHistoriskeDeltakelser()
 			.map { it.utledFixMetode() }
 			.forEach { fix: FixMetode ->
 				when (fix) {
@@ -44,7 +38,7 @@ class DeletedMessagesFixSchedule(
 					is Opprett -> arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
 					is Oppdater -> arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
 				}
-				arenaDeltakelseLoggRepo.oppdaterFixMetode(fix)
+				historiskDeltakelseRepo.oppdaterFixMetode(fix)
 			}
 	}
 
@@ -53,13 +47,12 @@ class DeletedMessagesFixSchedule(
 		return OperationPos.of("0")
 	}
 
-	fun hentNesteBatchMedSlettemeldinger(): List<ArenaDeltakelseLogg> {
-		return  arenaDeltakelseLoggRepo.getSlettemeldinger("lol")
+	fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
+		return  historiskDeltakelseRepo.getHistoriskeDeltakelser("lol")
 	}
 
 
-	fun ArenaDeltakelseLogg.utledFixMetode(): FixMetode {
-		val deltakelseId = DeltakelseId(this.TILTAKDELTAKER_ID)
+	fun HistoriskDeltakelse.utledFixMetode(deltakelseId: DeltakelseId): FixMetode {
 		val sisteArenaOppdatering = arenaDataRepository.getMostRecentDeltakelse(deltakelseId)
 		return when {
 			sisteArenaOppdatering == null -> {
@@ -74,11 +67,11 @@ class DeletedMessagesFixSchedule(
 		}
 	}
 
-	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, logg: ArenaDeltakelseLogg): Boolean {
-		return arenaDeltakelse.DELTAKERSTATUSKODE != logg.DELTAKERSTATUSKODE.name
-			|| arenaDeltakelse.PROSENT_DELTID != logg.PROSENT_DELTID
-			|| arenaDeltakelse.DATO_FRA  != logg.DATO_FRA
-			|| arenaDeltakelse.DATO_TIL  != logg.DATO_TIL
+	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, historiskDeltakelse: HistoriskDeltakelse): Boolean {
+		return arenaDeltakelse.DELTAKERSTATUSKODE != historiskDeltakelse.deltakerstatuskode.
+			|| arenaDeltakelse.PROSENT_DELTID != historiskDeltakelse.prosent_deltid?.toFloat()
+			|| arenaDeltakelse.DATO_FRA  != historiskDeltakelse.dato_fra
+			|| arenaDeltakelse.DATO_TIL  != historiskDeltakelse.dato_til
 	}
 }
 
