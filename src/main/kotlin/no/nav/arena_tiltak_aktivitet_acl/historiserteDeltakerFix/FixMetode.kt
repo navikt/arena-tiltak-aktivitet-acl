@@ -11,16 +11,16 @@ import java.time.LocalDateTime
 import java.util.*
 
 
-sealed class FixMetode (val deltakelseId: DeltakelseId) {
+sealed class FixMetode (val historiskDeltakelseId: Long, val deltakelseId: DeltakelseId) {
 //	abstract fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput?
 }
-class Ignorer(deltakelseId: DeltakelseId) : FixMetode(deltakelseId) {
+class Ignorer(historiskDeltakelseId: Long, deltakelseId: DeltakelseId) : FixMetode(historiskDeltakelseId, deltakelseId) {
 //	override fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput? = null
 }
 
-class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse, val historiskDeltakelse: HistoriskDeltakelse): FixMetode(deltakelseId) {
+class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse, val historiskDeltakelse: HistoriskDeltakelse): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput {
-		return arenaLoggTilArenaDataUpsertInput(
+		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
 			operation = Operation.MODIFIED,
 			pos = pos,
@@ -31,9 +31,9 @@ class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse,
 	}
 }
 
-class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val funksjonellId: UUID): FixMetode(deltakelseId) {
+class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val funksjonellId: UUID): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput {
-		return arenaLoggTilArenaDataUpsertInput(
+		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
 			operation = Operation.CREATED,
 			pos = pos,
@@ -44,9 +44,9 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 	}
 }
 
-class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse): FixMetode(deltakelseId) {
+class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput {
-		return arenaLoggTilArenaDataUpsertInput(
+		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
 			operation = Operation.CREATED,
 			pos = pos,
@@ -57,7 +57,7 @@ class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDelt
 	}
 }
 
-fun arenaLoggTilArenaDataUpsertInput(deltakelseId: DeltakelseId, operation: Operation, pos: OperationPos, operationTimestamp: LocalDateTime, before: String?, after: String?): ArenaDataUpsertInput {
+fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, operation: Operation, pos: OperationPos, operationTimestamp: LocalDateTime, before: String?, after: String?): ArenaDataUpsertInput {
 	return ArenaDataUpsertInput(
 		ArenaTableName.DELTAKER,
 		arenaId = deltakelseId.toString(),

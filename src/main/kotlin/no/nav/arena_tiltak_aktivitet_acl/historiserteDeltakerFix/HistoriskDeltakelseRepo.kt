@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
@@ -16,12 +17,36 @@ class HistoriskDeltakelseRepo(
 	}
 	fun oppdaterFixMetode(fixMetode: FixMetode) : Int {
 		val query = """
-		UPDATE TILTAKDELTAKER_JN SET FIX_METODE = :fixMetode
-		WHERE TILTAKDELTAKER_ID = :tiltakdeltakerId and JN_OPERATION = 'DEL'
+		UPDATE hist_tiltakdeltaker SET fix_metode = :fixMetode
+		WHERE hist_tiltakdeltaker_id = :hist_tiltakdeltaker_id
 	""".trimIndent()
-		return template.update(query, mapOf("tiltakdeltakerId" to fixMetode.deltakelseId.value, "fixMetode" to fixMetode.javaClass.name))
+		return template.update(query, mapOf("hist_tiltakdeltaker_id" to fixMetode.historiskDeltakelseId, "fixMetode" to fixMetode.javaClass.name))
 	}
 
+	data class DeltakelsePaaGjennomforing(
+		val gjennomforingId: Long,
+		val deltakelseId: DeltakelseId,
+		val rekkefolge: Int
+	)
+
+
+
+	fun finnEksisterendeDeltakelserForGjennomforing(personId: Long, tiltakgjennomforingId: Long): List<DeltakelsePaaGjennomforing> {
+		val query = """
+			SELECT person_id, deltaker_id, gjennomforing_id, rekkefolge
+			from deltaker_gjennomforing
+			where person_id = :person_id
+			and gjennomforing_id = :gjennomforing_id
+			order by rekkefolge
+		""".trimIndent()
+		return template.query(query, mapOf("person_id" to personId, "gjennomforing_id" to tiltakgjennomforingId)) {
+			resultSet, _ -> DeltakelsePaaGjennomforing(
+				resultSet.getLong("gjennomforing_id"),
+				DeltakelseId(resultSet.getLong("deltaker_id")),
+				resultSet.getInt("rekkefolge")
+				)
+		}
+	}
 
 }
 
