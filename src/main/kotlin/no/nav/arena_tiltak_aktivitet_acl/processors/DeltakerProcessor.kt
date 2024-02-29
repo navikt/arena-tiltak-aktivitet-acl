@@ -116,13 +116,14 @@ open class DeltakerProcessor(
 				isDelete = message.operationType == Operation.DELETED
 			)
 
+
 		val aktivitetskortHeaders = AktivitetskortHeaders(
 			arenaId = "${KafkaProducerService.TILTAK_ID_PREFIX}${deltakelse.tiltakdeltakelseId}",
 			tiltakKode = tiltak.kode,
 			oppfolgingsperiode = periodeMatch.oppfolgingsperiode.uuid,
 			oppfolgingsSluttDato = periodeMatch.oppfolgingsperiode.sluttDato
 		)
-		aktivitetService.upsert(aktivitet, aktivitetskortHeaders, deltakelse.tiltakdeltakelseId)
+		aktivitetService.upsert(aktivitet, aktivitetskortHeaders, deltakelse.tiltakdeltakelseId, deltakelse.arenaAktivitetId)
 
 		if (endring.skalIgnoreres) {
 			log.info("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
