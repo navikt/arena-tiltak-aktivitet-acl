@@ -12,11 +12,14 @@ import java.util.UUID
 class HistoriskDeltakelseRepo(
 	private val template: NamedParameterJdbcTemplate
 ) {
-	fun getHistoriskeDeltakelser(input: String): List<HistoriskDeltakelse> {
+	fun getHistoriskeDeltakelser(offset: Long): List<HistoriskDeltakelse> {
 		val query = """
-			SELECT * FROM hist_tiltakdeltaker order by person_id, tiltakgjennomforing_id, rekkefolge
+			SELECT * FROM hist_tiltakdeltaker
+			WHERE hist_tiltakdeltaker.fix_metode is null
+			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
+			LIMIT 1000
 		""".trimIndent()
-		return template.query(query, mapOf("lol" to input)) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
+		return template.query(query, mapOf("offset" to offset)) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
 	}
 	fun oppdaterFixMetode(fixMetode: FixMetode) : Int {
 		val query = """
@@ -76,6 +79,21 @@ class HistoriskDeltakelseRepo(
 		return runCatching { template.queryForObject(sql, params)
 			{ rs, _ -> LegacyId(UUID.fromString(rs.getString("funksjonellId")), DeltakelseId(rs.getLong("deltakerId"))) }
 		}.getOrNull()
+	}
+
+	fun getNextFreeDeltakerId(min: Long, max: Long): DeltakelseId {
+		// TODO: Dette funker ikke, altfor tregt
+		val sql = """
+			select *
+			from generate_series(:min, :max) as ledig
+			where ledig.ledig not in (
+			    select arena_id::integer from arena_data where arena_table_name = 'SIAMO.TILTAKDELTAKER'
+			    and arena_id::integer between 10000 AND 20000
+			) limit 1;
+		""".trimIndent()
+		val params = mapOf("min" to min, "max" to max)
+		return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
+			.let { DeltakelseId(it) }
 	}
 
 }

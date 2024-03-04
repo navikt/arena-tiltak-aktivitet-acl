@@ -11,9 +11,11 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
+import no.nav.common.job.leader_election.LeaderElectionClient
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.lang.IllegalArgumentException
+import kotlin.random.Random
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
 * Enten har vi gått glipp av slettemelding og står i feil state
@@ -23,10 +25,13 @@ import java.lang.IllegalArgumentException
 class DeletedMessagesFixSchedule(
 	val historiskDeltakelseRepo: HistoriskDeltakelseRepo,
 	val arenaDataRepository: ArenaDataRepository,
-	val aktivitetskortIdRepository: AktivitetskortIdRepository
+	val aktivitetskortIdRepository: AktivitetskortIdRepository,
+	val leaderElectionClient: LeaderElectionClient,
 ) {
+	var currentPos = 100493841434
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraJNTabell() {
+		if (!leaderElectionClient.isLeader) return
 		hentNesteBatchMedHistoriskeDeltakelser()
 			.map { it.utledFixMetode() }
 			.forEach { fix: FixMetode ->
@@ -35,10 +40,15 @@ class DeletedMessagesFixSchedule(
 					is OpprettMedLegacyId -> {
 						// Bruk ID-som allerede eksisterer i Veilarbaktivitet
 						aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
-						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
+						val nextPos = hentPosFraHullet()
+//						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(nextPos))
 					}
-					is Opprett -> arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
-					is Oppdater -> arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
+					is Opprett -> {
+//						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
+					}
+					is Oppdater -> {
+//						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
+					}
 				}
 				historiskDeltakelseRepo.oppdaterFixMetode(fix)
 			}
@@ -63,11 +73,12 @@ class DeletedMessagesFixSchedule(
  		altså pos 100493841434 til 109986616390
  		9492774956 ledige plasser
 		 */
-		return OperationPos.of("0")
+		currentPos++
+		return OperationPos.of(currentPos.toString())
 	}
 
-	fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
-		return  historiskDeltakelseRepo.getHistoriskeDeltakelser("lol")
+	fun hentNesteBatchMedHistoriskeDeltakelser(offset: Long): List<HistoriskDeltakelse> {
+		return  historiskDeltakelseRepo.getHistoriskeDeltakelser(offset)
 	}
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
@@ -76,7 +87,7 @@ class DeletedMessagesFixSchedule(
 				.filter { it.latestModDato == this.dato_statusendring?.asValidatedLocalDateTime("dato_statusendring") }
 		return when {
 			// Bare 1 kan matche
-			matcher.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske")
+			matcher.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matcher.joinToString { it.deltakelseId.toString() }}")
 			// Har ikke sett meldingen før
 			matcher.size == 0 -> {
 				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
@@ -102,7 +113,8 @@ class DeletedMessagesFixSchedule(
 			.toArenaDeltakelse()
 	}
 	fun genererDeltakelseId(): DeltakelseId {
-		return DeltakelseId(9)
+		return DeltakelseId(Random.nextLong(10, 10000))
+		// historiskDeltakelseRepo.getNextFreeDeltakerId()
 	}
 
 	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, historiskDeltakelse: HistoriskDeltakelse): Boolean {
