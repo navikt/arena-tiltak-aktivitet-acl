@@ -43,7 +43,7 @@ data class Aktivitetskort(
 	val detaljer: List<Attributt>
 ) {
 	private val objectMapper = ObjectMapper.get()
-	fun toDbo(headers: AktivitetskortHeaders, arenaAktivitetId: Long) = AktivitetDbo(
+	fun toDbo(headers: AktivitetskortHeaders, arenaAktivitetId: Long?) = AktivitetDbo(
 		id = id,
 		personIdent = personIdent,
 		kategori = AktivitetKategori.TILTAKSAKTIVITET,
