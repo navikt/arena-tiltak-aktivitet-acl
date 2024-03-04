@@ -29,7 +29,6 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
 			oppfolgingsSluttTidspunkt = null,
-			arenaAktivitetId = 123L
 		)
 		repository.upsert(aktivitet)
 		repository.getAktivitet(id) shouldBe aktivitet
@@ -45,8 +44,6 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
 			oppfolgingsSluttTidspunkt = null,
-			arenaAktivitetId = 136692858L
-
 		)
 		repository.upsert(aktivitet)
 		repository.upsert(aktivitet)
@@ -61,8 +58,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			arenaId = "ARENATA-114",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
-			oppfolgingsSluttTidspunkt = null,
-			arenaAktivitetId = 136692858L)
+			oppfolgingsSluttTidspunkt = null)
 		val nyAktivitetskortSammeDeltakelse = aktivitet.copy(id = UUID.randomUUID())
 		repository.upsert(aktivitet)
 		shouldThrow<DuplicateKeyException> {
@@ -79,8 +75,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			arenaId = "ARENATA-114",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
-			oppfolgingsSluttTidspunkt = ZonedDateTime.now(),
-			arenaAktivitetId = 136692858L)
+			oppfolgingsSluttTidspunkt = ZonedDateTime.now())
 		val nyAktivitetskortSammeDeltakelse = aktivitet.copy(id = UUID.randomUUID())
 		repository.upsert(aktivitet)
 		shouldThrow<DuplicateKeyException> {
@@ -97,8 +92,7 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			arenaId = "ARENATA-116",
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
-			oppfolgingsSluttTidspunkt = ZonedDateTime.now().minusDays(2),
-			arenaAktivitetId = 136692858L)
+			oppfolgingsSluttTidspunkt = ZonedDateTime.now().minusDays(2))
 		val nyAktivitetskortForskjelligPeriode = aktivitet.copy(
 			id = UUID.randomUUID(),
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
@@ -118,7 +112,6 @@ class AktivitetRepositoryIntegrationTest: StringSpec({
 			tiltakKode = "MIDLONNTIL",
 			oppfolgingsperiodeUUID = UUID.randomUUID(),
 			oppfolgingsSluttTidspunkt = null,
-			arenaAktivitetId = 136692858
 		)
 		@Language("JSON")
 		val updatedData = """{"data": "newData"}""".trimIndent()

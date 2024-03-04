@@ -23,7 +23,7 @@ class AktivitetRepository(
 	fun upsert(aktivitet: AktivitetDbo) {
 		@Language("PostgreSQL")
 		val sql = """
-			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt, arena_aktivitet_id)
+			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt)
 			VALUES (:id,
 					:person_ident,
 					:kategori_type,
@@ -31,8 +31,7 @@ class AktivitetRepository(
 					:arena_id,
 					:tiltak_kode,
 					:oppfolgingsperiode_uuid,
-					:oppfolgingsperiode_slutt_tidspunkt,
-					:arena_aktivitet_id)
+					:oppfolgingsperiode_slutt_tidspunkt)
 			ON CONFLICT ON CONSTRAINT aktivitet_pkey
 			DO UPDATE SET data = :data::jsonb,
 				oppfolgingsperiode_slutt_tidspunkt = :oppfolgingsperiode_slutt_tidspunkt,
@@ -49,7 +48,6 @@ class AktivitetRepository(
 				"tiltak_kode" to aktivitet.tiltakKode,
 				"oppfolgingsperiode_uuid" to aktivitet.oppfolgingsperiodeUUID,
 				"oppfolgingsperiode_slutt_tidspunkt" to aktivitet.oppfolgingsSluttTidspunkt?.toOffsetDateTime(),
-				"arena_aktivitet_id" to aktivitet.arenaAktivitetId
 			)
 		)
 
@@ -93,11 +91,11 @@ class AktivitetRepository(
 	fun getAllBy(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): List<AktivitetMetaData> {
 		@Language("PostgreSQL")
 		val sql = """
-			SELECT oppfolgingsperiode_uuid as oppfolgingsPeriode, id , arena_aktivitet_id FROM aktivitet WHERE arena_id = :arenaId
+			SELECT oppfolgingsperiode_uuid as oppfolgingsPeriode, id FROM aktivitet WHERE arena_id = :arenaId
 		""".trimIndent()
 		val params = mapOf("arenaId" to "${aktivitetKategori.prefix}${deltakelseId.value}")
 		return template.query(sql, params) { row, _ ->
-			AktivitetMetaData(row.getUUID("id"), row.getUUID("oppfolgingsPeriode"), row.getLong("arena_aktivitet_id")) }
+			AktivitetMetaData(row.getUUID("id"), row.getUUID("oppfolgingsPeriode")) }
 	}
 
 	fun closeClosedPerioder(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, oppfolgingsperioder: List<AvsluttetOppfolgingsperiode>) {
@@ -128,11 +126,9 @@ fun ResultSet.toAktivitetDbo() =
 		tiltakKode = this.getString("tiltak_kode"),
 		oppfolgingsperiodeUUID = this.getUUID("oppfolgingsperiode_uuid"),
 		oppfolgingsSluttTidspunkt = this.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt"),
-		arenaAktivitetId = this.getLong("arena_aktivitet_id")
 	)
 
 data class AktivitetMetaData(
 	val id: UUID,
 	val oppfolgingsPeriode: UUID,
-	val arenaAktivitetId: Long
 )

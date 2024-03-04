@@ -67,7 +67,6 @@ data class ArenaDeltakelse(
 			modUser = MOD_USER,
 			regUser = REG_USER,
 			modDato = MOD_DATO.asValidatedLocalDateTime("MOD_DATO"),
-			arenaAktivitetId = AKTIVITET_ID
 		)
 	}
 

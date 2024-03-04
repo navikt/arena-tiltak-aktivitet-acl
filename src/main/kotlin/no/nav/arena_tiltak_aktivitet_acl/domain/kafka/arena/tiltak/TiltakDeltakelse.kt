@@ -19,7 +19,6 @@ data class TiltakDeltakelse(
 	val regUser: String?,
 	val modUser: String?,
 	val modDato: LocalDateTime,
-	val arenaAktivitetId: Long?
 )
 
 @JvmInline

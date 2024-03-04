@@ -14,7 +14,6 @@ class HandledResult(
 	deltakerAktivitetMapping: List<AktivitetMetaData>,
 	val output: KafkaMessageDto,
 	val headers: AktivitetskortHeaders,
-	val arenaAktivitetId: Long
 ): AktivitetResult(position, arenaDataDbo, deltakerAktivitetMapping) {
 	fun output(check: (data: KafkaMessageDto) -> Unit): AktivitetResult {
 		check(output)
