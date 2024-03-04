@@ -6,27 +6,38 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 @Component
 class HistoriskDeltakelseRepo(
 	private val template: NamedParameterJdbcTemplate
 ) {
-	fun getHistoriskeDeltakelser(offset: Long): List<HistoriskDeltakelse> {
+	fun getHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
 		val query = """
 			SELECT * FROM hist_tiltakdeltaker
 			WHERE hist_tiltakdeltaker.fix_metode is null
 			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
 			LIMIT 1000
 		""".trimIndent()
-		return template.query(query, mapOf("offset" to offset)) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
+		return template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
 	}
 	fun oppdaterFixMetode(fixMetode: FixMetode) : Int {
 		val query = """
-		UPDATE hist_tiltakdeltaker SET fix_metode = :fixMetode
+		UPDATE hist_tiltakdeltaker SET fix_metode = :fixMetode, generated_deltakerid = :generertDeltakerId, generated_pos = :generertPos
 		WHERE hist_tiltakdeltaker_id = :hist_tiltakdeltaker_id
 	""".trimIndent()
-		return template.update(query, mapOf("hist_tiltakdeltaker_id" to fixMetode.historiskDeltakelseId, "fixMetode" to fixMetode.javaClass.name))
+		val muligPos = when(fixMetode) {
+			is Ignorer -> null
+			is Oppdater -> fixMetode.generertPos
+			is Opprett -> fixMetode.generertPos
+			is OpprettMedLegacyId -> fixMetode.generertPos
+		}
+		val params =
+			mapOf("hist_tiltakdeltaker_id" to fixMetode.historiskDeltakelseId,
+				"fixMetode" to fixMetode.javaClass.name,
+				"generertDeltakerId" to fixMetode.deltakelseId.value,
+				"generertPos" to muligPos?.value)
+		return template.update(query, params)
 	}
 
 	data class DeltakelsePaaGjennomforing(

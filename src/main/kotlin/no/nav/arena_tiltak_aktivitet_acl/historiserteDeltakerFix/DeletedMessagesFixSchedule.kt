@@ -1,5 +1,6 @@
 package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
+import io.getunleash.Unleash
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
@@ -14,7 +15,6 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import no.nav.common.job.leader_election.LeaderElectionClient
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.lang.IllegalArgumentException
 import kotlin.random.Random
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
@@ -27,11 +27,13 @@ class DeletedMessagesFixSchedule(
 	val arenaDataRepository: ArenaDataRepository,
 	val aktivitetskortIdRepository: AktivitetskortIdRepository,
 	val leaderElectionClient: LeaderElectionClient,
+	val unleash: Unleash
 ) {
-	var currentPos = 100493841434
+	var minimumpos = 100493841434
+
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
-	fun prosesserDataFraJNTabell() {
-		if (!leaderElectionClient.isLeader) return
+	fun prosesserDataFraHistoriskeDeltakelser() {
+		if (!leaderElectionClient.isLeader && unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
 		hentNesteBatchMedHistoriskeDeltakelser()
 			.map { it.utledFixMetode() }
 			.forEach { fix: FixMetode ->
@@ -73,12 +75,12 @@ class DeletedMessagesFixSchedule(
  		altså pos 100493841434 til 109986616390
  		9492774956 ledige plasser
 		 */
-		currentPos++
-		return OperationPos.of(currentPos.toString())
+		minimumpos++
+		return OperationPos.of(minimumpos.toString())
 	}
 
-	fun hentNesteBatchMedHistoriskeDeltakelser(offset: Long): List<HistoriskDeltakelse> {
-		return  historiskDeltakelseRepo.getHistoriskeDeltakelser(offset)
+	fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
+		return  historiskDeltakelseRepo.getHistoriskeDeltakelser()
 	}
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
@@ -92,15 +94,15 @@ class DeletedMessagesFixSchedule(
 			matcher.size == 0 -> {
 				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
 				when {
-					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId)
-					else -> Opprett(genererDeltakelseId(), this)
+					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
+					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
 				}
 			}
 			else -> { // 1 match
 				val match = matcher.first()
 				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId)
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
-					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this)
+					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
 					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
 				}
 			}
