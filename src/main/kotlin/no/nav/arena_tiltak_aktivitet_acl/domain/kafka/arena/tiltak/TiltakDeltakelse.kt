@@ -19,10 +19,10 @@ data class TiltakDeltakelse(
 	val regUser: String?,
 	val modUser: String?,
 	val modDato: LocalDateTime,
-	val arenaAktivitetId: Long
 )
 
-data class DeltakelseId(
+@JvmInline
+value class DeltakelseId(
 	val value: Long = Random.nextLong(1, 10000)
 ) {
 	override fun toString(): String {

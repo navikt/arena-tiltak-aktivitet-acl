@@ -5,7 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
-import java.util.UUID
+import java.util.*
 
 @Component
 class AktivitetskortIdRepository(
@@ -23,11 +23,11 @@ class AktivitetskortIdRepository(
 			))
 	}
 
-	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID {
+	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, idOverride: UUID? = null): UUID {
 		val currentId = getCurrentId(deltakelseId, aktivitetKategori)
 		if (currentId != null) return currentId
 
-		val generatedId = UUID.randomUUID()
+		val generatedId = idOverride ?: UUID.randomUUID()
 		val insertNewId = """
 			INSERT INTO forelopig_aktivitet_id(id, kategori, deltakelse_id) VALUES (:id, :kategori, :deltakelseId)
 		""".trimIndent()
@@ -39,6 +39,8 @@ class AktivitetskortIdRepository(
 			))
 		return generatedId
 	}
+
+
 
 	private fun getCurrentId(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID? {
 		val getCurrentId = """

@@ -83,7 +83,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			tiltakgjennomforingId = gjennomforingId,
 			innsokBegrunnelse = "innsøkbegrunnelse",
 			endretAv = Ident(ident = "SIG123"),
-			arenaAktivitetId = 136692858L
 		)
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		val result = deltakerExecutor.execute(deltakerCommand)
@@ -96,7 +95,6 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			handledResult.headers.arenaId shouldBe TILTAK_ID_PREFIX + deltakerInput.tiltakDeltakelseId
 			handledResult.headers.oppfolgingsperiode shouldNotBe null
 			handledResult.headers.oppfolgingsSluttDato shouldBe null
-			handledResult.arenaAktivitetId shouldBe deltakerInput.arenaAktivitetId
 			handledResult.aktivitetskort {
 				aktivitetId = it.id
 			}
