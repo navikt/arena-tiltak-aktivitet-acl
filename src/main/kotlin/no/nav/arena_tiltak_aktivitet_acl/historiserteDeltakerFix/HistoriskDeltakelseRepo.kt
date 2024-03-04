@@ -52,7 +52,7 @@ class HistoriskDeltakelseRepo(
 
 	fun finnEksisterendeDeltakelserForGjennomforing(personId: Long, tiltakgjennomforingId: Long): List<DeltakelsePaaGjennomforing> {
 		val query = """
-			SELECT person_id, deltaker_id, gjennomforing_id, rekkefolge
+			SELECT person_id, deltaker_id, gjennomforing_id, rekkefolge, latest_operation_pos, latest_mod_dato
 			from deltaker_gjennomforing
 			where person_id = :person_id
 			and gjennomforing_id = :gjennomforing_id
