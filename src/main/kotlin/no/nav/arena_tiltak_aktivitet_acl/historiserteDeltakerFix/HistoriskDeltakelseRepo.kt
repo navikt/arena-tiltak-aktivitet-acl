@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Component
 class HistoriskDeltakelseRepo(
@@ -54,6 +55,29 @@ class HistoriskDeltakelseRepo(
 		}
 	}
 
+	fun getLegacyId(personId: Long, gjennomforingId: Long /*datoStatusEndring: String?*/): LegacyId? {
+		val sql = """
+			select translation.arena_id as deltakerId, translation.aktivitet_id as funksjonellId
+			from hist_tiltakdeltaker
+				join dobledeltakelser on hist_tiltakdeltaker.person_id = dobledeltakelser.person_id
+				join translation on dobledeltakelser.tiltakdeltaker_id = translation.arena_id
+				and hist_tiltakdeltaker.tiltakgjennomforing_id = dobledeltakelser.tiltakgjennomforing_id
+				and dobledeltakelser.jn_operation = 'DEL'
+				and dobledeltakelser.person_id = :person_id
+				and dobledeltakelser.tiltakgjennomforing_id = :gjennomforing_id
+				and to_timestamp(dobledeltakelser.dato_statusendring, 'YYYY-MM-DD HH24:MI:SS')
+						= to_timestamp(hist_tiltakdeltaker.dato_statusendring, 'DD.MM.YYYY HH24:MI:SS');
+		""".trimIndent()
+		val params = mapOf(
+			"person_id" to personId,
+			"gjennomforing_id" to gjennomforingId,
+//			"datoStatusEndring" to datoStatusEndring
+		)
+		return runCatching { template.queryForObject(sql, params)
+			{ rs, _ -> LegacyId(UUID.fromString(rs.getString("funksjonellId")), DeltakelseId(rs.getLong("deltakerId"))) }
+		}.getOrNull()
+	}
+
 }
 
 fun ResultSet.toHistoriskDeltakelse(): HistoriskDeltakelse {
@@ -84,3 +108,8 @@ fun ResultSet.toHistoriskDeltakelse(): HistoriskDeltakelse {
 
 	)
 }
+
+data class LegacyId(
+	val funksjonellId: UUID,
+	val deltakerId: DeltakelseId
+)

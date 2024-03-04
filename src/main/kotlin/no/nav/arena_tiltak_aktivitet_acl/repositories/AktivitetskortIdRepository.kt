@@ -40,15 +40,7 @@ class AktivitetskortIdRepository(
 		return generatedId
 	}
 
-	fun getLegacyId(deltakerId: DeltakelseId): UUID? {
-		val sql = """
-			SELECT aktivitet_id FROM translation
-			WHERE arena_id = :deltakerId and aktivitet_kategori = 'TILTAKSAKTIVITET'
-		""".trimIndent()
-		return runCatching { template.queryForObject(sql, mapOf("deltakerId" to deltakerId.value))
-			{ rs, _ -> rs.getString("aktivitet_id") }
-			?.let { UUID.fromString(it) } }.getOrNull()
-	}
+
 
 	private fun getCurrentId(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): UUID? {
 		val getCurrentId = """
