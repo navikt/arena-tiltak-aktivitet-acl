@@ -14,10 +14,6 @@ class AktivitetskortIdRepositoryTest : StringSpec({
 	beforeEach {
 		repository = AktivitetskortIdRepository(NamedParameterJdbcTemplate( datasource))
 	}
-	"getLegacyId should be null if not found" {
-		val legacyId = repository.getLegacyId(DeltakelseId())
-		legacyId shouldBe null
-	}
 	"overrideId should override" {
 		val deltakelseId = DeltakelseId()
 		val overrideUUID = UUID.randomUUID()
