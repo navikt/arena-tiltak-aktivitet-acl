@@ -122,7 +122,7 @@ fun ResultSet.toHistoriskDeltakelse(): HistoriskDeltakelse {
 			prosent_deltid = this.getString("prosent_deltid"),
 			brukerid_statusendring = this.getString("brukerid_statusendring"),
 			dato_statusendring = this.getString("dato_statusendring"),
-			dato_svarfrist = this.getString(""),
+			dato_svarfrist = this.getString("dato_svarfrist"),
 			dato_fra = this.getString("dato_fra"),
 			dato_til = this.getString("dato_til"),
 			aktivitet_id = this.getString("aktivitet_id"),

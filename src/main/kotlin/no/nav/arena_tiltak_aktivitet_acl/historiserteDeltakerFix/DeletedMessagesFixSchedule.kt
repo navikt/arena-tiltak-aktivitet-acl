@@ -33,8 +33,9 @@ class DeletedMessagesFixSchedule(
 
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraHistoriskeDeltakelser() {
-		if (!leaderElectionClient.isLeader && unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
-		hentNesteBatchMedHistoriskeDeltakelser()
+		if (!leaderElectionClient.isLeader) return
+		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
+ 		hentNesteBatchMedHistoriskeDeltakelser()
 			.map { it.utledFixMetode() }
 			.forEach { fix: FixMetode ->
 				when (fix) {
