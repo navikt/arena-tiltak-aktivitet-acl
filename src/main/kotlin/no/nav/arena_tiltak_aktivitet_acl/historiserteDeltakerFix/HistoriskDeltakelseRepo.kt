@@ -1,9 +1,11 @@
 package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.utils.getLocalDateTime
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
+import java.time.LocalDateTime
 
 @Component
 class HistoriskDeltakelseRepo(
@@ -26,7 +28,9 @@ class HistoriskDeltakelseRepo(
 	data class DeltakelsePaaGjennomforing(
 		val gjennomforingId: Long,
 		val deltakelseId: DeltakelseId,
-		val rekkefolge: Int
+		val rekkefolge: Int,
+		val latestOperationPos: String,
+		val latestModDato: LocalDateTime
 	)
 
 
@@ -43,7 +47,9 @@ class HistoriskDeltakelseRepo(
 			resultSet, _ -> DeltakelsePaaGjennomforing(
 				resultSet.getLong("gjennomforing_id"),
 				DeltakelseId(resultSet.getLong("deltaker_id")),
-				resultSet.getInt("rekkefolge")
+				resultSet.getInt("rekkefolge"),
+				resultSet.getString("latest_operation_pos"),
+				resultSet.getLocalDateTime("latest_mod_dato")
 				)
 		}
 	}

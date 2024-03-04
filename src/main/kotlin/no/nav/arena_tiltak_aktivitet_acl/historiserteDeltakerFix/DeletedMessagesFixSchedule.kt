@@ -5,11 +5,11 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategor
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
+import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
@@ -44,6 +44,23 @@ class DeletedMessagesFixSchedule(
 
 	fun hentPosFraHullet(): OperationPos {
 		// TODO: Bruk posisjonene fra hullet
+		/*
+		operation_pos 100493841434 til 109986616390 er ledige,
+		9492774956 ledige plasser
+
+		select width_bucket(cast(operation_pos as numeric) , 2130012227006, 2800480067873, 10000000) as bucket,
+       		count(*) as frequency from arena_data
+                             where cast(operation_pos as numeric) > 2130012227006
+                         group by bucket order by bucket
+		;
+
+		(2800480067873-2130012227006)/10000000 - bucket size 67046
+		hull mellom bucket nr 1498878 og 1640466
+		altså fra 1498879 til 1640465 (141586 buckets) -
+ 		altså fra pos 1498879 * 67046 til 1640465 * 67046
+ 		altså pos 100493841434 til 109986616390
+ 		9492774956 ledige plasser
+		 */
 		return OperationPos.of("0")
 	}
 
@@ -52,17 +69,20 @@ class DeletedMessagesFixSchedule(
 	}
 
 
-	fun HistoriskDeltakelse.utledFixMetode(deltakelseId: DeltakelseId): FixMetode {
-		val sisteArenaOppdatering = arenaDataRepository.getMostRecentDeltakelse(deltakelseId)
+	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
+		val matchendeDeltakelsePaaGjennomforing =
+			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id)
+				.filter { it.latestModDato == this.dato_statusendring?.asValidatedLocalDateTime("dato_statusendring") }
+		require(matchendeDeltakelsePaaGjennomforing.size <= 1)
 		return when {
-			sisteArenaOppdatering == null -> {
+			matchendeDeltakelsePaaGjennomforing.size == 0 -> {
 				val legacyId = aktivitetskortIdRepository.getLegacyId(deltakelseId)
 				when {
 					legacyId != null -> OpprettMedLegacyId(deltakelseId, this, legacyId)
 					else -> Opprett(deltakelseId, this)
 				}
 			}
-			harRelevanteForskjeller(sisteArenaOppdatering.toArenaDeltakelse(), this) -> Oppdater(deltakelseId, sisteArenaOppdatering.toArenaDeltakelse(), this)
+			harRelevanteForskjeller(matchendeDeltakelsePaaGjennomforing.toArenaDeltakelse(), this) -> Oppdater(deltakelseId, matchendeDeltakelsePaaGjennomforing.toArenaDeltakelse(), this)
 			else -> Ignorer(deltakelseId)
 		}
 	}
