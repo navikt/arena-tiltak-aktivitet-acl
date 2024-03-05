@@ -18,8 +18,6 @@ import no.nav.common.job.leader_election.LeaderElectionClient
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.lang.IllegalStateException
-import kotlin.random.Random
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
 * Enten har vi gått glipp av slettemelding og står i feil state
@@ -94,9 +92,9 @@ class DeletedMessagesFixSchedule(
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
 		val arenaDataDeltakelser =
-			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id)
+			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id) // alle deltakelser vi har i våre data for denne person-gjennomføring
 		val matchMedFilter = arenaDataDeltakelser
-			.filter { it.latestModDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") }
+			.filter { it.lastestStatusEndretDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
 
 		return when {
 			arenaDataDeltakelser.isEmpty() -> throw IllegalStateException("SKal alltid ha deltakelse på person og gjennomforing!! person:${person_id} gjennomforing:${tiltakgjennomforing_id}")
@@ -113,10 +111,19 @@ class DeletedMessagesFixSchedule(
 			matchMedFilter.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matchMedFilter.joinToString { it.deltakelseId.toString() }}")
 			// Har ikke sett meldingen før
 			matchMedFilter.size == 0 -> {
+				// Her kan det hende vi har den likevel, men dato_statusendring er ikke oppdatert hos oss. (hullet)
 				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
-				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
+				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id) // Jovisst, vi hadde den likevel - OK
+				// hvis legacy id finnes i arena_data -> Oppdater
 				when {
-					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
+					legacyId != null -> {
+						if (historiskDeltakelseRepo.deltakelseExists(legacyId)) {  // Fant den den i translation, men vi har den i arena_data
+							val arenaDeltakelse = finnArenaDeltakelse(legacyId.deltakerId, hentPosFraHullet())
+							Oppdater(legacyId.deltakerId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
+						} else {
+							OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
+						}
+					}
 					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
 				}
 			}
@@ -124,7 +131,7 @@ class DeletedMessagesFixSchedule(
 				val match = matchMedFilter.first()
 				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
-					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
+					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
 					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
 				}
 			}

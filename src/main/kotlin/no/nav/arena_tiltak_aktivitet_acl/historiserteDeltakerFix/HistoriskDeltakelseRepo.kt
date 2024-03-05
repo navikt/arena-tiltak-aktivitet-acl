@@ -140,6 +140,13 @@ class HistoriskDeltakelseRepo(
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString(), "operationPos" to operationPos.value), arenaDataRowMapper)
 	}
 
+	fun deltakelseExists(legacyId: LegacyId): Boolean {
+		val sql = """
+			SELECT EXISTS(SELECT 1 FROM deltaker_gjennomforing WHERE deltaker_id=:deltaker_id)
+		""".trimIndent()
+		return template.queryForObject(sql, mapOf("deltaker_id" to legacyId.deltakerId.value)) { row, _ -> row.getBoolean(1) }
+	}
+
 }
 
 
