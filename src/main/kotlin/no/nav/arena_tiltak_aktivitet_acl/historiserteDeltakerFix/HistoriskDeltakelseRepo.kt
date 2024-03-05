@@ -38,12 +38,21 @@ class HistoriskDeltakelseRepo(
 		}
 		val params =
 			mapOf("hist_tiltakdeltaker_id" to fixMetode.historiskDeltakelseId,
-				"fixMetode" to fixMetode.javaClass.name,
+				"fixMetode" to fixMetode.navn(),
 				"generertDeltakerId" to fixMetode.deltakelseId.value,
 				"generertPos" to muligPos?.value)
 		val result = template.update(query, params)
 		log.info("Oppdaterte fixMetode for hist_tiltakdeltaker_id {${fixMetode.historiskDeltakelseId} antall rader $result")
 		return result
+	}
+
+	private fun FixMetode.navn() {
+		when (this) {
+			is Ignorer -> "Ignorer"
+			is Oppdater -> "Oppdater"
+			is Opprett -> "Opprett"
+			is OpprettMedLegacyId -> "OpprettMedLegacyId"
+		}
 	}
 
 	data class DeltakelsePaaGjennomforing(
