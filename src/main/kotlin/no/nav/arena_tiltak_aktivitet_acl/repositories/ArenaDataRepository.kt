@@ -78,6 +78,43 @@ open class ArenaDataRepository(
 		)
 	}
 
+	fun upsertTemp(upsertData: ArenaDataUpsertInput) {
+		//language=PostgreSQL
+		val sql = """
+			INSERT INTO temp_arena_data(arena_table_name, arena_id, operation_type, operation_pos, operation_timestamp, ingest_status,
+								   ingested_timestamp, before, after, note)
+			VALUES (:arena_table_name,
+					:arena_id,
+					:operation_type,
+					:operation_pos,
+					:operation_timestamp,
+					:ingest_status,
+					:ingested_timestamp,
+					:before::json,
+					:after::json,
+					:note)
+			ON CONFLICT (arena_table_name, operation_type, operation_pos) DO UPDATE SET
+					ingest_status      = :ingest_status,
+					ingested_timestamp = :ingested_timestamp,
+					note 			   = :note
+		""".trimIndent()
+
+		template.update(
+			sql, mapOf(
+				"arena_table_name" to upsertData.arenaTableName.tableName,
+				"arena_id" to upsertData.arenaId,
+				"operation_type" to upsertData.operation.name,
+				"operation_pos" to upsertData.operationPosition.value,
+				"operation_timestamp" to upsertData.operationTimestamp,
+				"ingest_status" to upsertData.ingestStatus.name,
+				"ingested_timestamp" to upsertData.ingestedTimestamp,
+				"before" to upsertData.before,
+				"after" to upsertData.after,
+				"note" to upsertData.note,
+			)
+		)
+	}
+
 	fun updateIngestStatus(id: Int, ingestStatus: IngestStatus) {
 		//language=PostgreSQL
 		val sql = """

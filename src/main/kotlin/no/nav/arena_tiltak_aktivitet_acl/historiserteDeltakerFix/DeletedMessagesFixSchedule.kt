@@ -12,6 +12,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import no.nav.common.job.JobRunner
 import no.nav.common.job.leader_election.LeaderElectionClient
 import org.slf4j.LoggerFactory
@@ -49,15 +50,15 @@ class DeletedMessagesFixSchedule(
 						// Bruk ID-som allerede eksisterer i Veilarbaktivitet
 						aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
 						val nextPos = hentPosFraHullet()
-//						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(nextPos))
+						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 					}
 					is Opprett -> {
 						log.info("Opprett ny for historisk deltakelseid ${fix.historiskDeltakelseId}")
-//						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
+						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 					}
 					is Oppdater -> {
 						log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
-//						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
+						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 					}
 				}
 				historiskDeltakelseRepo.oppdaterFixMetode(fix)
@@ -132,8 +133,8 @@ class DeletedMessagesFixSchedule(
 	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, historiskDeltakelse: HistoriskDeltakelse): Boolean {
 		return arenaDeltakelse.DELTAKERSTATUSKODE != historiskDeltakelse.deltakerstatuskode
 			|| arenaDeltakelse.PROSENT_DELTID != historiskDeltakelse.prosent_deltid?.toFloat()
-			|| arenaDeltakelse.DATO_FRA  != historiskDeltakelse.dato_fra
-			|| arenaDeltakelse.DATO_TIL  != historiskDeltakelse.dato_til
+			|| arenaDeltakelse.DATO_FRA?.asValidatedLocalDateTime("dato_fra")  != historiskDeltakelse.dato_fra?.asBackwardsFormattedLocalDateTime()
+			|| arenaDeltakelse.DATO_TIL?.asValidatedLocalDateTime("dato_til")   != historiskDeltakelse.dato_til?.asBackwardsFormattedLocalDateTime()
 	}
 }
 
