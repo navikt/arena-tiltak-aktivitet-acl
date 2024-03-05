@@ -63,7 +63,8 @@ class HistoriskDeltakelseRepo(
 		val deltakelseId: DeltakelseId,
 		val rekkefolge: Int,
 		val latestOperationPos: String,
-		val latestModDato: LocalDateTime
+		val latestModDato: LocalDateTime,
+		val lastestStatusEndretDato: LocalDateTime,
 	)
 
 
@@ -82,7 +83,8 @@ class HistoriskDeltakelseRepo(
 				DeltakelseId(resultSet.getLong("deltaker_id")),
 				resultSet.getInt("rekkefolge"),
 				resultSet.getString("latest_operation_pos"),
-				resultSet.getLocalDateTime("latest_mod_dato")
+				resultSet.getLocalDateTime("latest_mod_dato"),
+				resultSet.getLocalDateTime("latest_dato_statusendring")
 				)
 		}
 		log.info("Fant ${result.size} resultat for personId $personId gjennomføringsId $tiltakgjennomforingId")
@@ -99,8 +101,10 @@ class HistoriskDeltakelseRepo(
 				and dobledeltakelser.jn_operation = 'DEL'
 				and dobledeltakelser.person_id = :person_id
 				and dobledeltakelser.tiltakgjennomforing_id = :gjennomforing_id
-				and to_timestamp(dobledeltakelser.dato_statusendring, 'YYYY-MM-DD HH24:MI:SS')
-						= to_timestamp(hist_tiltakdeltaker.dato_statusendring, 'DD.MM.YYYY HH24:MI:SS');
+				and (
+					(dobledeltakelser.dato_statusendring is null and hist_tiltakdeltaker.dato_statusendring is null)
+					or to_timestamp(dobledeltakelser.dato_statusendring, 'YYYY-MM-DD HH24:MI:SS')
+						= to_timestamp(hist_tiltakdeltaker.dato_statusendring, 'DD.MM.YYYY HH24:MI:SS'));
 		""".trimIndent()
 		val params = mapOf(
 			"person_id" to personId,
@@ -134,6 +138,13 @@ class HistoriskDeltakelseRepo(
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER' and operation_pos = :operationPos;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString(), "operationPos" to operationPos.value), arenaDataRowMapper)
+	}
+
+	fun deltakelseExists(legacyId: LegacyId): Boolean {
+		val sql = """
+			SELECT EXISTS(SELECT 1 FROM deltaker_gjennomforing WHERE deltaker_id=:deltaker_id)
+		""".trimIndent()
+		return template.queryForObject(sql, mapOf("deltaker_id" to legacyId.deltakerId.value)) { row, _ -> row.getBoolean(1) }
 	}
 
 }

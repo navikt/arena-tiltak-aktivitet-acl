@@ -18,7 +18,6 @@ import no.nav.common.job.leader_election.LeaderElectionClient
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import kotlin.random.Random
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
 * Enten har vi gått glipp av slettemelding og står i feil state
@@ -92,26 +91,47 @@ class DeletedMessagesFixSchedule(
 	}
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
-		val matcher =
-			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id)
-				.filter { it.latestModDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") }
+		val arenaDataDeltakelser =
+			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id) // alle deltakelser vi har i våre data for denne person-gjennomføring
+		val matchMedFilter = arenaDataDeltakelser
+			.filter { it.lastestStatusEndretDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
+
 		return when {
-			// Bare 1 kan matche
-			matcher.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matcher.joinToString { it.deltakelseId.toString() }}")
-			// Har ikke sett meldingen før
-			matcher.size == 0 -> {
-				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
+			arenaDataDeltakelser.isEmpty() -> throw IllegalStateException("SKal alltid ha deltakelse på person og gjennomforing!! person:${person_id} gjennomforing:${tiltakgjennomforing_id}")
+			// Alt som kommer på relast er ikke slettet, hvis vi har bare 1, har den også kommet på relast
+			arenaDataDeltakelser.size == 1 -> {
+				log.info("Fant bare 1 eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
 				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
 				when {
 					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
 					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
 				}
 			}
+			// Bare 1 kan matche
+			matchMedFilter.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matchMedFilter.joinToString { it.deltakelseId.toString() }}")
+			// Har ikke sett meldingen før
+			matchMedFilter.size == 0 -> {
+				// Her kan det hende vi har den likevel, men dato_statusendring er ikke oppdatert hos oss. (hullet)
+				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
+				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id) // Jovisst, vi hadde den likevel - OK
+				// hvis legacy id finnes i arena_data -> Oppdater
+				when {
+					legacyId != null -> {
+						if (historiskDeltakelseRepo.deltakelseExists(legacyId)) {  // Fant den den i translation, men vi har den i arena_data
+							val arenaDeltakelse = finnArenaDeltakelse(legacyId.deltakerId, hentPosFraHullet())
+							Oppdater(legacyId.deltakerId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
+						} else {
+							OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
+						}
+					}
+					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
+				}
+			}
 			else -> { // 1 match
-				val match = matcher.first()
+				val match = matchMedFilter.first()
 				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
-					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
+					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
 					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
 				}
 			}
