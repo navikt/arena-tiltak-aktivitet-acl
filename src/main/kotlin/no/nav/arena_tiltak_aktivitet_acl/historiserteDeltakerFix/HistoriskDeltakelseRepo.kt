@@ -49,8 +49,8 @@ class HistoriskDeltakelseRepo(
 		return result
 	}
 
-	private fun FixMetode.navn() {
-		when (this) {
+	private fun FixMetode.navn(): String {
+		return when (this) {
 			is Ignorer -> "Ignorer"
 			is Oppdater -> "Oppdater"
 			is Opprett -> "Opprett"
