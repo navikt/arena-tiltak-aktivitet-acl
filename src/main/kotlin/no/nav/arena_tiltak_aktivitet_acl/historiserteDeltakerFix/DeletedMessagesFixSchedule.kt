@@ -18,6 +18,7 @@ import no.nav.common.job.leader_election.LeaderElectionClient
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.lang.IllegalStateException
 import kotlin.random.Random
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
@@ -92,14 +93,26 @@ class DeletedMessagesFixSchedule(
 	}
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
-		val matcher =
+		val arenaDataDeltakelser =
 			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id)
-				.filter { it.latestModDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") }
+		val matchMedFilter = arenaDataDeltakelser
+			.filter { it.latestModDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") }
+
 		return when {
+			arenaDataDeltakelser.isEmpty() -> throw IllegalStateException("SKal alltid ha deltakelse på person og gjennomforing!! person:${person_id} gjennomforing:${tiltakgjennomforing_id}")
+			// Alt som kommer på relast er ikke slettet, hvis vi har bare 1, har den også kommet på relast
+			arenaDataDeltakelser.size == 1 -> {
+				log.info("Fant bare 1 eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
+				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
+				when {
+					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
+					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
+				}
+			}
 			// Bare 1 kan matche
-			matcher.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matcher.joinToString { it.deltakelseId.toString() }}")
+			matchMedFilter.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matchMedFilter.joinToString { it.deltakelseId.toString() }}")
 			// Har ikke sett meldingen før
-			matcher.size == 0 -> {
+			matchMedFilter.size == 0 -> {
 				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
 				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
 				when {
@@ -108,7 +121,7 @@ class DeletedMessagesFixSchedule(
 				}
 			}
 			else -> { // 1 match
-				val match = matcher.first()
+				val match = matchMedFilter.first()
 				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
 					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
