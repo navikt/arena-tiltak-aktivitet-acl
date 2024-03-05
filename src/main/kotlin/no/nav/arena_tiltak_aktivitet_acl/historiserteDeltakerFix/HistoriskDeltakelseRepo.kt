@@ -127,6 +127,7 @@ class HistoriskDeltakelseRepo(
 		""".trimIndent()
 		val nesteMinDeltakelseId = forrigeLedige.value + 1
 		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId, "max" to nesteMinDeltakelseId + 5000)
+		log.info("forrige deltakerId: ${forrigeLedige}, nesteMinDeltakelseId: ${nesteMinDeltakelseId} max: ${nesteMinDeltakelseId + 5000}")
 		return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
 			.let { DeltakelseId(it) }
 	}
