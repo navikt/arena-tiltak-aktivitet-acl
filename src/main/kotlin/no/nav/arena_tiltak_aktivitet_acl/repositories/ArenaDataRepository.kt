@@ -278,10 +278,10 @@ open class ArenaDataRepository(
 		val sql = """
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
-					arena_id = :deltakelseId::text AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
+					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
 				ORDER BY arena_id, operation_pos;
 		""".trimIndent()
-		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value), rowMapper)
+		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), rowMapper)
 	}
 
 }
