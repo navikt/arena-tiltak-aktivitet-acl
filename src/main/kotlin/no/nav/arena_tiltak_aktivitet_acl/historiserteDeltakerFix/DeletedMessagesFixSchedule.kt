@@ -48,7 +48,6 @@ class DeletedMessagesFixSchedule(
 						log.info("OpprettMedLegacyId ${fix.deltakelseId}")
 						// Bruk ID-som allerede eksisterer i Veilarbaktivitet
 						aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
-						val nextPos = hentPosFraHullet()
 						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 					}
 					is Opprett -> {
