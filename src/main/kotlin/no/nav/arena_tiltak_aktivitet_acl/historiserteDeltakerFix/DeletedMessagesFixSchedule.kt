@@ -32,7 +32,6 @@ class DeletedMessagesFixSchedule(
 	val leaderElectionClient: LeaderElectionClient,
 	val unleash: Unleash
 ) {
-	var minimumpos = 100493841434
 	private val log = LoggerFactory.getLogger(javaClass)
 
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
@@ -85,8 +84,8 @@ class DeletedMessagesFixSchedule(
  		altså pos 100493841434 til 109986616390
  		9492774956 ledige plasser
 		 */
-		minimumpos++
-		return OperationPos.of(minimumpos.toString())
+		State.minimumpos++
+		return OperationPos.of(State.minimumpos.toString())
 	}
 
 	fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
@@ -126,8 +125,9 @@ class DeletedMessagesFixSchedule(
 			.toArenaDeltakelse()
 	}
 	fun genererDeltakelseId(): DeltakelseId {
-		return DeltakelseId(Random.nextLong(10, 10000))
-		// historiskDeltakelseRepo.getNextFreeDeltakerId()
+		return historiskDeltakelseRepo.getNextFreeDeltakerId(State.forrigeLedigeDeltakelse)
+			.also { State.forrigeLedigeDeltakelse = it }
+			.also { log.info("Fant ledig deltakelseId: ${it.value}") }
 	}
 
 	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, historiskDeltakelse: HistoriskDeltakelse): Boolean {
@@ -156,4 +156,9 @@ fun ArenaDataDbo.toArenaDeltakelse(): ArenaDeltakelse {
 		else -> this.after
 	}
 		.let { mapper.readValue(it, ArenaDeltakelse::class.java) }
+}
+
+object State {
+	var minimumpos = 100493841434
+	var forrigeLedigeDeltakelse = DeltakelseId(153)
 }

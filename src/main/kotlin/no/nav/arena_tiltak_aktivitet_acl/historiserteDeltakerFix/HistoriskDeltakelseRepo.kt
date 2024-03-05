@@ -112,17 +112,17 @@ class HistoriskDeltakelseRepo(
 		}.getOrNull()
 	}
 
-	fun getNextFreeDeltakerId(min: Long, max: Long): DeltakelseId {
-		// TODO: Dette funker ikke, altfor tregt
+	fun getNextFreeDeltakerId(forrigeLedige: DeltakelseId): DeltakelseId {
 		val sql = """
-			select *
-			from generate_series(:min, :max) as ledig
+			select ledig.ledig
+			from generate_series(:nesteMinDeltakelseId, 1000000) as ledig
 			where ledig.ledig not in (
-			    select arena_id::integer from arena_data where arena_table_name = 'SIAMO.TILTAKDELTAKER'
-			    and arena_id::integer between 10000 AND 20000
-			) limit 1;
+			    select deltaker_id from deltaker_gjennomforing
+			    where deltaker_id between 0 AND 1000000
+			) limit 1
 		""".trimIndent()
-		val params = mapOf("min" to min, "max" to max)
+		val nesteMinDeltakelseId = forrigeLedige.value + 1
+		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId)
 		return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
 			.let { DeltakelseId(it) }
 	}
