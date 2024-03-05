@@ -115,14 +115,14 @@ class HistoriskDeltakelseRepo(
 	fun getNextFreeDeltakerId(forrigeLedige: DeltakelseId): DeltakelseId {
 		val sql = """
 			select ledig.ledig
-			from generate_series(:nesteMinDeltakelseId, 1000000) as ledig
+			from generate_series(:nesteMinDeltakelseId, :max) as ledig
 			where ledig.ledig not in (
 			    select deltaker_id from deltaker_gjennomforing
-			    where deltaker_id between 0 AND 1000000
+			    where deltaker_id between :nesteMinDeltakelseId AND :max
 			) limit 1
 		""".trimIndent()
 		val nesteMinDeltakelseId = forrigeLedige.value + 1
-		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId)
+		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId, "max" to nesteMinDeltakelseId + 5000)
 		return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
 			.let { DeltakelseId(it) }
 	}
