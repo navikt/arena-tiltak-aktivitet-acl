@@ -11,7 +11,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
-import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
 import no.nav.common.job.JobRunner
 import no.nav.common.job.leader_election.LeaderElectionClient
 import org.springframework.scheduling.annotation.Scheduled
@@ -90,7 +90,7 @@ class DeletedMessagesFixSchedule(
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
 		val matcher =
 			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id)
-				.filter { it.latestModDato == this.dato_statusendring?.asValidatedLocalDateTime("dato_statusendring") }
+				.filter { it.latestModDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") }
 		return when {
 			// Bare 1 kan matche
 			matcher.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matcher.joinToString { it.deltakelseId.toString() }}")
