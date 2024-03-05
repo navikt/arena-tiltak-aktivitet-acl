@@ -40,8 +40,8 @@ class DeletedMessagesFixSchedule(
 		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
 		JobRunner.run("prosesserDataFraHistoriskeDeltakelser") {
  		hentNesteBatchMedHistoriskeDeltakelser()
-			.map { it.utledFixMetode() }
-			.forEach { fix: FixMetode ->
+			.map {
+				val fix = it.utledFixMetode()
 				when (fix) {
 					is Ignorer -> {}
 					is OpprettMedLegacyId -> {
