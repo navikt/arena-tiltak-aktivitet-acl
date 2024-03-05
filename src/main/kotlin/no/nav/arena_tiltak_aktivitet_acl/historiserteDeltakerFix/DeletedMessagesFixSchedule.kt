@@ -111,7 +111,7 @@ class DeletedMessagesFixSchedule(
 			}
 			else -> { // 1 match
 				val match = matcher.first()
-				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId)
+				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
 					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
 					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
@@ -120,8 +120,8 @@ class DeletedMessagesFixSchedule(
 		}
 	}
 
-	fun finnArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDeltakelse {
-		return (arenaDataRepository.getMostRecentDeltakelse(deltakelseId)
+	fun finnArenaDeltakelse(deltakelseId: DeltakelseId, operationPos: OperationPos): ArenaDeltakelse {
+		return (historiskDeltakelseRepo.getMostRecentDeltakelse(deltakelseId, operationPos)
 			?: throw IllegalArgumentException("Fant ikke deltakelse i arena-data: ${deltakelseId.value}"))
 			.toArenaDeltakelse()
 	}

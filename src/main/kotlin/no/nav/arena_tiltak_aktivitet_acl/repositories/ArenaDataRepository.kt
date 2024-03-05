@@ -23,24 +23,6 @@ open class ArenaDataRepository(
 	private val template: NamedParameterJdbcTemplate,
 ) {
 
-	private val rowMapper = RowMapper { rs, _ ->
-		ArenaDataDbo(
-			id = rs.getInt("id"),
-			arenaTableName = ArenaTableName.fromValue(rs.getString("arena_table_name")),
-			arenaId = rs.getString("arena_id"),
-			operation = Operation.valueOf(rs.getString("operation_type")),
-			operationPosition = OperationPos.of(rs.getString("operation_pos")),
-			operationTimestamp = rs.getTimestamp("operation_timestamp").toLocalDateTime(),
-			ingestStatus = IngestStatus.valueOf(rs.getString("ingest_status")),
-			ingestedTimestamp = rs.getTimestamp("ingested_timestamp")?.toLocalDateTime(),
-			ingestAttempts = rs.getInt("ingest_attempts"),
-			lastAttempted = rs.getTimestamp("last_attempted")?.toLocalDateTime(),
-			before = rs.getString("before"),
-			after = rs.getString("after"),
-			note = rs.getString("note")
-		)
-	}
-
 	fun upsert(upsertData: ArenaDataUpsertInput) {
 		//language=PostgreSQL
 		val sql = """
@@ -168,7 +150,7 @@ open class ArenaDataRepository(
 			"operation_pos" to position.value,
 		)
 
-		return template.query(sql, parameters, rowMapper).firstOrNull()
+		return template.query(sql, parameters, arenaDataRowMapper).firstOrNull()
 			?: throw NoSuchElementException("Element from table ${tableName.name}, operation: $operation, position: $position does not exist")
 	}
 
@@ -195,7 +177,7 @@ open class ArenaDataRepository(
 			"fromPos" to fromPos.value,
 			"limit" to limit
 		)
-		val resultat = template.query(sql, parameters, rowMapper)
+		val resultat = template.query(sql, parameters, arenaDataRowMapper)
 		return resultat
 	}
 
@@ -224,7 +206,7 @@ open class ArenaDataRepository(
 			FROM arena_data
 		""".trimIndent()
 
-		return template.query(sql, rowMapper)
+		return template.query(sql, arenaDataRowMapper)
 	}
 
 	fun deleteAllIgnoredData(): Int {
@@ -318,7 +300,24 @@ open class ArenaDataRepository(
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
 				ORDER BY arena_id, operation_pos;
 		""".trimIndent()
-		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), rowMapper)
+		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}
 
+}
+val arenaDataRowMapper = RowMapper { rs, _ ->
+	ArenaDataDbo(
+		id = rs.getInt("id"),
+		arenaTableName = ArenaTableName.fromValue(rs.getString("arena_table_name")),
+		arenaId = rs.getString("arena_id"),
+		operation = Operation.valueOf(rs.getString("operation_type")),
+		operationPosition = OperationPos.of(rs.getString("operation_pos")),
+		operationTimestamp = rs.getTimestamp("operation_timestamp").toLocalDateTime(),
+		ingestStatus = IngestStatus.valueOf(rs.getString("ingest_status")),
+		ingestedTimestamp = rs.getTimestamp("ingested_timestamp")?.toLocalDateTime(),
+		ingestAttempts = rs.getInt("ingest_attempts"),
+		lastAttempted = rs.getTimestamp("last_attempted")?.toLocalDateTime(),
+		before = rs.getString("before"),
+		after = rs.getString("after"),
+		note = rs.getString("note")
+	)
 }

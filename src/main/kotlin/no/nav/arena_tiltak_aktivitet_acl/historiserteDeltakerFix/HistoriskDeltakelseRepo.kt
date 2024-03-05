@@ -1,6 +1,9 @@
 package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.ArenaDataDbo
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.repositories.arenaDataRowMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.getLocalDateTime
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -124,7 +127,18 @@ class HistoriskDeltakelseRepo(
 			.let { DeltakelseId(it) }
 	}
 
+	fun getMostRecentDeltakelse(deltakelseArenaId: DeltakelseId, operationPos: OperationPos): ArenaDataDbo? {
+		val sql = """
+				SELECT *
+				FROM arena_data WHERE
+					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER' and operation_pos = :operationPos;
+		""".trimIndent()
+		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString(), "operationPos" to operationPos.value), arenaDataRowMapper)
+	}
+
 }
+
+
 
 fun ResultSet.toHistoriskDeltakelse(): HistoriskDeltakelse {
 	return HistoriskDeltakelse(
