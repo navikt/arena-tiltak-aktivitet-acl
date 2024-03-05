@@ -12,6 +12,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
+import no.nav.common.job.JobRunner
 import no.nav.common.job.leader_election.LeaderElectionClient
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -35,6 +36,7 @@ class DeletedMessagesFixSchedule(
 	fun prosesserDataFraHistoriskeDeltakelser() {
 		if (!leaderElectionClient.isLeader) return
 		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
+		JobRunner.run("prosesserDataFraHistoriskeDeltakelser") {
  		hentNesteBatchMedHistoriskeDeltakelser()
 			.map { it.utledFixMetode() }
 			.forEach { fix: FixMetode ->
@@ -55,6 +57,7 @@ class DeletedMessagesFixSchedule(
 				}
 				historiskDeltakelseRepo.oppdaterFixMetode(fix)
 			}
+		}
 	}
 
 	fun hentPosFraHullet(): OperationPos {
