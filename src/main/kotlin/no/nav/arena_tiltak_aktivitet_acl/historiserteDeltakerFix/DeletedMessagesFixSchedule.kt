@@ -14,6 +14,7 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
 import no.nav.common.job.JobRunner
 import no.nav.common.job.leader_election.LeaderElectionClient
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import kotlin.random.Random
@@ -31,6 +32,7 @@ class DeletedMessagesFixSchedule(
 	val unleash: Unleash
 ) {
 	var minimumpos = 100493841434
+	private val log = LoggerFactory.getLogger(javaClass)
 
 	@Scheduled(fixedDelay = 10 * 1000L, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraHistoriskeDeltakelser() {
@@ -43,15 +45,18 @@ class DeletedMessagesFixSchedule(
 				when (fix) {
 					is Ignorer -> {}
 					is OpprettMedLegacyId -> {
+						log.info("OpprettMedLegacyId ${fix.deltakelseId}")
 						// Bruk ID-som allerede eksisterer i Veilarbaktivitet
 						aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
 						val nextPos = hentPosFraHullet()
 //						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(nextPos))
 					}
 					is Opprett -> {
+						log.info("Opprett ny for historisk deltakelseid ${fix.historiskDeltakelseId}")
 //						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
 					}
 					is Oppdater -> {
+						log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
 //						arenaDataRepository.upsert(fix.toArenaDataUpsertInput(hentPosFraHullet()))
 					}
 				}
@@ -96,6 +101,7 @@ class DeletedMessagesFixSchedule(
 			matcher.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matcher.joinToString { it.deltakelseId.toString() }}")
 			// Har ikke sett meldingen før
 			matcher.size == 0 -> {
+				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
 				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
 				when {
 					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())

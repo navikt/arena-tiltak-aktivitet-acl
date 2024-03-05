@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.getLocalDateTime
+import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
@@ -12,6 +13,7 @@ import java.util.*
 class HistoriskDeltakelseRepo(
 	private val template: NamedParameterJdbcTemplate
 ) {
+	private val log = LoggerFactory.getLogger(javaClass)
 	fun getHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
 		val query = """
 			SELECT * FROM hist_tiltakdeltaker
@@ -19,7 +21,9 @@ class HistoriskDeltakelseRepo(
 			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
 			LIMIT 1000
 		""".trimIndent()
-		return template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
+		val result = template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
+		log.info("Hentet ${result.size} historiske deltakelser")
+		return result
 	}
 	fun oppdaterFixMetode(fixMetode: FixMetode) : Int {
 		val query = """
@@ -37,7 +41,9 @@ class HistoriskDeltakelseRepo(
 				"fixMetode" to fixMetode.javaClass.name,
 				"generertDeltakerId" to fixMetode.deltakelseId.value,
 				"generertPos" to muligPos?.value)
-		return template.update(query, params)
+		val result = template.update(query, params)
+		log.info("Oppdaterte fixMetode for hist_tiltakdeltaker_id {${fixMetode.historiskDeltakelseId} antall rader $result")
+		return result
 	}
 
 	data class DeltakelsePaaGjennomforing(
@@ -58,7 +64,7 @@ class HistoriskDeltakelseRepo(
 			and gjennomforing_id = :gjennomforing_id
 			order by rekkefolge
 		""".trimIndent()
-		return template.query(query, mapOf("person_id" to personId, "gjennomforing_id" to tiltakgjennomforingId)) {
+		val result = template.query(query, mapOf("person_id" to personId, "gjennomforing_id" to tiltakgjennomforingId)) {
 			resultSet, _ -> DeltakelsePaaGjennomforing(
 				resultSet.getLong("gjennomforing_id"),
 				DeltakelseId(resultSet.getLong("deltaker_id")),
@@ -67,6 +73,8 @@ class HistoriskDeltakelseRepo(
 				resultSet.getLocalDateTime("latest_mod_dato")
 				)
 		}
+		log.info("Fant ${result.size} resultat for personId $personId gjennomføringsId $tiltakgjennomforingId")
+		return result
 	}
 
 	fun getLegacyId(personId: Long, gjennomforingId: Long /*datoStatusEndring: String?*/): LegacyId? {
