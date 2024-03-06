@@ -24,7 +24,7 @@ class HistoriskDeltakelseRepo(
 			SELECT * FROM hist_tiltakdeltaker
 			WHERE hist_tiltakdeltaker.fix_metode is null
 			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
-			LIMIT 500
+			LIMIT 2000
 		""".trimIndent()
 		val result = template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
 		log.info("Hentet ${result.size} historiske deltakelser")
