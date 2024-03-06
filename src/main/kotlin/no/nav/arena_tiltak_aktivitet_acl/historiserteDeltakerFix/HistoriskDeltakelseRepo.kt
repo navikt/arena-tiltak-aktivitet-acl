@@ -133,17 +133,15 @@ class HistoriskDeltakelseRepo(
 		val maxDeltakelseId = nesteMinDeltakelseId + 5000
 		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId, "max" to maxDeltakelseId)
 		log.info("forrige deltakerId: ${forrigeLedige}, nesteMinDeltakelseId: ${nesteMinDeltakelseId} max: ${maxDeltakelseId}")
-		runCatching {
-			return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
+		return runCatching {
+			template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
 				.let { DeltakelseId(it) }
-
-		}.onFailure {
-			when(it) {
-				is EmptyResultDataAccessException -> getNextFreeDeltakerId(DeltakelseId(maxDeltakelseId))
+		}.getOrElse {
+			return when(it) {
+				is EmptyResultDataAccessException -> getNextFreeDeltakerId(DeltakelseId(maxDeltakelseId), retries + 1)
 				else -> throw it
 			}
 		}
-
 	}
 
 	fun getMostRecentDeltakelse(deltakelseArenaId: DeltakelseId, operationPos: OperationPos): ArenaDataDbo? {
