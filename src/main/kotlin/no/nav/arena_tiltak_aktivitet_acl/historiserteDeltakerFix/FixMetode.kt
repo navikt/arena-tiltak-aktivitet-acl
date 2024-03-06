@@ -25,7 +25,7 @@ class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse,
 			deltakelseId = deltakelseId,
 			operation = Operation.MODIFIED,
 			pos = generertPos,
-			operationTimestamp = LocalDateTime.MIN,
+			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
 			before = mapper.writeValueAsString(arenaDeltakelse),
 			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
@@ -56,7 +56,7 @@ class OpprettSingelHistorisk(deltakelseId: DeltakelseId, val historiskDeltakelse
 			deltakelseId = deltakelseId,
 			operation = Operation.CREATED,
 			pos = generertPos,
-			operationTimestamp = LocalDateTime.MIN,
+			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
 			before = null,
 			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
@@ -69,7 +69,7 @@ class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDelt
 			deltakelseId = deltakelseId,
 			operation = Operation.CREATED,
 			pos = generertPos,
-			operationTimestamp = LocalDateTime.MIN,
+			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
 			before = null,
 			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
