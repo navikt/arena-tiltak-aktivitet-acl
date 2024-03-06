@@ -7,6 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
+import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
 import java.time.LocalDateTime
 import java.util.*
 
@@ -37,7 +38,7 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 			deltakelseId = deltakelseId,
 			operation = Operation.CREATED,
 			pos = generertPos,
-			operationTimestamp = LocalDateTime.MIN,
+			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
 			before = null,
 			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
