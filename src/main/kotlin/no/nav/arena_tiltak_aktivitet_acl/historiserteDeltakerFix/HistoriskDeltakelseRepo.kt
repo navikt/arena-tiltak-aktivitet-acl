@@ -34,7 +34,7 @@ class HistoriskDeltakelseRepo(
 		WHERE hist_tiltakdeltaker_id = :hist_tiltakdeltaker_id
 	""".trimIndent()
 		val muligPos = when(fixMetode) {
-			is Ignorer -> null
+			is Ignorer, is OpprettSingelHistorisk -> null
 			is Oppdater -> fixMetode.generertPos
 			is Opprett -> fixMetode.generertPos
 			is OpprettMedLegacyId -> fixMetode.generertPos
@@ -55,6 +55,7 @@ class HistoriskDeltakelseRepo(
 			is Oppdater -> "Oppdater"
 			is Opprett -> "Opprett"
 			is OpprettMedLegacyId -> "OpprettMedLegacyId"
+			is OpprettSingelHistorisk -> "OpprettSingelHistorisk"
 		}
 	}
 

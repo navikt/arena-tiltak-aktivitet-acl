@@ -44,6 +44,24 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 	}
 }
 
+/**
+ * Vi mangler deltakelse i arena_data for denne person-gjennomføring.
+ * Det er sannsynligvis fordi den 'nye' deltakelsen ble IGNORED og at IGNORED-data tidligere ble slettet rutinemessig.
+ */
+class OpprettSingelHistorisk(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos)
+	: FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
+	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
+		return historiskDeltakelseTilArenaDataUpsertInput(
+			deltakelseId = deltakelseId,
+			operation = Operation.CREATED,
+			pos = generertPos,
+			operationTimestamp = LocalDateTime.MIN,
+			before = null,
+			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+		)
+	}
+}
+
 class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
 		return historiskDeltakelseTilArenaDataUpsertInput(

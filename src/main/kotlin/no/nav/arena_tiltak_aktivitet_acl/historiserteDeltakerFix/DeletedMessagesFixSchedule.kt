@@ -57,6 +57,9 @@ class DeletedMessagesFixSchedule(
 						log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
 						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 					}
+					is OpprettSingelHistorisk -> {
+						log.info("Oppretter historisk deltakelse som mangler andre deltakelser i arena_data")
+					}
 				}
 				historiskDeltakelseRepo.oppdaterFixMetode(fix)
 			}
@@ -97,7 +100,10 @@ class DeletedMessagesFixSchedule(
 			.filter { it.lastestStatusEndretDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
 
 		return when {
-			arenaDataDeltakelser.isEmpty() -> throw IllegalStateException("SKal alltid ha deltakelse på person og gjennomforing!! person:${person_id} gjennomforing:${tiltakgjennomforing_id}")
+			arenaDataDeltakelser.isEmpty() -> {
+				log.info("Mangler person-gjennomføring i arena_data. Enslig deltakelse i historikk. person:${person_id} gjennomforing:${tiltakgjennomforing_id}")
+				OpprettSingelHistorisk(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
+			}
 			// Alt som kommer på relast er ikke slettet, hvis vi har bare 1, har den også kommet på relast
 			arenaDataDeltakelser.size == 1 -> {
 				log.info("Fant bare 1 eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
