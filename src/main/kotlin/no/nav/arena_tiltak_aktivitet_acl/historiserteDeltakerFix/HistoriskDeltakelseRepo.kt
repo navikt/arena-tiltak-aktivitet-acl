@@ -5,6 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.repositories.arenaDataRowMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.getLocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableLocalDateTime
 import org.slf4j.LoggerFactory
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -66,7 +67,7 @@ class HistoriskDeltakelseRepo(
 		val rekkefolge: Int,
 		val latestOperationPos: String,
 		val latestModDato: LocalDateTime,
-		val lastestStatusEndretDato: LocalDateTime,
+		val lastestStatusEndretDato: LocalDateTime?,
 	)
 
 
@@ -86,7 +87,7 @@ class HistoriskDeltakelseRepo(
 				resultSet.getInt("rekkefolge"),
 				resultSet.getString("latest_operation_pos"),
 				resultSet.getLocalDateTime("latest_mod_dato"),
-				resultSet.getLocalDateTime("latest_dato_statusendring")
+				resultSet.getNullableLocalDateTime("latest_dato_statusendring")
 				)
 		}
 		log.info("Fant ${result.size} resultat for personId $personId gjennomføringsId $tiltakgjennomforingId")
