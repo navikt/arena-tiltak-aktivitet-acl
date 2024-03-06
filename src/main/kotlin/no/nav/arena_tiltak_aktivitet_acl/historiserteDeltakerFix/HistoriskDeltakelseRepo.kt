@@ -6,6 +6,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.repositories.arenaDataRowMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.getLocalDateTime
 import org.slf4j.LoggerFactory
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
@@ -117,7 +118,9 @@ class HistoriskDeltakelseRepo(
 		}.getOrNull()
 	}
 
-	fun getNextFreeDeltakerId(forrigeLedige: DeltakelseId): DeltakelseId {
+
+	tailrec fun getNextFreeDeltakerId(forrigeLedige: DeltakelseId, retries: Int = 0): DeltakelseId {
+		if (retries > 100) throw IllegalStateException("Mer enn hundre rekursive kall til getNextFreeDeltakerId. ForrigeLedigeDeltakerId: ${forrigeLedige}")
 		val sql = """
 			select ledig.ledig
 			from generate_series(:nesteMinDeltakelseId, :max) as ledig
@@ -127,10 +130,20 @@ class HistoriskDeltakelseRepo(
 			) limit 1
 		""".trimIndent()
 		val nesteMinDeltakelseId = forrigeLedige.value + 1
-		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId, "max" to nesteMinDeltakelseId + 5000)
-		log.info("forrige deltakerId: ${forrigeLedige}, nesteMinDeltakelseId: ${nesteMinDeltakelseId} max: ${nesteMinDeltakelseId + 5000}")
-		return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
-			.let { DeltakelseId(it) }
+		val maxDeltakelseId = nesteMinDeltakelseId + 5000
+		val params = mapOf("nesteMinDeltakelseId" to nesteMinDeltakelseId, "max" to maxDeltakelseId)
+		log.info("forrige deltakerId: ${forrigeLedige}, nesteMinDeltakelseId: ${nesteMinDeltakelseId} max: ${maxDeltakelseId}")
+		runCatching {
+			return template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
+				.let { DeltakelseId(it) }
+
+		}.onFailure {
+			when(it) {
+				is EmptyResultDataAccessException -> getNextFreeDeltakerId(DeltakelseId(maxDeltakelseId))
+				else -> throw it
+			}
+		}
+
 	}
 
 	fun getMostRecentDeltakelse(deltakelseArenaId: DeltakelseId, operationPos: OperationPos): ArenaDataDbo? {
