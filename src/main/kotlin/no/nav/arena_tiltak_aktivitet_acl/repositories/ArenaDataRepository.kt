@@ -293,7 +293,7 @@ open class ArenaDataRepository(
 		) { row: ResultSet, _ -> row.getBoolean(1) }
 	}
 
-	fun getMostRecentDeltakelse(deltakelseArenaId: DeltakelseId): ArenaDataDbo? {
+	fun getMostRecentDeltakelse(deltakelseArenaId: DeltakelseId): ArenaDataDbo {
 		val sql = """
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE

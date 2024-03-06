@@ -118,7 +118,7 @@ class DeletedMessagesFixSchedule(
 				when {
 					legacyId != null -> {
 						if (historiskDeltakelseRepo.deltakelseExists(legacyId)) {  // Fant den den i translation, men vi har den i arena_data
-							val arenaDeltakelse = finnArenaDeltakelse(legacyId.deltakerId, hentPosFraHullet())
+							val arenaDeltakelse = finnSisteOppdateringArenaDeltakelse(legacyId.deltakerId)
 							Oppdater(legacyId.deltakerId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
 						} else {
 							OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
@@ -142,6 +142,9 @@ class DeletedMessagesFixSchedule(
 		return (historiskDeltakelseRepo.getMostRecentDeltakelse(deltakelseId, operationPos)
 			?: throw IllegalArgumentException("Fant ikke deltakelse i arena-data: ${deltakelseId.value}"))
 			.toArenaDeltakelse()
+	}
+	fun finnSisteOppdateringArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDeltakelse {
+		return arenaDataRepository.getMostRecentDeltakelse(deltakelseId).toArenaDeltakelse()
 	}
 	fun genererDeltakelseId(): DeltakelseId {
 		return historiskDeltakelseRepo.getNextFreeDeltakerId(State.forrigeLedigeDeltakelse)
