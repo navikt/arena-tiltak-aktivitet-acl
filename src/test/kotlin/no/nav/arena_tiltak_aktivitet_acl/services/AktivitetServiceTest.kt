@@ -11,6 +11,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
+import no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix.arenaYearfirstFormat
 import no.nav.arena_tiltak_aktivitet_acl.integration.IntegrationTestBase
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AdvisoryLockRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
@@ -200,5 +201,11 @@ class AktivitetServiceTest : IntegrationTestBase() {
 		startOrder shouldContainInOrder listOf(1, 2)
 		finishOrder shouldContainInOrder listOf(1, 2)
 
+	}
+
+	@Test
+	fun `Test date formatter` () {
+		LocalDateTime.of(2024, 1,31,13,21,31)
+			.format(arenaYearfirstFormat) shouldBe "2024-01-31 13:21:31"
 	}
 }

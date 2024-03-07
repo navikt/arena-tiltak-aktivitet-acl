@@ -94,10 +94,11 @@ class DeletedMessagesFixSchedule(
 	}
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
+		val datoStatusEndring = this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring")
 		val arenaDataDeltakelser =
 			historiskDeltakelseRepo.finnEksisterendeDeltakelserForGjennomforing(person_id, tiltakgjennomforing_id) // alle deltakelser vi har i våre data for denne person-gjennomføring
 		val matchMedFilter = arenaDataDeltakelser
-			.filter { it.lastestStatusEndretDato == this.dato_statusendring?.asBackwardsFormattedLocalDateTime("dato_statusendring") } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
+			.filter { it.lastestStatusEndretDato == datoStatusEndring } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
 
 		return when {
 			arenaDataDeltakelser.isEmpty() -> {
@@ -107,7 +108,7 @@ class DeletedMessagesFixSchedule(
 			// Alt som kommer på relast er ikke slettet, hvis vi har bare 1, har den også kommet på relast
 			arenaDataDeltakelser.size == 1 -> {
 				log.info("Fant bare 1 eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
-				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id)
+				val legacyId = datoStatusEndring?.let { historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id, it) }
 				when {
 					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
 					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
@@ -119,7 +120,7 @@ class DeletedMessagesFixSchedule(
 			matchMedFilter.size == 0 -> {
 				// Her kan det hende vi har den likevel, men dato_statusendring er ikke oppdatert hos oss. (hullet)
 				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
-				val legacyId = historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id) // Jovisst, vi hadde den likevel - OK
+				val legacyId = datoStatusEndring?.let { historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id, it) } // Jovisst, vi hadde den likevel - OK
 				// hvis legacy id finnes i arena_data -> Oppdater
 				when {
 					legacyId != null -> {

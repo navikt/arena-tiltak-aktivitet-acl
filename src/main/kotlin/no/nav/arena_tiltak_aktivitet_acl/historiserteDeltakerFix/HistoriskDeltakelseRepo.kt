@@ -8,10 +8,12 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.getLocalDateTime
 import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableLocalDateTime
 import org.slf4j.LoggerFactory
 import org.springframework.dao.EmptyResultDataAccessException
+import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @Component
@@ -94,16 +96,16 @@ class HistoriskDeltakelseRepo(
 		return result
 	}
 
-	fun getLegacyId(personId: Long, gjennomforingId: Long /*datoStatusEndring: String?*/): LegacyId? {
+	fun getLegacyId(personId: Long, gjennomforingId: Long, datoStatusEndring: LocalDateTime): LegacyId? {
 		val sql = """
 			select translation.arena_id as deltakerId, translation.aktivitet_id as funksjonellId
 			from hist_tiltakdeltaker
 				join dobledeltakelser on hist_tiltakdeltaker.person_id = dobledeltakelser.person_id
-				join translation on dobledeltakelser.tiltakdeltaker_id = translation.arena_id
-				and hist_tiltakdeltaker.tiltakgjennomforing_id = dobledeltakelser.tiltakgjennomforing_id
-				and dobledeltakelser.jn_operation = 'DEL'
+				join translation on dobledeltakelser.tiltakdeltaker_id = translation.arena_id and hist_tiltakdeltaker.tiltakgjennomforing_id = dobledeltakelser.tiltakgjennomforing_id
+			where dobledeltakelser.jn_operation = 'DEL'
 				and dobledeltakelser.person_id = :person_id
 				and dobledeltakelser.tiltakgjennomforing_id = :gjennomforing_id
+				and dobledeltakelser.dato_statusendring = :date_statusendring
 				and (
 					(dobledeltakelser.dato_statusendring is null and hist_tiltakdeltaker.dato_statusendring is null)
 					or to_timestamp(dobledeltakelser.dato_statusendring, 'YYYY-MM-DD HH24:MI:SS')
@@ -112,11 +114,15 @@ class HistoriskDeltakelseRepo(
 		val params = mapOf(
 			"person_id" to personId,
 			"gjennomforing_id" to gjennomforingId,
-//			"datoStatusEndring" to datoStatusEndring
+			"date_statusendring" to datoStatusEndring.format(arenaYearfirstFormat)
 		)
-		return runCatching { template.queryForObject(sql, params)
-			{ rs, _ -> LegacyId(UUID.fromString(rs.getString("funksjonellId")), DeltakelseId(rs.getLong("deltakerId"))) }
-		}.getOrNull()
+
+		val ids = template.query(sql, params) { rs, _ -> LegacyId(UUID.fromString(rs.getString("funksjonellId")), DeltakelseId(rs.getLong("deltakerId"))) }
+		return when {
+			ids.size > 1 -> throw IncorrectResultSizeDataAccessException("Skal ikke få flere legacy id-er i translation person:$personId gjennomforing:$gjennomforingId", ids.size)
+			ids.size == 1 -> ids.first()
+			else -> null
+		}
 	}
 
 
@@ -198,3 +204,5 @@ data class LegacyId(
 	val funksjonellId: UUID,
 	val deltakerId: DeltakelseId
 )
+
+val arenaYearfirstFormat = DateTimeFormatter.ofPattern("YYYY-MM-DD HH:mm:ss")
