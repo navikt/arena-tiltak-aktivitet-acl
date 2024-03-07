@@ -104,7 +104,7 @@ class HistoriskDeltakelseRepo(
 		val sql = """
 			SELECT aktivitet_id FROM translation where arena_id = :deltakerId
 		""".trimIndent()
-		return template.query(sql, mapOf("deltakerId" to deltakerId.value)) { it, _ -> it.getString(0) }
+		return template.query(sql, mapOf("deltakerId" to deltakerId.value)) { it, _ -> it.getString(1) }
 			.firstOrNull()?.let { UUID.fromString(it) }
 	}
 
