@@ -141,18 +141,18 @@ class HistoriskDeltakelseRepo(
 	tailrec fun getNextFreeDeltakerId(forrigeLedige: DeltakelseId, retries: Int = 0): DeltakelseId {
 		if (retries > 100) throw IllegalStateException("Mer enn hundre rekursive kall til getNextFreeDeltakerId. ForrigeLedigeDeltakerId: ${forrigeLedige}")
 		val sql = """
-			select ledig.ledig
-			from generate_series(:nesteMinDeltakelseId, :max) as ledig
-			where ledig.ledig not in (
-			    select deltaker_id from deltaker_gjennomforing
-			    where deltaker_id between :nesteMinDeltakelseId AND :max
-			) and not in (
-			    select hist_tiltakdeltaker_id from deleted_singles_hist_format
-			    where deltaker_id between :nesteMinDeltakelseId AND :max
-			) and not in (
-			    select tiltakdeltaker_id from dobledeltakelser_jn
-			    where deltaker_id between :nesteMinDeltakelseId AND :max
-			) limit 1
+		select ledig.ledig
+		from generate_series(:nesteMinDeltakelseId, :max) as ledig
+		where ledig.ledig not in (
+			select deltaker_id from deltaker_gjennomforing
+			where deltaker_id between :nesteMinDeltakelseId AND :max
+		) and ledig.ledig not in (
+			select hist_tiltakdeltaker_id from deleted_singles_hist_format
+			where hist_tiltakdeltaker_id between :nesteMinDeltakelseId AND :max
+		) and ledig.ledig not in (
+			select tiltakdeltaker_id from dobledeltakelser_jn
+			where tiltakdeltaker_id between :nesteMinDeltakelseId AND :max
+		) limit 1;
 		""".trimIndent()
 		val nesteMinDeltakelseId = forrigeLedige.value + 1
 		val maxDeltakelseId = nesteMinDeltakelseId + 5000
