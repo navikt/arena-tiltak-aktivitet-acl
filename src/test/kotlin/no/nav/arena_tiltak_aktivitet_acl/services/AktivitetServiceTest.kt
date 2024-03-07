@@ -17,6 +17,8 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AdvisoryLockRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetDbo
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetskortIdRepository
+import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -205,7 +207,12 @@ class AktivitetServiceTest : IntegrationTestBase() {
 
 	@Test
 	fun `Test date formatter` () {
-		LocalDateTime.of(2024, 1,31,13,21,31)
-			.format(arenaYearfirstFormat) shouldBe "2024-01-31 13:21:31"
+		val testDato = LocalDateTime.of(2024, 1,31,13,21,31)
+		testDato.format(arenaYearfirstFormat) shouldBe "2024-01-31 13:21:31"
+	}
+
+	@Test
+	fun `Test date parser without time` () {
+		"31.01.2024".asBackwardsFormattedLocalDateTime("test dato") shouldBe LocalDateTime.of(2024, 1,31,0,0,0)
 	}
 }

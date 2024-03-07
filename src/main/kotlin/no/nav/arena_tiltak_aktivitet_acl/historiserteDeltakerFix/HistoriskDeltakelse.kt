@@ -28,6 +28,10 @@ data class HistoriskDeltakelse(
 	val rekkefolge: Int
 )
 
+data class SlettetDeltakelse (
+	val data: HistoriskDeltakelse
+)
+
 fun HistoriskDeltakelse.toArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDeltakelse {
 	return ArenaDeltakelse(
 		TILTAKDELTAKER_ID = deltakelseId.value,

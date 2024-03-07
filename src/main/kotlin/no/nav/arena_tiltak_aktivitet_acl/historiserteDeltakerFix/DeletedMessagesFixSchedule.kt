@@ -16,6 +16,7 @@ import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import no.nav.common.job.JobRunner
 import no.nav.common.job.leader_election.LeaderElectionClient
 import org.slf4j.LoggerFactory
+import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
@@ -39,31 +40,37 @@ class DeletedMessagesFixSchedule(
 		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
 		JobRunner.run("prosesserDataFraHistoriskeDeltakelser") {
  		hentNesteBatchMedHistoriskeDeltakelser()
-			.map {
-				val fix = it.utledFixMetode()
-				when (fix) {
-					is Ignorer -> {}
-					is OpprettMedLegacyId -> {
-						log.info("OpprettMedLegacyId ${fix.deltakelseId}")
-						// Bruk ID-som allerede eksisterer i Veilarbaktivitet
-						aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
-						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
-					}
-					is Opprett -> {
-						log.info("Opprett ny for historisk deltakelseid ${fix.historiskDeltakelseId}")
-						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
-					}
-					is Oppdater -> {
-						log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
-						arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
-					}
-					is OpprettSingelHistorisk -> {
-						log.info("Oppretter historisk deltakelse som mangler andre deltakelser i arena_data")
-					}
-				}
-				historiskDeltakelseRepo.oppdaterFixMetode(fix)
+			.map { it.utledFixMetode() }
+			.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.hist_tiltakdeltaker) }
+		hentNesteBatchMedSlettedeDeltakelser()
+			.map { it.utledFixMetode() }
+			.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.deleted_singles_hist_format) }
+		}
+	}
+
+	fun utførFix(fix: FixMetode, table: HistoriskDeltakelseRepo.Table) {
+		when (fix) {
+			is Ignorer -> {}
+			is OpprettMedLegacyId -> {
+				log.info("OpprettMedLegacyId ${fix.deltakelseId}")
+				// Bruk ID-som allerede eksisterer i Veilarbaktivitet
+				aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
+				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+			}
+			is Opprett -> {
+				log.info("Opprett ny for historisk deltakelseid ${fix.historiskDeltakelseId}")
+				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+			}
+			is Oppdater -> {
+				log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
+				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+			}
+			is OpprettSingelHistorisk -> {
+				log.info("Oppretter historisk deltakelse som mangler andre deltakelser i arena_data")
+				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 			}
 		}
+		historiskDeltakelseRepo.oppdaterFixMetode(fix, table)
 	}
 
 	fun hentPosFraHullet(): OperationPos {
@@ -89,8 +96,31 @@ class DeletedMessagesFixSchedule(
 		return OperationPos.of(State.minimumpos.toString())
 	}
 
-	fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
-		return  historiskDeltakelseRepo.getHistoriskeDeltakelser()
+	private fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
+		return  historiskDeltakelseRepo.getHistoriskeDeltakelser(HistoriskDeltakelseRepo.Table.hist_tiltakdeltaker)
+	}
+	private fun hentNesteBatchMedSlettedeDeltakelser(): List<SlettetDeltakelse> {
+		return  historiskDeltakelseRepo.getHistoriskeDeltakelser(HistoriskDeltakelseRepo.Table.deleted_singles_hist_format).map { SlettetDeltakelse(it) }
+	}
+
+	fun SlettetDeltakelse.utledFixMetode(): FixMetode {
+		val deltakelseId = DeltakelseId(this.data.hist_tiltakdeltaker_id)
+		val sisteArenaDeltakelse = finnSisteOppdateringArenaDeltakelseNullable(deltakelseId)
+		return when {
+			sisteArenaDeltakelse != null -> {
+				when {
+					harRelevanteForskjeller(sisteArenaDeltakelse, this.data) -> Oppdater(deltakelseId, sisteArenaDeltakelse, this.data, hentPosFraHullet())
+					else -> Ignorer(deltakelseId.value, deltakelseId)
+				}
+			}
+			else -> {
+				val legacyId = historiskDeltakelseRepo.getLegacyId(deltakelseId)
+				when {
+					legacyId != null -> OpprettMedLegacyId(deltakelseId, this.data, legacyId, hentPosFraHullet())
+					else -> Opprett(deltakelseId, this.data, hentPosFraHullet())
+				}
+			}
+		}
 	}
 
 	fun HistoriskDeltakelse.utledFixMetode(): FixMetode {
@@ -152,6 +182,10 @@ class DeletedMessagesFixSchedule(
 	}
 	fun finnSisteOppdateringArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDeltakelse {
 		return arenaDataRepository.getMostRecentDeltakelse(deltakelseId).toArenaDeltakelse()
+	}
+	fun finnSisteOppdateringArenaDeltakelseNullable(deltakelseId: DeltakelseId): ArenaDeltakelse? {
+		return runCatching { finnSisteOppdateringArenaDeltakelse(deltakelseId) }
+			.getOrElse { if (it is IncorrectResultSizeDataAccessException) null else throw it }
 	}
 	fun genererDeltakelseId(): DeltakelseId {
 		return historiskDeltakelseRepo.getNextFreeDeltakerId(State.forrigeLedigeDeltakelse)

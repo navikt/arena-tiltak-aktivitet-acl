@@ -21,20 +21,24 @@ class HistoriskDeltakelseRepo(
 	private val template: NamedParameterJdbcTemplate
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
-	fun getHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
+	enum class Table {
+		hist_tiltakdeltaker,
+		deleted_singles_hist_format
+	}
+	fun getHistoriskeDeltakelser(table: Table): List<HistoriskDeltakelse> {
 		val query = """
-			SELECT * FROM hist_tiltakdeltaker
-			WHERE hist_tiltakdeltaker.fix_metode is null
+			SELECT * FROM ${table.name}
+			WHERE fix_metode is null
 			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
 			LIMIT 2000
 		""".trimIndent()
 		val result = template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
-		log.info("Hentet ${result.size} historiske deltakelser")
+		log.info("Hentet ${result.size} historiske deltakelser fra $table")
 		return result
 	}
-	fun oppdaterFixMetode(fixMetode: FixMetode) : Int {
+	fun oppdaterFixMetode(fixMetode: FixMetode, table: Table) : Int {
 		val query = """
-		UPDATE hist_tiltakdeltaker SET fix_metode = :fixMetode, generated_deltakerid = :generertDeltakerId, generated_pos = :generertPos
+		UPDATE ${table.name} SET fix_metode = :fixMetode, generated_deltakerid = :generertDeltakerId, generated_pos = :generertPos
 		WHERE hist_tiltakdeltaker_id = :hist_tiltakdeltaker_id
 	""".trimIndent()
 		val muligPos = when(fixMetode) {
@@ -49,7 +53,7 @@ class HistoriskDeltakelseRepo(
 				"generertDeltakerId" to fixMetode.deltakelseId.value,
 				"generertPos" to muligPos?.value)
 		val result = template.update(query, params)
-		log.info("Oppdaterte fixMetode for hist_tiltakdeltaker_id {${fixMetode.historiskDeltakelseId} antall rader $result")
+		log.info("Oppdaterte fixMetode for ${table.name} {${fixMetode.historiskDeltakelseId} antall rader $result")
 		return result
 	}
 
@@ -96,19 +100,27 @@ class HistoriskDeltakelseRepo(
 		return result
 	}
 
+	fun getLegacyId(deltakerId: DeltakelseId): UUID? {
+		val sql = """
+			SELECT aktivitet_id FROM translation where arena_id = :deltakerId
+		""".trimIndent()
+		return template.query(sql, mapOf("deltakerId" to deltakerId.value)) { it, _ -> it.getString(0) }
+			.firstOrNull()?.let { UUID.fromString(it) }
+	}
+
 	fun getLegacyId(personId: Long, gjennomforingId: Long, datoStatusEndring: LocalDateTime): LegacyId? {
 		val sql = """
 			select translation.arena_id as deltakerId, translation.aktivitet_id as funksjonellId
 			from hist_tiltakdeltaker
-				join dobledeltakelser on hist_tiltakdeltaker.person_id = dobledeltakelser.person_id
-				join translation on dobledeltakelser.tiltakdeltaker_id = translation.arena_id and hist_tiltakdeltaker.tiltakgjennomforing_id = dobledeltakelser.tiltakgjennomforing_id
-			where dobledeltakelser.jn_operation = 'DEL'
-				and dobledeltakelser.person_id = :person_id
-				and dobledeltakelser.tiltakgjennomforing_id = :gjennomforing_id
-				and dobledeltakelser.dato_statusendring = :date_statusendring
+				join dobledeltakelser_jn on hist_tiltakdeltaker.person_id = dobledeltakelser_jn.person_id
+				join translation on dobledeltakelser_jn.tiltakdeltaker_id = translation.arena_id and hist_tiltakdeltaker.tiltakgjennomforing_id = dobledeltakelser_jn.tiltakgjennomforing_id
+			where dobledeltakelser_jn.jn_operation = 'DEL'
+				and dobledeltakelser_jn.person_id = :person_id
+				and dobledeltakelser_jn.tiltakgjennomforing_id = :gjennomforing_id
+				and dobledeltakelser_jn.dato_statusendring = :date_statusendring
 				and (
-					(dobledeltakelser.dato_statusendring is null and hist_tiltakdeltaker.dato_statusendring is null)
-					or to_timestamp(dobledeltakelser.dato_statusendring, 'YYYY-MM-DD HH24:MI:SS')
+					(dobledeltakelser_jn.dato_statusendring is null and hist_tiltakdeltaker.dato_statusendring is null)
+					or to_timestamp(dobledeltakelser_jn.dato_statusendring, 'YYYY-MM-DD HH24:MI:SS')
 						= to_timestamp(hist_tiltakdeltaker.dato_statusendring, 'DD.MM.YYYY HH24:MI:SS'));
 		""".trimIndent()
 		val params = mapOf(
@@ -133,6 +145,12 @@ class HistoriskDeltakelseRepo(
 			from generate_series(:nesteMinDeltakelseId, :max) as ledig
 			where ledig.ledig not in (
 			    select deltaker_id from deltaker_gjennomforing
+			    where deltaker_id between :nesteMinDeltakelseId AND :max
+			) and not in (
+			    select hist_tiltakdeltaker_id from deleted_singles_hist_format
+			    where deltaker_id between :nesteMinDeltakelseId AND :max
+			) and not in (
+			    select tiltakdeltaker_id from dobledeltakelser_jn
 			    where deltaker_id between :nesteMinDeltakelseId AND :max
 			) limit 1
 		""".trimIndent()
