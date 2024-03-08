@@ -222,4 +222,4 @@ data class LegacyId(
 	val deltakerId: DeltakelseId
 )
 
-val arenaYearfirstFormat = DateTimeFormatter.ofPattern("YYYY-MM-DD HH:mm:ss")
+val arenaYearfirstFormat = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss")
