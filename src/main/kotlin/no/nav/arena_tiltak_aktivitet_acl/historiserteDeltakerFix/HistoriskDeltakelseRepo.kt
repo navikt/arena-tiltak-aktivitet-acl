@@ -38,7 +38,11 @@ class HistoriskDeltakelseRepo(
 	}
 	fun oppdaterFixMetode(fixMetode: FixMetode, table: Table) : Int {
 		val query = """
-		UPDATE ${table.name} SET fix_metode = :fixMetode, generated_deltakerid = :generertDeltakerId, generated_pos = :generertPos
+		UPDATE ${table.name} SET
+			fix_metode = :fixMetode
+			,generated_deltakerid = :generertDeltakerId
+			,generated_pos = :generertPos
+			,funksjonellId = :funksjonellId
 		WHERE hist_tiltakdeltaker_id = :hist_tiltakdeltaker_id
 	""".trimIndent()
 		val muligPos = when(fixMetode) {
@@ -51,6 +55,7 @@ class HistoriskDeltakelseRepo(
 			mapOf("hist_tiltakdeltaker_id" to fixMetode.historiskDeltakelseId,
 				"fixMetode" to fixMetode.navn(),
 				"generertDeltakerId" to fixMetode.deltakelseId.value,
+				"funksjonellId" to fixMetode.funksjonellId(),
 				"generertPos" to muligPos?.value)
 		val result = template.update(query, params)
 		log.info("Oppdaterte fixMetode for ${table.name} {${fixMetode.historiskDeltakelseId} antall rader $result")
@@ -63,6 +68,13 @@ class HistoriskDeltakelseRepo(
 			is Oppdater -> "Oppdater"
 			is Opprett -> "Opprett"
 			is OpprettMedLegacyId -> "OpprettMedLegacyId"
+		}
+	}
+
+	private fun FixMetode.funksjonellId(): UUID? {
+		return when (this) {
+			is OpprettMedLegacyId -> this.funksjonellId
+			else -> null
 		}
 	}
 

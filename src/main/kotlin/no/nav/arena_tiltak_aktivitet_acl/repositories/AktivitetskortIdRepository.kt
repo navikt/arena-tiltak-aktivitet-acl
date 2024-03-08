@@ -5,6 +5,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import java.lang.IllegalStateException
 import java.util.*
 
 @Component
@@ -25,6 +26,8 @@ class AktivitetskortIdRepository(
 
 	fun getOrCreate(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, idOverride: UUID? = null): UUID {
 		val currentId = getCurrentId(deltakelseId, aktivitetKategori)
+		if (idOverride != null && currentId != null && idOverride != currentId)
+			throw IllegalStateException("Mismatch på id-override idOverride: $idOverride eksisterendeId: $currentId")
 		if (currentId != null) return currentId
 
 		val generatedId = idOverride ?: UUID.randomUUID()
