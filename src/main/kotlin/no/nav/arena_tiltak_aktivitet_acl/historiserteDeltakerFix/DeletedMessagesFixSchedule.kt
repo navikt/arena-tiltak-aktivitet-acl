@@ -127,20 +127,19 @@ class DeletedMessagesFixSchedule(
 			.filter { it.lastestStatusEndretDato == datoStatusEndring } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
 
 		return when {
-			// Alt som kommer på relast er ikke slettet, hvis vi har bare 1, har den også kommet på relast
-			// Hvis det er 0 eller 1 treff på arena-data så har vi ikke deltakelsen og den må opprettes (ikke Oppdatering)
-			arenaDataDeltakelser.size < 2  -> {
-				log.info("Fant ${arenaDataDeltakelser.size} eksisterende arenadeltakelser for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
-				val legacyId = datoStatusEndring?.let { historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id, it) }
-				when {
-					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
-					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
-				}
-			}
 			// Bare 1 kan matche
 			matchMedFilter.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matchMedFilter.joinToString { it.deltakelseId.toString() }}")
-			// Har ikke sett meldingen før
-			matchMedFilter.size == 0 -> {
+			matchMedFilter.size == 1 -> { // 1 match med filter
+				val match = matchMedFilter.first()
+				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
+				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
+					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
+					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
+				}
+			}
+			//  Har ikke sett denne meldingen før men finnes kanskje matchende arena-data hvis vi har legacy-id
+			// matchMedFilter.size == 0
+			arenaDataDeltakelser.isNotEmpty() -> {
 				// Her kan det hende vi har den likevel, men dato_statusendring er ikke oppdatert hos oss. (hullet)
 				log.info("Fant ingen eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
 				val legacyId = datoStatusEndring?.let { historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id, it) } // Jovisst, vi hadde den likevel - OK
@@ -158,12 +157,11 @@ class DeletedMessagesFixSchedule(
 					else -> Opprett(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
 				}
 			}
-			else -> { // 1 match
-				val match = matchMedFilter.first()
-				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
-				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
-					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
-					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
+			else -> { // Ingen deltakerlser på person-gjennomføring i våre data (arena-data)
+				val legacyId = datoStatusEndring?.let { historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id, it) } // Jovisst, vi hadde den likevel - OK
+				when {
+					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, hentPosFraHullet())
+					else -> Opprett(genererDeltakelseId(), this, hentPosFraHullet())
 				}
 			}
 		}
