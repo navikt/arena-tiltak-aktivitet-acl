@@ -23,11 +23,11 @@ class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse,
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
 		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
-			operation = Operation.MODIFIED,
+			operation = Operation.DELETED,
 			pos = generertPos,
 			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			before = mapper.writeValueAsString(arenaDeltakelse),
-			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+			after = mapper.writeValueAsString(arenaDeltakelse),
+			before = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
 	}
 }
@@ -36,29 +36,11 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
 		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
-			operation = Operation.CREATED,
+			operation = Operation.DELETED,
 			pos = generertPos,
 			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			before = null,
-			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
-		)
-	}
-}
-
-/**
- * Vi mangler deltakelse i arena_data for denne person-gjennomføring.
- * Det er sannsynligvis fordi den 'nye' deltakelsen ble IGNORED og at IGNORED-data tidligere ble slettet rutinemessig.
- */
-class OpprettSingelHistorisk(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos)
-	: FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
-	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
-		return historiskDeltakelseTilArenaDataUpsertInput(
-			deltakelseId = deltakelseId,
-			operation = Operation.CREATED,
-			pos = generertPos,
-			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			before = null,
-			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+			after = null,
+			before = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
 	}
 }
@@ -67,11 +49,11 @@ class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDelt
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
 		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
-			operation = Operation.CREATED,
+			operation = Operation.DELETED,
 			pos = generertPos,
 			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			before = null,
-			after = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+			after = null,
+			before = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
 		)
 	}
 }

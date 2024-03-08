@@ -65,10 +65,6 @@ class DeletedMessagesFixSchedule(
 				log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
 				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 			}
-			is OpprettSingelHistorisk -> {
-				log.info("Oppretter historisk deltakelse som mangler andre deltakelser i arena_data")
-				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
-			}
 		}
 		historiskDeltakelseRepo.oppdaterFixMetode(fix, table)
 	}
@@ -131,13 +127,10 @@ class DeletedMessagesFixSchedule(
 			.filter { it.lastestStatusEndretDato == datoStatusEndring } // er det noen av våre deltakelser som matcher med denne historisk deltakelsen?
 
 		return when {
-			arenaDataDeltakelser.isEmpty() -> {
-				log.info("Mangler person-gjennomføring i arena_data. Enslig deltakelse i historikk. person:${person_id} gjennomforing:${tiltakgjennomforing_id}")
-				OpprettSingelHistorisk(genererDeltakelseId(), this, generertPos = hentPosFraHullet())
-			}
 			// Alt som kommer på relast er ikke slettet, hvis vi har bare 1, har den også kommet på relast
-			arenaDataDeltakelser.size == 1 -> {
-				log.info("Fant bare 1 eksisterende arenadeltakelse for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
+			// Hvis det er 0 eller 1 treff på arena-data så har vi ikke deltakelsen og den må opprettes (ikke Oppdatering)
+			arenaDataDeltakelser.size < 2  -> {
+				log.info("Fant ${arenaDataDeltakelser.size} eksisterende arenadeltakelser for historisk deltakelse ${this.hist_tiltakdeltaker_id}")
 				val legacyId = datoStatusEndring?.let { historiskDeltakelseRepo.getLegacyId(this.person_id, this.tiltakgjennomforing_id, it) }
 				when {
 					legacyId != null -> OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
@@ -156,6 +149,7 @@ class DeletedMessagesFixSchedule(
 					legacyId != null -> {
 						if (historiskDeltakelseRepo.deltakelseExists(legacyId)) {  // Fant den den i translation, men vi har den i arena_data
 							val arenaDeltakelse = finnSisteOppdateringArenaDeltakelse(legacyId.deltakerId)
+							// Siden dato-statusendring ikke matcher vet vi at dataen vår ikke er oppdatert
 							Oppdater(legacyId.deltakerId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
 						} else {
 							OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
