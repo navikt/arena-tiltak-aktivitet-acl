@@ -75,11 +75,12 @@ open class DeltakerProcessor(
 		val tiltak = tiltakService.getByKode(gjennomforing.tiltakKode)
 			?: throw DependencyNotIngestedException("Venter på at tiltak med id=${gjennomforing.tiltakKode} skal bli håndtert")
 
+/*  @TODO Legg inn igjen etter batch med delete-meldinger
 		if (message.operationType == Operation.DELETED && deltakelse.erAvsluttet()) {
 			log.info("Mottok slettemelding men deltaker var allerede i en ferdig-status")
 			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
 			return
-		}
+		}*/
 
 		val personIdent = personsporingService.get(deltakelse.personId, arenaGjennomforingId).fodselsnummer
 
