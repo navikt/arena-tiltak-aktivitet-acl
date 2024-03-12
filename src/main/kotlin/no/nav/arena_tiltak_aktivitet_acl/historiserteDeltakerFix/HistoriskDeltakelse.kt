@@ -52,7 +52,7 @@ fun HistoriskDeltakelse.toArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDelt
 		DATO_STATUSENDRING = this.dato_statusendring?.asBackwardsFormattedLocalDateTime()?.format(arenaYearfirstFormat),
 		AKTIVITET_ID = this.aktivitet_id?.toLong(),
 		BRUKERID_ENDRING_PRIORITERING = this.brukerid_endring_prioritering,
-		DATO_ENDRING_PRIORITERING = this.dato_endring_prioritering?.asBackwardsFormattedLocalDateTime()?.format(arenaYearfirstFormat),
+		DATO_ENDRING_PRIORITERING = this.dato_endring_prioritering,
 		PERSON_ID = this.person_id,
 		AARSAKVERDIKODE_STATUS = this.aarsakverdikode_status,
 		OPPMOTETYPEKODE = this.oppmotetypekode,
