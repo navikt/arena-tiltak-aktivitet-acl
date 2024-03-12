@@ -105,7 +105,7 @@ class DeletedMessagesFixSchedule(
 		return when {
 			sisteArenaDeltakelse != null -> {
 				when {
-					harRelevanteForskjeller(sisteArenaDeltakelse, this.data) -> Oppdater(deltakelseId, sisteArenaDeltakelse, this.data, hentPosFraHullet())
+					harRelevanteForskjeller(sisteArenaDeltakelse, this.data) -> Oppdater(deltakelseId, this.data, hentPosFraHullet())
 					else -> Ignorer(deltakelseId.value, deltakelseId)
 				}
 			}
@@ -133,7 +133,7 @@ class DeletedMessagesFixSchedule(
 				val match = matchMedFilter.first()
 				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
-					true -> Oppdater(match.deltakelseId, arenaDeltakelse, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
+					true -> Oppdater(match.deltakelseId, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
 					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
 				}
 			}
@@ -149,7 +149,7 @@ class DeletedMessagesFixSchedule(
 						if (historiskDeltakelseRepo.deltakelseExists(legacyId)) {  // Fant den den i translation, men vi har den i arena_data
 							val arenaDeltakelse = finnSisteOppdateringArenaDeltakelse(legacyId.deltakerId)
 							// Siden dato-statusendring ikke matcher vet vi at dataen vår ikke er oppdatert
-							Oppdater(legacyId.deltakerId, arenaDeltakelse, this, generertPos = hentPosFraHullet())
+							Oppdater(legacyId.deltakerId, this, generertPos = hentPosFraHullet())
 						} else {
 							OpprettMedLegacyId(legacyId.deltakerId, this, legacyId.funksjonellId, generertPos = hentPosFraHullet())
 						}

@@ -19,15 +19,14 @@ class Ignorer(historiskDeltakelseId: Long, deltakelseId: DeltakelseId) : FixMeto
 //	override fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput? = null
 }
 
-class Oppdater(deltakelseId: DeltakelseId, val arenaDeltakelse: ArenaDeltakelse, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
+class Oppdater(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
 		return historiskDeltakelseTilArenaDataUpsertInput(
 			deltakelseId = deltakelseId,
 			operation = Operation.DELETED,
 			pos = generertPos,
 			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			after = mapper.writeValueAsString(arenaDeltakelse),
-			before = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+			before = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
 		)
 	}
 }
@@ -39,8 +38,7 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 			operation = Operation.DELETED,
 			pos = generertPos,
 			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			after = null,
-			before = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+			before = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
 		)
 	}
 }
@@ -52,13 +50,12 @@ class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDelt
 			operation = Operation.DELETED,
 			pos = generertPos,
 			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
-			after = null,
-			before = mapper.writeValueAsString(historiskDeltakelse.toArenaDeltakelse(deltakelseId))
+			before = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
 		)
 	}
 }
 
-fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, operation: Operation, pos: OperationPos, operationTimestamp: LocalDateTime, before: String?, after: String?): ArenaDataUpsertInput {
+fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, operation: Operation, pos: OperationPos, operationTimestamp: LocalDateTime, before: ArenaDeltakelse?): ArenaDataUpsertInput {
 	return ArenaDataUpsertInput(
 		ArenaTableName.DELTAKER,
 		arenaId = deltakelseId.toString(),
@@ -67,7 +64,7 @@ fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, opera
 		operationTimestamp = operationTimestamp,
 		ingestStatus = IngestStatus.NEW,
 		ingestedTimestamp = LocalDateTime.now(),
-		before = before,
-		after = after
+		before = before?.let { mapper.writeValueAsString(it) },
+		after = null
 	)
 }
