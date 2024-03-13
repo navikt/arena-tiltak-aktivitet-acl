@@ -298,7 +298,7 @@ open class ArenaDataRepository(
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
-				ORDER BY arena_id, operation_pos;
+				ORDER BY arena_id, operation_pos DESC;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}

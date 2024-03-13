@@ -147,7 +147,6 @@ class DeletedMessagesFixSchedule(
 				when {
 					legacyId != null -> {
 						if (historiskDeltakelseRepo.deltakelseExists(legacyId)) {  // Fant den den i translation, men vi har den i arena_data
-							val arenaDeltakelse = finnSisteOppdateringArenaDeltakelse(legacyId.deltakerId)
 							// Siden dato-statusendring ikke matcher vet vi at dataen vår ikke er oppdatert
 							Oppdater(legacyId.deltakerId, this, generertPos = hentPosFraHullet())
 						} else {
