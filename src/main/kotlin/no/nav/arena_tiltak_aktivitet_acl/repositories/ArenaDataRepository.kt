@@ -261,7 +261,7 @@ open class ArenaDataRepository(
 
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos in (
+			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos_numeric in (
 				SELECT MIN(operation_pos_numeric) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
 				WHERE a2.arena_table_name = :arenaTableName AND ingest_status = 'QUEUED' AND NOT EXISTS(
 					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id AND a3.arena_table_name = :arenaTableName)
@@ -298,7 +298,7 @@ open class ArenaDataRepository(
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
-				ORDER BY arena_id, operation_pos desc;
+				ORDER BY arena_id, operation_pos_numeric desc;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}

@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION convert_to_numeric()
     RETURNS trigger AS $$
 BEGIN
     IF (tg_op = 'INSERT') THEN
-        NEW.operation_pos_numeric = operation_pos::bigint;
+        NEW.operation_pos_numeric = NEW.operation_pos::bigint;
     END IF;
     RETURN NEW;
 END;
