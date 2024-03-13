@@ -75,7 +75,7 @@ class ArenaGjennomforingProcessorTest {
 
 	@Test
 	fun `handleEntry() - Gyldig gjennomforing - inserter i korrekte tabeller`() {
-		val opPos = OperationPos.of("1")
+		val opPos = OperationPos(1)
 
 		val arenaGjennomforingDto = mapper.readValue(arenaGjennomforingJson, ArenaGjennomforingDto::class.java)
 
@@ -92,7 +92,7 @@ class ArenaGjennomforingProcessorTest {
 
 	@Test
 	fun `handleEntry() - ugyldig gjennomforing - skal kaste ValidationException`() {
-		val opPos = OperationPos.of("2")
+		val opPos = OperationPos(2)
 
 		val arenaGjennomforingDto = mapper.readValue(arenaGjennomforingUgyldigJson, ArenaGjennomforingDto::class.java)
 
@@ -108,7 +108,7 @@ class ArenaGjennomforingProcessorTest {
 
 	@Test
 	fun `handleEntry() - operation type delete - skal ignoreres`() {
-		val opPos = OperationPos.of("11223344")
+		val opPos = OperationPos(11223344)
 
 		val arenaGjennomforingDto = mapper.readValue(arenaGjennomforingJson, ArenaGjennomforingDto::class.java)
 
@@ -124,7 +124,7 @@ class ArenaGjennomforingProcessorTest {
 	}
 
 	private fun createArenaGjennomforingKafkaMessage(
-		operationPosition: OperationPos = OperationPos.of("1"),
+		operationPosition: OperationPos = OperationPos(1),
 		operationType: Operation = Operation.CREATED,
 		operationTimestamp: LocalDateTime = LocalDateTime.now(),
 		arenaGjennomforingDto: ArenaGjennomforingDto,

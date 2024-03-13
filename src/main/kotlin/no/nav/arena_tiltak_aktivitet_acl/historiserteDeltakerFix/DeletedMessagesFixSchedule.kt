@@ -89,7 +89,7 @@ class DeletedMessagesFixSchedule(
  		9492774956 ledige plasser
 		 */
 		State.minimumpos++
-		return OperationPos.of(State.minimumpos.toString())
+		return OperationPos(State.minimumpos)
 	}
 
 	private fun hentNesteBatchMedHistoriskeDeltakelser(): List<HistoriskDeltakelse> {
@@ -131,7 +131,7 @@ class DeletedMessagesFixSchedule(
 			matchMedFilter.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matchMedFilter.joinToString { it.deltakelseId.toString() }}")
 			matchMedFilter.size == 1 -> { // 1 match med filter
 				val match = matchMedFilter.first()
-				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos.of(match.latestOperationPos))
+				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos(match.latestOperationPos.toLong()))
 				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
 					true -> Oppdater(match.deltakelseId, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
 					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)

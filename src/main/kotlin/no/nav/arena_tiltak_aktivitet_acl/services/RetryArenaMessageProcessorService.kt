@@ -53,7 +53,7 @@ open class RetryArenaMessageProcessorService(
 
 	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
 		log.info("processMessages $tableName ingestStatus: $status")
-		val startPos = OperationPos.of("0")
+		val startPos = OperationPos(0)
 		val start = Instant.now()
 
 		val totalHandled = runBlocking {

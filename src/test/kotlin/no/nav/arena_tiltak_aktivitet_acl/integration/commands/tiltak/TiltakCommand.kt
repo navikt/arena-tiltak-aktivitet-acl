@@ -7,7 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
 abstract class TiltakCommand(val tiltaksKode: String) : Command(tiltaksKode) {
 
-	abstract fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto
+	abstract fun toArenaKafkaMessageDto(pos: Long): ArenaKafkaMessageDto
 	fun createPayload(kode: String, navn: String, administrasjonskode: String): JsonNode {
 		val data = ArenaTiltak(
 			TILTAKSKODE = kode,

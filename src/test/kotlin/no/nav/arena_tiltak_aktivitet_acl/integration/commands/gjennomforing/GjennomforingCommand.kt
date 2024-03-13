@@ -6,7 +6,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaGjennomf
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
 abstract class GjennomforingCommand(key: Long) : Command(key.toString()) {
-	abstract fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto
+	abstract fun toArenaKafkaMessageDto(pos: Long): ArenaKafkaMessageDto
 
 	fun createPayload(input: GjennomforingInput): JsonNode {
 		val data = ArenaGjennomforingDto(
