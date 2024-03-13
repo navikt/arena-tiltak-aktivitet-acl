@@ -38,7 +38,7 @@ open class ArenaDataRepository(
 					:before::json,
 					:after::json,
 					:note)
-			ON CONFLICT (arena_table_name, operation_type, operation_pos) DO UPDATE SET
+			ON CONFLICT (arena_table_name, operation_pos) DO UPDATE SET
 					ingest_status      = :ingest_status,
 					ingested_timestamp = :ingested_timestamp,
 					note 			   = :note
@@ -310,7 +310,7 @@ val arenaDataRowMapper = RowMapper { rs, _ ->
 		arenaTableName = ArenaTableName.fromValue(rs.getString("arena_table_name")),
 		arenaId = rs.getString("arena_id"),
 		operation = Operation.valueOf(rs.getString("operation_type")),
-		operationPosition = OperationPos.of(rs.getString("operation_pos")),
+		operationPosition = OperationPos(rs.getLong("operation_pos")),
 		operationTimestamp = rs.getTimestamp("operation_timestamp").toLocalDateTime(),
 		ingestStatus = IngestStatus.valueOf(rs.getString("ingest_status")),
 		ingestedTimestamp = rs.getTimestamp("ingested_timestamp")?.toLocalDateTime(),

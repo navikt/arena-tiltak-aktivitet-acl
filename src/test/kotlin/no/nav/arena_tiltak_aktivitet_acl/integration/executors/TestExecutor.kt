@@ -16,13 +16,15 @@ abstract class TestExecutor(
 ) {
 
 	companion object {
-		var position = 0
+		var position = 0L
 	}
 
 	val objectMapper = ObjectMapper.get()
 
-	fun incrementAndGetPosition(): String {
-		return "${position++}"
+	fun incrementAndGetPosition(): Long {
+		val newValue = position + 1
+		position = newValue
+		return newValue
 	}
 
 	fun sendKafkaMessage(topic: String, payload: String, key: String) {

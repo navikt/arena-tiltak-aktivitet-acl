@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
+import java.math.BigInteger
 import java.time.LocalDateTime
 
 data class ArenaKafkaMessage<D>(
@@ -21,14 +22,11 @@ data class ArenaKafkaMessage<D>(
 	}
 }
 
-data class OperationPos private constructor(val value: String) {
-	companion object {
-		fun of(posString: String): OperationPos = OperationPos(padUntil20Characters(posString))
-	}
-}
+@JvmInline
+value class OperationPos (val value: Long)
 
-fun padUntil20Characters(stringValue: String): String {
-	if (stringValue.toDoubleOrNull() == null) throw IllegalArgumentException("Operation-pos må være et tall")
-	if (stringValue.length > 20) throw IllegalArgumentException("Operation-pos kan ikke være lenger enn 20 chars")
-	return stringValue.padStart(20, '0')
+fun Long.padUntil20Characters(): String {
+//	if (stringValue.toDoubleOrNull() == null) throw IllegalArgumentException("Operation-pos må være et tall")
+//	if (stringValue.length > 20) throw IllegalArgumentException("Operation-pos kan ikke være lenger enn 20 chars")
+	return this.toString().padStart(20, '0')
 }

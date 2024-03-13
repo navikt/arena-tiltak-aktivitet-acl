@@ -8,7 +8,7 @@ import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
 
 abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(tiltakDeltakerId.value.toString()) {
 
-	abstract fun toArenaKafkaMessageDto(pos: String): ArenaKafkaMessageDto
+	abstract fun toArenaKafkaMessageDto(pos: Long): ArenaKafkaMessageDto
 
 	fun createPayload(input: DeltakerInput): JsonNode {
 		val data = ArenaDeltakelse(

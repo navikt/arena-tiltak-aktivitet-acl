@@ -37,11 +37,11 @@ class GjennomforingTestExecutor(
 		val arenaData = pollArenaData(
 			ArenaTableName.GJENNOMFORING,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
-			OperationPos.of(arenaWrapper.pos)
+			OperationPos(arenaWrapper.pos.toLong())
 		)
 
 		val output = gjennomforingRepository.get(arenaData.arenaId.toLong())
-		return GjennomforingResult(OperationPos.of(arenaWrapper.pos), arenaData, output)
+		return GjennomforingResult(OperationPos(arenaWrapper.pos.toLong()), arenaData, output)
 	}
 
 }

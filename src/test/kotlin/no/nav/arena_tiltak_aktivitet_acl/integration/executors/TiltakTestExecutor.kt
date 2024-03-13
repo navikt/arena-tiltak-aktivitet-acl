@@ -35,7 +35,7 @@ class TiltakTestExecutor(
 		val data = pollArenaData(
 			ArenaTableName.TILTAK,
 			Operation.fromArenaOperationString(arenaWrapper.opType),
-			OperationPos.of(arenaWrapper.pos)
+			OperationPos(arenaWrapper.pos.toLong())
 		)
 		val storedTiltak = nullableAsyncRetryHandler("get tiltak by kode: $kode") { tiltakRepository.getByKode(kode) }
 			?: fail("Forventet at tiltak med kode $kode ligger i tiltak databasen.")

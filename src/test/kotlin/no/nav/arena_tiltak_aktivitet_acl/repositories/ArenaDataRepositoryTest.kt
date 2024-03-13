@@ -42,7 +42,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			after = after
 		)
@@ -73,7 +73,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			before = gammelBefore,
 			after = gammelAfter
@@ -81,7 +81,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		repository.upsert(data)
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName,stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe false
-		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos.of(Random.nextLong(10000).toString())))
+		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos(Random.nextLong(10000))))
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe false
 	}
@@ -95,7 +95,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			before = gammelBefore,
 			after = gammelAfter
@@ -103,7 +103,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		repository.upsert(data)
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName,stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe false
-		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos.of(Random.nextLong(10000).toString())))
+		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos(Random.nextLong(10000))))
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe false
 	}
@@ -113,7 +113,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			after = "{\"test\": \"test\"}"
 		)
@@ -147,7 +147,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			after = afterData
 		)
@@ -156,7 +156,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			ingestStatus = IngestStatus.IGNORED,
 			after = afterData
@@ -166,7 +166,7 @@ class ArenaDataRepositoryTest : FunSpec({
 			arenaTableName = ArenaTableName.TILTAK,
 			arenaId = "ARENA_ID",
 			operation = Operation.CREATED,
-			operationPosition = OperationPos.of(Random.nextLong(10000).toString()),
+			operationPosition = OperationPos(Random.nextLong(10000)),
 			operationTimestamp = LocalDateTime.now(),
 			ingestStatus = IngestStatus.IGNORED,
 			after = afterData

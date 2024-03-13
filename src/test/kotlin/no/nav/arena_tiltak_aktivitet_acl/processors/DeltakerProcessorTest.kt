@@ -129,7 +129,7 @@ class DeltakerProcessorTest : FunSpec({
 			deltakerArenaId = 1L
 		)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
-		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos.of(operationPos.toString()))
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos(operationPos))
 		val translationEntry = aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}
@@ -150,7 +150,7 @@ class DeltakerProcessorTest : FunSpec({
 				deltakerArenaId = idx.toLong() + 1,
 				deltakerStatusKode = status
 			))
-			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos.of(operationPos.toString()))
+			getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos(operationPos))
 		}
 		verify(exactly = statuser.size) { kafkaProducerService.sendTilAktivitetskortTopic(any(), any(), any()) }
 	}
@@ -183,7 +183,7 @@ class DeltakerProcessorTest : FunSpec({
 			deltakerArenaId = 1L,
 			registrertDato = opprettetTidspunkt)
 		createDeltakerProcessor().handleArenaMessage(newDeltaker)
-		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos.of(operationPos.toString()))
+		getAndCheckArenaDataRepositoryEntry(operation = Operation.CREATED, OperationPos(operationPos))
 		val translationEntry = aktivitetRepository.getCurrentAktivitetsId(DeltakelseId(1), AktivitetKategori.TILTAKSAKTIVITET)
 		translationEntry shouldNotBe null
 	}

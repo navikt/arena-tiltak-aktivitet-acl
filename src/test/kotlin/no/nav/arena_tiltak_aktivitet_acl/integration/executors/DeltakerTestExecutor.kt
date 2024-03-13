@@ -42,7 +42,7 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: String = incrementAndGetPosition()): AktivitetResult {
+	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: Long = incrementAndGetPosition()): AktivitetResult {
 		return sendAndCheck(
 			command.toArenaKafkaMessageDto(pos),
 			command.tiltakDeltakerId.toString(),
@@ -64,7 +64,7 @@ class DeltakerTestExecutor(
 		val arenaData = pollArenaData(
 			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
-			OperationPos.of(wrapper.pos)
+			OperationPos(wrapper.pos.toLong())
 		)
 
 		val deltakelseId = DeltakelseId(arenaData.arenaId.toLong())

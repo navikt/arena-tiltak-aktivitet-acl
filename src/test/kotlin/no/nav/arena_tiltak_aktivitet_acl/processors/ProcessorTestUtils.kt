@@ -52,7 +52,7 @@ fun createArenaDeltakerKafkaMessage(
 		arenaTableName = ArenaTableName.DELTAKER,
 		operationType = operation,
 		operationTimestamp = LocalDateTime.now(),
-		operationPosition = OperationPos.of(incrementAndGetPos().toString()),
+		operationPosition = OperationPos(incrementAndGetPos()),
 		after = if (operation != Operation.DELETED) deltaker else null,
 		before = if (operation != Operation.CREATED) deltaker else null
 	)

@@ -183,9 +183,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val fullfCommand = NyDeltakerCommand(fullf)
 		val gjennCommand = NyDeltakerCommand(fullf.copy(endretAv = Ident(ident = "HPA321"), deltakerStatusKode = "GJENN"))
-		deltakerExecutor.execute(fullfCommand, pos = "2")
+		deltakerExecutor.execute(fullfCommand, pos = 2)
 			.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
-		deltakerExecutor.execute(gjennCommand, pos = "1")
+		deltakerExecutor.execute(gjennCommand, pos = 1)
 			.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
 
 		gjennomforingExecutor.execute(NyGjennomforingCommand(GjennomforingInput(
