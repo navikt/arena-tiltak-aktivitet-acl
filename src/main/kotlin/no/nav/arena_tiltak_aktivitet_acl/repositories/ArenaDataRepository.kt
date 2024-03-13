@@ -166,15 +166,15 @@ open class ArenaDataRepository(
 			FROM arena_data
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
-			AND operation_pos > :fromPos
-			ORDER BY operation_pos ASC
+			AND operation_pos_numeric > :fromPos
+			ORDER BY operation_pos_numeric ASC
 			LIMIT :limit
 		""".trimIndent()
 
 		val parameters = sqlParameters(
 			"ingestStatus" to status.name,
 			"tableName" to tableName.tableName,
-			"fromPos" to fromPos.value,
+			"fromPos" to fromPos.value.toBigInteger(),
 			"limit" to limit
 		)
 		val resultat = template.query(sql, parameters, arenaDataRowMapper)
@@ -243,12 +243,12 @@ open class ArenaDataRepository(
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
 				AND ingest_status = 'HANDLED'
-				AND operation_pos > :operationPos
+				AND operation_pos_numeric > :operationPos
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseId.value.toString(),
 			"deltakerTableName" to ArenaTableName.DELTAKER.tableName,
-			"operationPos" to operationPos.value
+			"operationPos" to operationPos.value.toBigInteger()
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antallNyereMeldinger") }
 			?.let { it > 0 } ?: false
@@ -262,7 +262,7 @@ open class ArenaDataRepository(
 		//language=PostgreSQL
 		val sql = """
 			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos in (
-				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
+				SELECT MIN(operation_pos_numeric) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
 				WHERE a2.arena_table_name = :arenaTableName AND ingest_status = 'QUEUED' AND NOT EXISTS(
 					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id AND a3.arena_table_name = :arenaTableName)
 				GROUP BY arena_id
@@ -298,7 +298,7 @@ open class ArenaDataRepository(
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
-				ORDER BY arena_id, operation_pos;
+				ORDER BY arena_id, operation_pos desc;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}
