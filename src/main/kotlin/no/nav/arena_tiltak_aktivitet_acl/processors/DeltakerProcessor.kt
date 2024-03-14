@@ -186,19 +186,7 @@ open class DeltakerProcessor(
 		deltakerStatusKode: String,
 		administrasjonskode: Tiltak.Administrasjonskode,
 	): EndringsType {
-		//val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode)
-		val skalIgnoreres = if (listOf(
-		6805899L,
-		6812428L,
-		6889912L,
-		6895482L,
-		6896910L,
-		6896922L,
-		6897056L).contains(deltakelseId.value)) {
-			false
-		} else {
-			skalIgnoreres(deltakerStatusKode, administrasjonskode)
-		}
+		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode)
 		val oppfolgingsperiodeTilAktivitetskortId = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
 			.firstOrNull { it.oppfolgingsPeriode == periodeMatch.oppfolgingsperiode.uuid }?.id
