@@ -33,7 +33,7 @@ class DeletedMessagesFixSchedule(
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	@Scheduled(fixedDelay = Long.MAX_VALUE, initialDelay = ONE_MINUTE)
+	@Scheduled(fixedDelay = Long.MAX_VALUE/1_000_000, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraHistoriskeDeltakelser() {
 		if (!leaderElectionClient.isLeader) return
 		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
