@@ -28,9 +28,8 @@ class HistoriskDeltakelseRepo(
 	fun getHistoriskeDeltakelser(table: Table): List<HistoriskDeltakelse> {
 		val query = """
 			SELECT * FROM ${table.name}
-			WHERE fix_metode is null
+			WHERE fix_metode = 'Ignorer'
 			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
-			LIMIT 2000
 		""".trimIndent()
 		val result = template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
 		log.info("Hentet ${result.size} historiske deltakelser fra $table")
@@ -46,7 +45,6 @@ class HistoriskDeltakelseRepo(
 		WHERE hist_tiltakdeltaker_id = :hist_tiltakdeltaker_id
 	""".trimIndent()
 		val muligPos = when(fixMetode) {
-			is Ignorer -> null
 			is Oppdater -> fixMetode.generertPos
 			is Opprett -> fixMetode.generertPos
 			is OpprettMedLegacyId -> fixMetode.generertPos
@@ -64,7 +62,6 @@ class HistoriskDeltakelseRepo(
 
 	private fun FixMetode.navn(): String {
 		return when (this) {
-			is Ignorer -> "Ignorer"
 			is Oppdater -> "Oppdater"
 			is Opprett -> "Opprett"
 			is OpprettMedLegacyId -> "OpprettMedLegacyId"
