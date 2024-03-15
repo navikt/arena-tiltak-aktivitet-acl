@@ -8,6 +8,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.exceptions.IgnoredException
+import no.nav.arena_tiltak_aktivitet_acl.exceptions.OlderThanCurrentStateException
 import no.nav.arena_tiltak_aktivitet_acl.processors.DeltakerProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.GjennomforingProcessor
 import no.nav.arena_tiltak_aktivitet_acl.processors.TiltakProcessor
@@ -114,6 +115,8 @@ open class RetryArenaMessageProcessorService(
 				if (e is IgnoredException) {
 					log.info("${arenaDataDbo.id} in table ${arenaDataDbo.arenaTableName}: '${e.message}'")
 					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.IGNORED)
+				} else if (e is OlderThanCurrentStateException) {
+					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.IGNORED, e.message)
 				} else if (arenaDataDbo.ingestStatus == IngestStatus.RETRY && hasReachedMaxRetries) {
 					arenaDataRepository.updateIngestStatus(arenaDataDbo.id, IngestStatus.FAILED)
 				}

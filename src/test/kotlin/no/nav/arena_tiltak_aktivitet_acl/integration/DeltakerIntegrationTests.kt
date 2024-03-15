@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
+import io.kotest.matchers.string.shouldStartWith
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -166,7 +167,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
-	fun `skal prossesere i rekkefølgen til pos`() {
+	fun `skal IKKE prossesere meldinger med eldre operation-timestamp selvom pos er høyere`() {
 		val gjennomforingId = Random.nextLong()
 		val deltakelseId = Random.nextLong()
 		val tiltak = tiltakExecutor.execute(NyttTiltakCommand(kode = ENKELAMO))
@@ -183,24 +184,17 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		)
 		val fullfCommand = NyDeltakerCommand(fullf)
 		val gjennCommand = NyDeltakerCommand(fullf.copy(endretAv = Ident(ident = "HPA321"), deltakerStatusKode = "GJENN"))
-		deltakerExecutor.execute(fullfCommand, pos = 2)
-			.arenaData { it.ingestStatus shouldBe IngestStatus.RETRY }
-		deltakerExecutor.execute(gjennCommand, pos = 1)
-			.arenaData { it.ingestStatus shouldBe IngestStatus.QUEUED }
 
 		gjennomforingExecutor.execute(NyGjennomforingCommand(GjennomforingInput(
 			gjennomforingId = gjennomforingId, tiltakKode = tiltak.tiltak.kode)))
 			.arenaData { it.ingestStatus shouldBe IngestStatus.HANDLED }
-
-		// Max 1 per arenaId melding blir prossesert per retry-run
-		processMessages()
-		processMessages()
-		val mapper = ObjectMapper.get()
-		val aktivitetId = idMappingClient.hentMapping(TranslationQuery(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)).second
-		aktivitetId shouldNotBe null
-		val data = aktivitetRepository.getAktivitet(aktivitetId!!)!!.data
-		val aktivitetskort = mapper.readValue(data, Aktivitetskort::class.java)
-		aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
+		deltakerExecutor.execute(fullfCommand, pos = 1, operationTimestamp = LocalDateTime.now())
+			.expectHandled {}
+		deltakerExecutor.execute(gjennCommand, pos = 2, operationTimestamp = LocalDateTime.now().minusDays(1))
+			.arenaData {
+				it.note shouldStartWith "Har behandlet nyere meldinger"
+				it.ingestStatus shouldBe IngestStatus.IGNORED
+			}
 	}
 
 	@Test

@@ -21,6 +21,7 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.AktivitetRepository
 import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.common.kafka.producer.KafkaProducerClientImpl
+import java.time.LocalDateTime
 
 class DeltakerTestExecutor(
 	kafkaProducer: KafkaProducerClientImpl<String, String>,
@@ -42,9 +43,9 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: Long = incrementAndGetPosition()): AktivitetResult {
+	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: Long = incrementAndGetPosition(), operationTimestamp: LocalDateTime? = null): AktivitetResult {
 		return sendAndCheck(
-			command.toArenaKafkaMessageDto(pos),
+			command.toArenaKafkaMessageDto(pos, operationTimestamp ?: LocalDateTime.now()),
 			command.tiltakDeltakerId.toString(),
 			expectAktivitetskortOnTopic
 		)

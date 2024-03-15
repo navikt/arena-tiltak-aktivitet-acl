@@ -97,20 +97,27 @@ open class ArenaDataRepository(
 		)
 	}
 
-	fun updateIngestStatus(id: Int, ingestStatus: IngestStatus) {
+	fun updateIngestStatus(id: Int, ingestStatus: IngestStatus, note: String? = null) {
 		//language=PostgreSQL
-		val sql = """
+		val sqlWithoutNote = """
 			UPDATE arena_data
 			SET ingest_status = :ingest_status, last_attempted = :last_attempted
 			WHERE id = :id
 		""".trimIndent()
+		//language=PostgreSQL
+		val sqlWithNote = """
+			UPDATE arena_data
+			SET ingest_status = :ingest_status, last_attempted = :last_attempted, note = :note
+			WHERE id = :id
+		""".trimIndent()
 
 		template.update(
-			sql, sqlParameters(
+			if (note != null) sqlWithNote else sqlWithoutNote, mapOf(
 				"ingest_status" to ingestStatus.name,
 				"id" to id,
 				"last_attempted" to LocalDateTime.now(),
-			)
+				"note" to note
+			).filter { it.value != null }
 		)
 	}
 
@@ -236,19 +243,19 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
-	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationPos: OperationPos): Boolean {
+	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
 		//language=PostgreSQL
 		val sql = """
 			SELECT count(*) as antallNyereMeldinger FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
 				AND ingest_status = 'HANDLED'
-				AND operation_pos > :operationPos
+				AND operation_timestamp > :operationTimestamp
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseId.value.toString(),
 			"deltakerTableName" to ArenaTableName.DELTAKER.tableName,
-			"operationPos" to operationPos.value
+			"operationTimestamp" to operationTimestamp
 		)
 		return template.queryForObject(sql, params) { a, _ -> a.getInt("antallNyereMeldinger") }
 			?.let { it > 0 } ?: false

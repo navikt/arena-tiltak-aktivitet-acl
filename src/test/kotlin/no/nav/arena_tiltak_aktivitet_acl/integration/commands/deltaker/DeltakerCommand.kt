@@ -5,10 +5,11 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.ArenaKafkaMessageDto
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.integration.commands.Command
+import java.time.LocalDateTime
 
 abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(tiltakDeltakerId.value.toString()) {
 
-	abstract fun toArenaKafkaMessageDto(pos: Long): ArenaKafkaMessageDto
+	abstract fun toArenaKafkaMessageDto(pos: Long, opTs: LocalDateTime = LocalDateTime.now()): ArenaKafkaMessageDto
 
 	fun createPayload(input: DeltakerInput): JsonNode {
 		val data = ArenaDeltakelse(

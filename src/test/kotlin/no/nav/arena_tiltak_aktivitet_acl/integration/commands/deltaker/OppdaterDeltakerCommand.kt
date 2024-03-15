@@ -10,11 +10,11 @@ class OppdaterDeltakerCommand(
 	val oldDeltakerData: DeltakerInput,
 	val updatedDeltakerData: DeltakerInput
 ) : DeltakerCommand(updatedDeltakerData.tiltakDeltakelseId) {
-	override fun toArenaKafkaMessageDto(pos: Long): ArenaKafkaMessageDto =
+	override fun toArenaKafkaMessageDto(pos: Long, operationTimestamp: LocalDateTime): ArenaKafkaMessageDto =
 		ArenaKafkaMessageDto(
 			table = ArenaTableName.DELTAKER,
 			opType = ArenaOperation.U.name,
-			opTs = LocalDateTime.now().format(opTsFormatter),
+			opTs = operationTimestamp.format(opTsFormatter),
 			pos = pos.padUntil20Characters(),
 			before = createPayload(oldDeltakerData),
 			after = createPayload(updatedDeltakerData)
