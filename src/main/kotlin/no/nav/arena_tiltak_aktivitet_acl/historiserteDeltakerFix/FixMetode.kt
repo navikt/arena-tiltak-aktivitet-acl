@@ -15,9 +15,6 @@ import java.util.*
 sealed class FixMetode (val historiskDeltakelseId: Long, val deltakelseId: DeltakelseId) {
 //	abstract fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput?
 }
-class Ignorer(historiskDeltakelseId: Long, deltakelseId: DeltakelseId) : FixMetode(historiskDeltakelseId, deltakelseId) {
-//	override fun toArenaDataUpsertInput(pos: OperationPos): ArenaDataUpsertInput? = null
-}
 
 class Oppdater(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {

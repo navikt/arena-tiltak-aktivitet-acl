@@ -12,7 +12,6 @@ import no.nav.arena_tiltak_aktivitet_acl.repositories.ArenaDataRepository
 import no.nav.arena_tiltak_aktivitet_acl.utils.ONE_MINUTE
 import no.nav.arena_tiltak_aktivitet_acl.utils.ObjectMapper
 import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
-import no.nav.arena_tiltak_aktivitet_acl.utils.asValidatedLocalDateTime
 import no.nav.common.job.JobRunner
 import no.nav.common.job.leader_election.LeaderElectionClient
 import org.slf4j.LoggerFactory
@@ -34,7 +33,7 @@ class DeletedMessagesFixSchedule(
 ) {
 	private val log = LoggerFactory.getLogger(javaClass)
 
-	@Scheduled(fixedDelay = 1000L, initialDelay = ONE_MINUTE)
+	@Scheduled(fixedDelay = Long.MAX_VALUE/1_000_000, initialDelay = ONE_MINUTE)
 	fun prosesserDataFraHistoriskeDeltakelser() {
 		if (!leaderElectionClient.isLeader) return
 		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
@@ -50,23 +49,23 @@ class DeletedMessagesFixSchedule(
 
 	fun utførFix(fix: FixMetode, table: HistoriskDeltakelseRepo.Table) {
 		when (fix) {
-			is Ignorer -> {}
 			is OpprettMedLegacyId -> {
 				log.info("OpprettMedLegacyId ${fix.deltakelseId}")
 				// Bruk ID-som allerede eksisterer i Veilarbaktivitet
 				aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
-				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+//				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 			}
 			is Opprett -> {
 				log.info("Opprett ny for historisk deltakelseid ${fix.historiskDeltakelseId}")
-				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+//				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 			}
 			is Oppdater -> {
 				log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
 				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+				historiskDeltakelseRepo.oppdaterFixMetode(fix, table)
 			}
 		}
-		historiskDeltakelseRepo.oppdaterFixMetode(fix, table)
+
 	}
 
 	fun hentPosFraHullet(): OperationPos {
@@ -103,12 +102,7 @@ class DeletedMessagesFixSchedule(
 		val deltakelseId = DeltakelseId(this.data.hist_tiltakdeltaker_id)
 		val sisteArenaDeltakelse = finnSisteOppdateringArenaDeltakelseNullable(deltakelseId)
 		return when {
-			sisteArenaDeltakelse != null -> {
-				when {
-					harRelevanteForskjeller(sisteArenaDeltakelse, this.data) -> Oppdater(deltakelseId, this.data, hentPosFraHullet())
-					else -> Ignorer(deltakelseId.value, deltakelseId)
-				}
-			}
+			sisteArenaDeltakelse != null -> Oppdater(deltakelseId, this.data, hentPosFraHullet())
 			else -> {
 				val legacyId = historiskDeltakelseRepo.getLegacyId(deltakelseId)
 				when {
@@ -131,11 +125,7 @@ class DeletedMessagesFixSchedule(
 			matchMedFilter.size > 1 -> throw IllegalArgumentException("Flere matcher på historiske, ${matchMedFilter.joinToString { it.deltakelseId.toString() }}")
 			matchMedFilter.size == 1 -> { // 1 match med filter
 				val match = matchMedFilter.first()
-				val arenaDeltakelse = finnArenaDeltakelse(match.deltakelseId, OperationPos(match.latestOperationPos.toLong()))
-				return when (harRelevanteForskjeller(arenaDeltakelse, this)) {
-					true -> Oppdater(match.deltakelseId, this, generertPos = hentPosFraHullet()) // denne treffer vi nok aldri. Hvis dato_statusendring er lik i matcher-filteret, så er dataene også like.
-					false -> Ignorer(this.hist_tiltakdeltaker_id, match.deltakelseId)
-				}
+				return Oppdater(match.deltakelseId, this, generertPos = hentPosFraHullet())
 			}
 			//  Har ikke sett denne meldingen før men finnes kanskje matchende arena-data hvis vi har legacy-id
 			// matchMedFilter.size == 0
@@ -183,13 +173,6 @@ class DeletedMessagesFixSchedule(
 			.also { State.forrigeLedigeDeltakelse = it }
 			.also { log.info("Fant ledig deltakelseId: ${it.value}") }
 	}
-
-	fun harRelevanteForskjeller(arenaDeltakelse: ArenaDeltakelse, historiskDeltakelse: HistoriskDeltakelse): Boolean {
-		return arenaDeltakelse.DELTAKERSTATUSKODE != historiskDeltakelse.deltakerstatuskode
-			|| arenaDeltakelse.PROSENT_DELTID != historiskDeltakelse.prosent_deltid?.toFloat()
-			|| arenaDeltakelse.DATO_FRA?.asValidatedLocalDateTime("dato_fra")  != historiskDeltakelse.dato_fra?.asBackwardsFormattedLocalDateTime()
-			|| arenaDeltakelse.DATO_TIL?.asValidatedLocalDateTime("dato_til")   != historiskDeltakelse.dato_til?.asBackwardsFormattedLocalDateTime()
-	}
 }
 
 /*
@@ -213,6 +196,7 @@ fun ArenaDataDbo.toArenaDeltakelse(): ArenaDeltakelse {
 }
 
 object State {
-	var minimumpos = 100493841434
+//	var minimumpos = 100493841434
+	var minimumpos = 100493929331+1
 	var forrigeLedigeDeltakelse = DeltakelseId(153)
 }
