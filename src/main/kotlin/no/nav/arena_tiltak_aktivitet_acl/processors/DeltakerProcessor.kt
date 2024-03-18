@@ -75,12 +75,12 @@ open class DeltakerProcessor(
 		val tiltak = tiltakService.getByKode(gjennomforing.tiltakKode)
 			?: throw DependencyNotIngestedException("Venter på at tiltak med id=${gjennomforing.tiltakKode} skal bli håndtert")
 
-/*  @TODO Legg inn igjen etter batch med delete-meldinger
+
 		if (message.operationType == Operation.DELETED && deltakelse.erAvsluttet()) {
 			log.info("Mottok slettemelding men deltaker var allerede i en ferdig-status")
 			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
 			return
-		}*/
+		}
 
 		val personIdent = personsporingService.get(deltakelse.personId, arenaGjennomforingId).fodselsnummer
 
@@ -92,7 +92,7 @@ open class DeltakerProcessor(
 			if (deltakelse.opprettetFørMenAktivEtterLansering()) {
 				getOppfolgingsperiodeForPersonVedLansering(personIdent)
 			} else getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
-		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode)
+		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode, message.operationTimestamp)
 		when (endring) {
 			is EndringsType.NyttAktivitetskortByttPeriode  -> {
 				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${periodeMatch.oppfolgingsperiode.uuid}. " +
@@ -145,8 +145,10 @@ open class DeltakerProcessor(
 
 	//	Alle tiltaksaktiviteter hentes med unntak for tiltak av
 	//	administrasjonstypene Institusjonelt tiltak (INST) og Individuelt tiltak (IND) som har deltakerstatus Aktuell (AKTUELL).
-	private fun skalIgnoreres(arenaDeltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode): Boolean {
-		return arenaDeltakerStatusKode == "AKTUELL"
+	private fun skalIgnoreres(arenaDeltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode, deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
+		// hvis vi har en tidligere endring som har gått gjennom til aktivitetsplan, kan vi ikke ignorere disse endringene.
+		if (arenaDataRepository.harTidligereEndringSomIkkeErIgnorert(deltakelseId, operationTimestamp)) return false
+		else return arenaDeltakerStatusKode == "AKTUELL"
 			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
 	}
 
@@ -185,8 +187,9 @@ open class DeltakerProcessor(
 		deltakelseId: DeltakelseId,
 		deltakerStatusKode: String,
 		administrasjonskode: Tiltak.Administrasjonskode,
+		operationTimestamp: LocalDateTime
 	): EndringsType {
-		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode)
+		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode, deltakelseId, operationTimestamp)
 		val oppfolgingsperiodeTilAktivitetskortId = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
 			.firstOrNull { it.oppfolgingsPeriode == periodeMatch.oppfolgingsperiode.uuid }?.id

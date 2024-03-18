@@ -310,6 +310,24 @@ open class ArenaDataRepository(
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}
 
+	fun harTidligereEndringSomIkkeErIgnorert(deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
+		//language=PostgreSQL
+		val sql = """
+			select exists(
+				SELECT DISTINCT ON (arena_id) *
+					FROM arena_data WHERE
+    					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
+                  		and ingest_status = 'HANDLED'
+                  		and note is null
+                  		and operation_timestamp <= :operationTimestamp
+				ORDER BY arena_id, operation_timestamp asc) ;
+		""".trimIndent()
+		return template.queryForObject(
+			sql,
+			mapOf("deltakelseId" to deltakelseId.value.toString(), "operationTimestamp" to operationTimestamp),
+		) { row: ResultSet, _ -> row.getBoolean(1)}
+	}
+
 }
 val arenaDataRowMapper = RowMapper { rs, _ ->
 	ArenaDataDbo(
