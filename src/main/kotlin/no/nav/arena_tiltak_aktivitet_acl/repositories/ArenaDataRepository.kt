@@ -320,7 +320,7 @@ open class ArenaDataRepository(
                   		and ingest_status = 'HANDLED'
                   		and note is null
                   		and operation_timestamp <= :operationTimestamp
-ORDER BY arena_id, operation_timestamp asc) ;
+				ORDER BY arena_id, operation_timestamp asc) ;
 		""".trimIndent()
 		return template.queryForObject(
 			sql,

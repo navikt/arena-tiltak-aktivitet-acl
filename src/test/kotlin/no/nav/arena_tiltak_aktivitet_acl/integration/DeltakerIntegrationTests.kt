@@ -862,6 +862,64 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `skal ikke ignorere ignorerbare statuser hvis en tidligere endring ikke er ignorert`() {
+		val (gjennomforingId, deltakelseId, _) = setup(Tiltak.Administrasjonskode.INST)
+		val deltakerInputIgnored = DeltakerInput(
+			tiltakDeltakelseId = deltakelseId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "AKTUELL",
+		)
+		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
+		deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
+			.expectHandledAndIngored { result ->
+				result.arenaDataDbo.note shouldBe "foreløpig ignorert" }
+
+
+		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
+
+		val deltakerInputIkkeIgnorert = deltakerInputIgnored.copy(deltakerStatusKode = "GJENN")
+		val deltakerCommandIkkeIgnorert = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInputIkkeIgnorert)
+		deltakerExecutor.execute(deltakerCommandIkkeIgnorert)
+			.expectHandled { result ->
+				result.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.GJENNOMFORES }
+
+
+		val nyDeltakerInputIgnorertStatus = deltakerInputIkkeIgnorert.copy(deltakerStatusKode = "AKTUELL")
+		val nyDeltakerCommandIgnorertStatus = OppdaterDeltakerCommand(deltakerInputIkkeIgnorert, nyDeltakerInputIgnorertStatus)
+		val aktivitetResultNyIgnorertStatus = deltakerExecutor.execute(nyDeltakerCommandIgnorertStatus)
+			.expectHandled { result ->
+				result.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.PLANLAGT
+			}
+	}
+
+	@Test
+	fun `skal ignorere ignorerbare statuser hvis alle tidligere endringer er ignorert`() {
+		val (gjennomforingId, deltakelseId, _) = setup(Tiltak.Administrasjonskode.INST)
+		val deltakerInputIgnored = DeltakerInput(
+			tiltakDeltakelseId = deltakelseId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			deltakerStatusKode = "AKTUELL",
+		)
+		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
+		deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
+			.expectHandledAndIngored {
+				result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert"
+			}
+
+		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
+
+		val deltakerInputFremdelesIgnorert = deltakerInputIgnored.copy(datoTil = LocalDate.now())
+		val deltakerCommandFremdelesIgnorert = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInputFremdelesIgnorert)
+		deltakerExecutor.execute(deltakerCommandFremdelesIgnorert, expectAktivitetskortOnTopic = false)
+			.expectHandledAndIngored { result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert" }
+
+	}
+
+	@Test
 	fun `hvis retry av gamle deltakelser på gamle perioder, skal gamle aktiviteter oppdateres`() {
 		val (gjennomforingId, deltakerId, _) = setup()
 		val foerstePeriode = Oppfolgingsperiode(
