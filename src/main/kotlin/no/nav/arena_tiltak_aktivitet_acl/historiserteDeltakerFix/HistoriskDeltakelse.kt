@@ -34,6 +34,11 @@ data class SlettetDeltakelse (
 	val data: HistoriskDeltakelse
 )
 
+data class TaptDeltakelse (
+	val data: HistoriskDeltakelse,
+	val operation: String
+)
+
 fun HistoriskDeltakelse.toArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDeltakelse {
 	return ArenaDeltakelse(
 		TILTAKDELTAKER_ID = deltakelseId.value,

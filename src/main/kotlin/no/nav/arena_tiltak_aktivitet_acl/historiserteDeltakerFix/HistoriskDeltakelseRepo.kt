@@ -23,7 +23,8 @@ class HistoriskDeltakelseRepo(
 	private val log = LoggerFactory.getLogger(javaClass)
 	enum class Table {
 		hist_tiltakdeltaker,
-		deleted_singles_hist_format
+		deleted_singles_hist_format,
+		lost_in_translation
 	}
 	fun getHistoriskeDeltakelser(table: Table): List<HistoriskDeltakelse> {
 		val query = """
@@ -33,6 +34,22 @@ class HistoriskDeltakelseRepo(
 		""".trimIndent()
 		val result = template.query(query) { resultSet, _ -> resultSet.toHistoriskDeltakelse() }
 		log.info("Hentet ${result.size} historiske deltakelser fra $table")
+		return result
+	}
+
+	fun getTapteDeltakelser(): List<TaptDeltakelse> {
+		val query = """
+			SELECT * FROM LOST_IN_TRANSLATION
+			WHERE fix_metode in null
+			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
+		""".trimIndent()
+		val result = template.query(query) { resultSet, _ ->
+			TaptDeltakelse(
+				data = resultSet.toHistoriskDeltakelse(),
+				operation = resultSet.getString("jn_operation")
+			)
+		}
+		log.info("Hentet ${result.size} historiske deltakelser fra LOST_IN_TRANSLATION")
 		return result
 	}
 	fun oppdaterFixMetode(fixMetode: FixMetode, table: Table) : Int {

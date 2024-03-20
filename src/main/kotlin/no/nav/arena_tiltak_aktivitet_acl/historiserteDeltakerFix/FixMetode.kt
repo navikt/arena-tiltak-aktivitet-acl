@@ -8,6 +8,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakel
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
 import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
+import java.lang.IllegalStateException
 import java.time.LocalDateTime
 import java.util.*
 
@@ -40,6 +41,30 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 	}
 }
 
+class OppdaterTaptIACLMenFinnesIVeilarbaktivitet(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val funksjonellId: UUID, val opType: String, val generertPos: OperationPos): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
+	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
+		val operation = opType.jnOperationToOperation()
+		val content = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
+		return historiskDeltakelseTilArenaDataUpsertInput(
+			deltakelseId = deltakelseId,
+			operation = operation,
+			pos = generertPos,
+			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
+			after = if (operation == Operation.DELETED) null else content,
+			before = if (operation == Operation.CREATED) null else content
+		)
+	}
+}
+
+fun String.jnOperationToOperation(): Operation {
+	return when {
+		this == "DEL" -> Operation.DELETED
+		this == "INS" -> Operation.CREATED
+		this == "UPD" -> Operation.MODIFIED
+		else -> throw IllegalStateException("Ikkje bra")
+	}
+}
+
 class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDeltakelse, val generertPos: OperationPos): FixMetode(historiskDeltakelse.hist_tiltakdeltaker_id, deltakelseId) {
 	fun toArenaDataUpsertInput(): ArenaDataUpsertInput {
 		return historiskDeltakelseTilArenaDataUpsertInput(
@@ -52,7 +77,7 @@ class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDelt
 	}
 }
 
-fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, operation: Operation, pos: OperationPos, operationTimestamp: LocalDateTime, before: ArenaDeltakelse?): ArenaDataUpsertInput {
+fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, operation: Operation, pos: OperationPos, operationTimestamp: LocalDateTime, before: ArenaDeltakelse?, after: ArenaDeltakelse? = null): ArenaDataUpsertInput {
 	return ArenaDataUpsertInput(
 		ArenaTableName.DELTAKER,
 		arenaId = deltakelseId.toString(),
@@ -62,6 +87,6 @@ fun historiskDeltakelseTilArenaDataUpsertInput(deltakelseId: DeltakelseId, opera
 		ingestStatus = IngestStatus.NEW,
 		ingestedTimestamp = LocalDateTime.now(),
 		before = before?.let { mapper.writeValueAsString(it) },
-		after = null
+		after = after?.let { mapper.writeValueAsString(it) }
 	)
 }

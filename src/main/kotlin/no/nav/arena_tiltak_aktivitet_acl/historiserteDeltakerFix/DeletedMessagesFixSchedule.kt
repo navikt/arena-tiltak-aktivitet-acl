@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.lang.IllegalStateException
 
 /* Fikser deltakerlser som har blitt slettet fra tiltaksdeltaker tabellen
 * Enten har vi gått glipp av slettemelding og står i feil state
@@ -38,12 +39,15 @@ class DeletedMessagesFixSchedule(
 		if (!leaderElectionClient.isLeader) return
 		if (!unleash.isEnabled("aktivitet-arena-acl.deletedMessagesFix.enabled")) return
 		JobRunner.run("prosesserDataFraHistoriskeDeltakelser") {
- 		hentNesteBatchMedHistoriskeDeltakelser()
-			.map { it.utledFixMetode() }
-			.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.hist_tiltakdeltaker) }
-		hentNesteBatchMedSlettedeDeltakelser()
-			.map { it.utledFixMetode() }
-			.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.deleted_singles_hist_format) }
+// 		hentNesteBatchMedHistoriskeDeltakelser()
+//			.map { it.utledFixMetode() }
+//			.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.hist_tiltakdeltaker) }
+//		hentNesteBatchMedSlettedeDeltakelser()
+//			.map { it.utledFixMetode() }
+//			.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.deleted_singles_hist_format) }
+			hentNesteBatchMedTapteDeltakelser()
+				.map { it.utledFixMetode() }
+				.map { fix -> utførFix(fix, HistoriskDeltakelseRepo.Table.lost_in_translation) }
 		}
 	}
 
@@ -61,6 +65,12 @@ class DeletedMessagesFixSchedule(
 			}
 			is Oppdater -> {
 				log.info("Oppdater eksisterende deltakerid ${fix.deltakelseId}")
+				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
+				historiskDeltakelseRepo.oppdaterFixMetode(fix, table)
+			}
+			is OppdaterTaptIACLMenFinnesIVeilarbaktivitet -> {
+				log.info("OppdaterTaptIACLMenFinnesIVeilarbaktivitet eksisterende deltakerid ${fix.deltakelseId}")
+				aktivitetskortIdRepository.getOrCreate(fix.deltakelseId, AktivitetKategori.TILTAKSAKTIVITET, fix.funksjonellId)
 				arenaDataRepository.upsertTemp(fix.toArenaDataUpsertInput())
 				historiskDeltakelseRepo.oppdaterFixMetode(fix, table)
 			}
@@ -96,6 +106,20 @@ class DeletedMessagesFixSchedule(
 	}
 	private fun hentNesteBatchMedSlettedeDeltakelser(): List<SlettetDeltakelse> {
 		return  historiskDeltakelseRepo.getHistoriskeDeltakelser(HistoriskDeltakelseRepo.Table.deleted_singles_hist_format).map { SlettetDeltakelse(it) }
+	}
+
+	private fun hentNesteBatchMedTapteDeltakelser(): List<TaptDeltakelse> {
+		return  historiskDeltakelseRepo.getTapteDeltakelser()
+	}
+
+	fun TaptDeltakelse.utledFixMetode(): FixMetode {
+		val deltakelseId = DeltakelseId(this.data.hist_tiltakdeltaker_id)
+		val sisteArenaDeltakelse = finnSisteOppdateringArenaDeltakelseNullable(deltakelseId)
+		if (sisteArenaDeltakelse != null) {
+			log.info("Fant eksisterende deltakelse på tapt-deltakelse: ${sisteArenaDeltakelse.TILTAKDELTAKER_ID}, historisk splitt som mangler?")
+		}
+		val legacyId = historiskDeltakelseRepo.getLegacyId(deltakelseId) ?: throw IllegalStateException("Må finnes en id i translation tabellen")
+		return OppdaterTaptIACLMenFinnesIVeilarbaktivitet(deltakelseId, this.data, legacyId, this.operation,  hentPosFraHullet())
 	}
 
 	fun SlettetDeltakelse.utledFixMetode(): FixMetode {
@@ -197,6 +221,7 @@ fun ArenaDataDbo.toArenaDeltakelse(): ArenaDeltakelse {
 
 object State {
 //	var minimumpos = 100493841434
-	var minimumpos = 100493929331+1
+//	var minimumpos = 100493929331+1
+	var minimumpos = 100493934002+1
 	var forrigeLedigeDeltakelse = DeltakelseId(153)
 }
