@@ -65,6 +65,7 @@ class HistoriskDeltakelseRepo(
 			is Oppdater -> fixMetode.generertPos
 			is Opprett -> fixMetode.generertPos
 			is OpprettMedLegacyId -> fixMetode.generertPos
+			is OppdaterTaptIACLMenFinnesIVeilarbaktivitet -> fixMetode.generertPos
 		}
 		val params =
 			mapOf("hist_tiltakdeltaker_id" to fixMetode.historiskDeltakelseId,
