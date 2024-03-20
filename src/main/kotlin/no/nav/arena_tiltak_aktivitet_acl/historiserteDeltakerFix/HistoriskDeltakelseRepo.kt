@@ -82,6 +82,7 @@ class HistoriskDeltakelseRepo(
 			is Oppdater -> "Oppdater"
 			is Opprett -> "Opprett"
 			is OpprettMedLegacyId -> "OpprettMedLegacyId"
+			is OppdaterTaptIACLMenFinnesIVeilarbaktivitet -> "OppdaterTaptIACLMenFinnesIVeilarbaktivitet"
 		}
 	}
 
