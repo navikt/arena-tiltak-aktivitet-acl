@@ -40,7 +40,7 @@ class HistoriskDeltakelseRepo(
 	fun getTapteDeltakelser(): List<TaptDeltakelse> {
 		val query = """
 			SELECT * FROM LOST_IN_TRANSLATION
-			WHERE fix_metode in null
+			WHERE fix_metode is null
 			ORDER BY person_id, tiltakgjennomforing_id, rekkefolge
 		""".trimIndent()
 		val result = template.query(query) { resultSet, _ ->
