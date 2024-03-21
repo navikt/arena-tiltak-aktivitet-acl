@@ -124,7 +124,7 @@ open class DeltakerProcessor(
 			oppfolgingsperiode = periodeMatch.oppfolgingsperiode.uuid,
 			oppfolgingsSluttDato = periodeMatch.oppfolgingsperiode.sluttDato
 		)
-		aktivitetService.upsert(aktivitet, aktivitetskortHeaders, deltakelse.tiltakdeltakelseId)
+		aktivitetService.upsert(aktivitet, aktivitetskortHeaders, deltakelse.tiltakdeltakelseId, endring.skalIgnoreres)
 
 		if (endring.skalIgnoreres) {
 			log.info("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
