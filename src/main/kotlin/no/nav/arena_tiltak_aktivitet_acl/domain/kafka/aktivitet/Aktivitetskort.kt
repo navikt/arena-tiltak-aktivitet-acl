@@ -43,7 +43,7 @@ data class Aktivitetskort(
 	val detaljer: List<Attributt>
 ) {
 	private val objectMapper = ObjectMapper.get()
-	fun toDbo(headers: AktivitetskortHeaders) = AktivitetDbo(
+	fun toDbo(headers: AktivitetskortHeaders, forelopigIgnorert: Boolean) = AktivitetDbo(
 		id = id,
 		personIdent = personIdent,
 		kategori = AktivitetKategori.TILTAKSAKTIVITET,
@@ -52,6 +52,7 @@ data class Aktivitetskort(
 		tiltakKode = headers.tiltakKode,
 		oppfolgingsperiodeUUID = headers.oppfolgingsperiode,
 		oppfolgingsSluttTidspunkt = headers.oppfolgingsSluttDato,
+		forelopigIgnorert = forelopigIgnorert
 	)
 
 	fun toKafkaMessage() = KafkaMessageDto(

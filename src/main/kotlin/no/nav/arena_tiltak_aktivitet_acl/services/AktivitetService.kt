@@ -26,9 +26,9 @@ open class AktivitetService(
 	 * @see no.nav.arena_tiltak_aktivitet_acl.services.AktivitetskortIdService.getOrCreate
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
-	open fun upsert(aktivitet: Aktivitetskort, headers: AktivitetskortHeaders, deltakelseId: DeltakelseId) {
+	open fun upsert(aktivitet: Aktivitetskort, headers: AktivitetskortHeaders, deltakelseId: DeltakelseId, forelopigIgnorert: Boolean = false) {
 		deltakerLockRepository.safeDeltakelse(deltakelseId).use {
-			aktivitetRepository.upsert(aktivitet.toDbo(headers))
+			aktivitetRepository.upsert(aktivitet.toDbo(headers, forelopigIgnorert))
 			aktivitetskortIdRepository.deleteDeltakelseId(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		}
 	}
