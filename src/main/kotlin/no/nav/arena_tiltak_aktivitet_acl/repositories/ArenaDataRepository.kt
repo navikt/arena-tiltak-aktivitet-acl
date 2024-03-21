@@ -232,8 +232,7 @@ open class ArenaDataRepository(
 			SELECT count(*) as antall FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
-				AND ingest_status != 'HANDLED'
-				AND ingest_status != 'IGNORED'
+				AND ingest_status in ('NEW', 'RETRY', 'FAILED', 'QUEUED')
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseArenaId.toString(),
@@ -243,13 +242,13 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
-	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
+	fun hasHandledDeltakelseWithLaterTimestamp(deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
 		//language=PostgreSQL
 		val sql = """
 			SELECT count(*) as antallNyereMeldinger FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
-				AND ingest_status = 'HANDLED'
+				AND (ingest_status = 'HANDLED' or ingest_status = 'HANDLED_AND_IGNORED')
 				AND operation_timestamp > :operationTimestamp
 		""".trimIndent()
 		val params = sqlParameters(
@@ -269,7 +268,7 @@ open class ArenaDataRepository(
 		//language=PostgreSQL
 		val sql = """
 			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos in (
-				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
+				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID (TODO eller pos) er riktig rekkefølge
 				WHERE a2.arena_table_name = :arenaTableName AND ingest_status = 'QUEUED' AND NOT EXISTS(
 					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id AND a3.arena_table_name = :arenaTableName)
 				GROUP BY arena_id
@@ -305,7 +304,7 @@ open class ArenaDataRepository(
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
-				ORDER BY arena_id, operation_pos DESC;
+				ORDER BY arena_id, operation_timestamp DESC;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}

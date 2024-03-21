@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandledAndIgnored
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
@@ -62,7 +63,7 @@ open class DeltakerProcessor(
 			).ingestStatus
 		}.getOrNull()
 
-		val hasNewerHandledMessages = arenaDataRepository.hasHandledDeltakelseWithLaterPos(DeltakelseId(arenaDeltaker.TILTAKDELTAKER_ID), message.operationTimestamp)
+		val hasNewerHandledMessages = arenaDataRepository.hasHandledDeltakelseWithLaterTimestamp(DeltakelseId(arenaDeltaker.TILTAKDELTAKER_ID), message.operationTimestamp)
 		if (hasNewerHandledMessages) throw OlderThanCurrentStateException("Har behandlet nyere meldinger på id=${arenaDeltaker.TILTAKDELTAKER_ID} allerede. Hopper over melding")
 
 		val hasUnhandled = arenaDataRepository.hasUnhandledDeltakelse(arenaDeltaker.TILTAKDELTAKER_ID)
@@ -78,7 +79,7 @@ open class DeltakerProcessor(
 
 		if (message.operationType == Operation.DELETED && deltakelse.erAvsluttet()) {
 			log.info("Mottok slettemelding men deltaker var allerede i en ferdig-status")
-			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
+			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandledAndIgnored(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
 			return
 		}
 
@@ -128,7 +129,7 @@ open class DeltakerProcessor(
 
 		if (endring.skalIgnoreres) {
 			log.info("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
-			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "foreløpig ignorert"))
+			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandledAndIgnored(deltakelse.tiltakdeltakelseId, "foreløpig ignorert"))
 			return
 		}
 

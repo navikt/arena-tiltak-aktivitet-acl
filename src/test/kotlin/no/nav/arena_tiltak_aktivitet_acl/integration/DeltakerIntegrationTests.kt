@@ -846,9 +846,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "AKTUELL",
 		)
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
-		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
-		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
-		aktivitetResultIgnored.arenaDataDbo.note shouldBe "foreløpig ignorert"
+		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored)
+		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED_AND_IGNORED
 
 		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
 
@@ -872,9 +871,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "AKTUELL",
 		)
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
-		deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
-			.expectHandledAndIngored { result ->
-				result.arenaDataDbo.note shouldBe "foreløpig ignorert" }
+		deltakerExecutor.execute(deltakerCommandIgnored)
+			.expectHandledAndIngored { result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert"}
 
 
 		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
@@ -905,16 +903,14 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "AKTUELL",
 		)
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
-		deltakerExecutor.execute(deltakerCommandIgnored, expectAktivitetskortOnTopic = false)
-			.expectHandledAndIngored {
-				result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert"
-			}
+		deltakerExecutor.execute(deltakerCommandIgnored)
+			.expectHandledAndIngored { result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert" }
 
 		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
 
 		val deltakerInputFremdelesIgnorert = deltakerInputIgnored.copy(datoTil = LocalDate.now())
 		val deltakerCommandFremdelesIgnorert = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInputFremdelesIgnorert)
-		deltakerExecutor.execute(deltakerCommandFremdelesIgnorert, expectAktivitetskortOnTopic = false)
+		deltakerExecutor.execute(deltakerCommandFremdelesIgnorert)
 			.expectHandledAndIngored { result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert" }
 
 	}
@@ -1092,7 +1088,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			arenaData.output.aktivitetskort.aktivitetStatus shouldBe AktivitetStatus.FULLFORT
 		}
 		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
-		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
+		deltakerExecutor.execute(slettetDeltakerCommand).expectHandledAndIngored {
+			result -> result.arenaDataDbo.note shouldBe "ignorert slettemelding"
+		}
 	}
 
 	@Test
@@ -1106,7 +1104,9 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "FULLF"
 		)
 		val slettetDeltakerCommand = SletteDeltakerCommand(deltakerInput)
-		deltakerExecutor.execute(slettetDeltakerCommand, expectAktivitetskortOnTopic = false).expectHandledAndIngored {}
+		deltakerExecutor.execute(slettetDeltakerCommand).expectHandledAndIngored {
+			result -> result.arenaDataDbo.note shouldBe "ignorert slettemelding"
+		}
 	}
 
 	private val idMappingClient: IdMappingClient by lazy {

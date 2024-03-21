@@ -43,11 +43,10 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	fun execute(command: DeltakerCommand, expectAktivitetskortOnTopic: Boolean = true, pos: Long = incrementAndGetPosition(), operationTimestamp: LocalDateTime? = null): AktivitetResult {
+	fun execute(command: DeltakerCommand, pos: Long = incrementAndGetPosition(), operationTimestamp: LocalDateTime? = null): AktivitetResult {
 		return sendAndCheck(
 			command.toArenaKafkaMessageDto(pos, operationTimestamp ?: LocalDateTime.now()),
-			command.tiltakDeltakerId.toString(),
-			expectAktivitetskortOnTopic
+			command.tiltakDeltakerId.toString()
 		)
 	}
 	private suspend fun waitForAktivitetskortOnOutgoingTopic(isCorrectRecord: (TestRecord) -> Boolean): TestRecord {
@@ -56,12 +55,12 @@ class DeltakerTestExecutor(
 		}
 	}
 
-	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto, tiltakDeltakerId: String, expectAktivitetskortOnTopic: Boolean): AktivitetResult {
+	private fun sendAndCheck(wrapper: ArenaKafkaMessageDto, tiltakDeltakerId: String): AktivitetResult {
 		sendKafkaMessage(topic, objectMapper.writeValueAsString(wrapper), tiltakDeltakerId)
-		return getResults(wrapper, expectAktivitetskortOnTopic)
+		return getResults(wrapper)
 	}
 
-	private fun getResults(wrapper: ArenaKafkaMessageDto, expectAktivitetskortOnTopic: Boolean): AktivitetResult {
+	private fun getResults(wrapper: ArenaKafkaMessageDto): AktivitetResult {
 		val arenaData = pollArenaData(
 			ArenaTableName.DELTAKER,
 			Operation.fromArenaOperationString(wrapper.opType),
@@ -76,15 +75,14 @@ class DeltakerTestExecutor(
 			IngestStatus.IGNORED, IngestStatus.INVALID -> {}
 			IngestStatus.NEW -> {}
 			IngestStatus.QUEUED, IngestStatus.RETRY, IngestStatus.FAILED -> {}
+			IngestStatus.HANDLED_AND_IGNORED -> {
+				return HandledAndIgnored(
+					arenaData.operationPosition,
+					arenaData,
+					deltakerAktivitetMapping
+				)
+			}
 			IngestStatus.HANDLED -> {
-				if (!expectAktivitetskortOnTopic) {
-					return HandledAndIgnored(
-						arenaData.operationPosition,
-						arenaData,
-						deltakerAktivitetMapping
-					)
-				}
-
 				val message: TestRecord = runBlocking {
 					waitForAktivitetskortOnOutgoingTopic {
 						deltakerAktivitetMapping = aktivitetRepository.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
