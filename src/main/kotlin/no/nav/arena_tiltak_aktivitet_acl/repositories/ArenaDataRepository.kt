@@ -274,7 +274,24 @@ open class ArenaDataRepository(
 				GROUP BY arena_id
 			)
 		""".trimIndent()
-		return template.update(sql, mapOf("arenaTableName" to arenaTableName.tableName))
+
+		//language=PostgreSQL
+		val sql2 = """
+			update arena_data target set ingest_status = 'RETRY' from (
+			select distinct on (arena_id) * from arena_data a
+			        WHERE a.arena_table_name = :arenaTableName
+			        AND a.ingest_status = 'QUEUED'
+			    AND NOT EXISTS(
+			            SELECT 1
+			            FROM arena_data a3
+			            WHERE a3.ingest_status in ('RETRY', 'FAILED')
+			              AND a3.arena_id = a.arena_id
+			              AND a3.arena_table_name = :arenaTableName
+			        )
+			    order by a.arena_id,a.operation_timestamp desc) source
+			where target.arena_id = source.arena_id and target.operation_pos = source.operation_pos;
+		""".trimIndent()
+		return template.update(sql2, mapOf("arenaTableName" to arenaTableName.tableName))
 	}
 
 	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, before: JsonNode?, after: JsonNode?): Boolean {
