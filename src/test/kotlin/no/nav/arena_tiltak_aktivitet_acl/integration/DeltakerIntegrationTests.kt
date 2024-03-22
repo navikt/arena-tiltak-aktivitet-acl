@@ -846,18 +846,13 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			deltakerStatusKode = "AKTUELL",
 		)
 		val deltakerCommandIgnored = NyDeltakerCommand(deltakerInputIgnored)
-		val aktivitetResultIgnored = deltakerExecutor.execute(deltakerCommandIgnored)
-		aktivitetResultIgnored.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED_AND_IGNORED
+		deltakerExecutor.execute(deltakerCommandIgnored).expectHandledAndIngored { result -> result.arenaDataDbo.note shouldBe "foreløpig ignorert" }
 
 		idMappingClient.hentMapping(TranslationQuery(deltakelseId.value, AktivitetKategori.TILTAKSAKTIVITET)) shouldNotBe null
 
 		val deltakerInput = deltakerInputIgnored.copy(deltakerStatusKode = "GJENN")
 		val deltakerCommand = OppdaterDeltakerCommand(deltakerInputIgnored, deltakerInput)
-		val aktivitetResult = deltakerExecutor.execute(deltakerCommand)
-
-		aktivitetResult.expectHandled { result ->
-			result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1
-		}
+		deltakerExecutor.execute(deltakerCommand).expectHandled { result -> result.output.actionType shouldBe ActionType.UPSERT_AKTIVITETSKORT_V1 }
 	}
 
 	@Test
