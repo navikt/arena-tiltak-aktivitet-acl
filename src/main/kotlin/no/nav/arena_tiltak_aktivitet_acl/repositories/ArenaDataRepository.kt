@@ -232,7 +232,7 @@ open class ArenaDataRepository(
 			SELECT count(*) as antall FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
-				AND ingest_status in ('NEW', 'RETRY', 'FAILED', 'QUEUED')
+				AND ingest_status in ('NEW', 'RETRY', 'FAILED', 'QUEUED','INVALID')
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseArenaId.toString(),
@@ -267,8 +267,8 @@ open class ArenaDataRepository(
 
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos in (
-				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID (TODO eller pos) er riktig rekkefølge
+			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_timestamp in (
+				SELECT MIN(a.operation_timestamp) FROM arena_data a2 -- Kan ikke stole på at ID (TODO eller pos) er riktig rekkefølge
 				WHERE a2.arena_table_name = :arenaTableName AND ingest_status = 'QUEUED' AND NOT EXISTS(
 					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id AND a3.arena_table_name = :arenaTableName)
 				GROUP BY arena_id
@@ -280,7 +280,7 @@ open class ArenaDataRepository(
 	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, before: JsonNode?, after: JsonNode?): Boolean {
 		val sql = """
 			WITH latestRow AS (
-				SELECT arena_id, MAX(id) latestId
+				SELECT arena_id, MAX(operation_timestamp) latestOpTs
 				FROM arena_data WHERE
 					arena_id = :arenaId
 					AND arena_table_name = :tableName
@@ -288,7 +288,7 @@ open class ArenaDataRepository(
 			SELECT EXISTS(
 				SELECT 1
 				FROM arena_data
-				JOIN latestRow ON arena_data.id = latestRow.latestId
+				JOIN latestRow ON arena_data.operation_timestamp = latestRow.latestOpTs
 			${if (after != null) "AND after @> :after::jsonb" else "AND after IS NULL"}
         	${if (before != null) "AND before @> :before::jsonb" else "AND before IS NULL"}
 			)
