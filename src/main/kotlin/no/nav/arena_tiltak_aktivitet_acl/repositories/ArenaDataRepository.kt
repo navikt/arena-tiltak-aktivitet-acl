@@ -164,7 +164,7 @@ open class ArenaDataRepository(
 	fun getByIngestStatus(
 		tableName: ArenaTableName,
 		status: IngestStatus,
-		fromPos: OperationPos,
+		fromTimestamp: LocalDateTime,
 		limit: Int = 500
 	): List<ArenaDataDbo> {
 		//language=PostgreSQL
@@ -173,7 +173,7 @@ open class ArenaDataRepository(
 			FROM arena_data
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
-			AND operation_pos > :fromPos
+			AND operation_timestamp > :fromTs
 			ORDER BY operation_pos ASC
 			LIMIT :limit
 		""".trimIndent()
@@ -181,7 +181,7 @@ open class ArenaDataRepository(
 		val parameters = sqlParameters(
 			"ingestStatus" to status.name,
 			"tableName" to tableName.tableName,
-			"fromPos" to fromPos.value,
+			"fromTs" to fromTimestamp,
 			"limit" to limit
 		)
 		val resultat = template.query(sql, parameters, arenaDataRowMapper)

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
 import kotlin.time.measureTimedValue
 
 @Service
@@ -54,7 +55,7 @@ open class RetryArenaMessageProcessorService(
 
 	private fun processMessages(tableName: ArenaTableName, status: IngestStatus, batchSize: Int) {
 		log.info("processMessages $tableName ingestStatus: $status")
-		val startPos = OperationPos(0)
+		val startOperationTs = LocalDateTime.MIN
 		val start = Instant.now()
 
 		val totalHandled = runBlocking {
@@ -64,11 +65,11 @@ open class RetryArenaMessageProcessorService(
 				// Prosess up to batchSize in parallel then wait for all to finish
 				currentBatch.map { async(Dispatchers.IO) { process(it) } }.awaitAll()
 				log.info("Finished processing ${currentBatch.size} in parallel(?)")
-				val nextStartPos = currentBatch.maxByOrNull { it.operationPosition.value }?.operationPosition
-				if (nextStartPos != null) log.info("Next pos ${nextStartPos.value}") else log.info("No next pos, batch finished")
-				val nextBatch = nextStartPos?.let {
+				val nextStartOperationTs = currentBatch.maxByOrNull { it.operationTimestamp }?.operationTimestamp
+				if (nextStartOperationTs != null) log.info("Next operationTs ${nextStartOperationTs}") else log.info("No next pos, batch finished")
+				val nextBatch = nextStartOperationTs?.let {
 					val timedStartBatch = measureTimedValue {
-						arenaDataRepository.getByIngestStatus(tableName, status, nextStartPos, batchSize)
+						arenaDataRepository.getByIngestStatus(tableName, status, nextStartOperationTs, batchSize)
 					}
 					log.info("Fetched next part of batch in :${timedStartBatch.duration.inWholeSeconds} seconds")
 					timedStartBatch.value
@@ -77,7 +78,7 @@ open class RetryArenaMessageProcessorService(
 			}
 			log.info("Fetching batch by ingestStatus: ${status.name} table: $tableName $batchSize")
 			val timedStartBatch = measureTimedValue {
-				 arenaDataRepository.getByIngestStatus(tableName, status, startPos, batchSize)
+				 arenaDataRepository.getByIngestStatus(tableName, status, startOperationTs, batchSize)
 			}
 			log.info("Starting on batch with ${timedStartBatch.value.size} messages table: $tableName fetched in :${timedStartBatch.duration.inWholeSeconds} seconds")
 			return@runBlocking processNextBatch(timedStartBatch.value)
