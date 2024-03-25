@@ -3,6 +3,7 @@ package no.nav.arena_tiltak_aktivitet_acl.processors
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
+import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandledAndIgnored
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
@@ -62,7 +63,7 @@ open class DeltakerProcessor(
 			).ingestStatus
 		}.getOrNull()
 
-		val hasNewerHandledMessages = arenaDataRepository.hasHandledDeltakelseWithLaterPos(DeltakelseId(arenaDeltaker.TILTAKDELTAKER_ID), message.operationTimestamp)
+		val hasNewerHandledMessages = arenaDataRepository.hasHandledDeltakelseWithLaterTimestamp(DeltakelseId(arenaDeltaker.TILTAKDELTAKER_ID), message.operationTimestamp)
 		if (hasNewerHandledMessages) throw OlderThanCurrentStateException("Har behandlet nyere meldinger på id=${arenaDeltaker.TILTAKDELTAKER_ID} allerede. Hopper over melding")
 
 		val hasUnhandled = arenaDataRepository.hasUnhandledDeltakelse(arenaDeltaker.TILTAKDELTAKER_ID)
@@ -75,13 +76,6 @@ open class DeltakerProcessor(
 		val tiltak = tiltakService.getByKode(gjennomforing.tiltakKode)
 			?: throw DependencyNotIngestedException("Venter på at tiltak med id=${gjennomforing.tiltakKode} skal bli håndtert")
 
-
-		if (message.operationType == Operation.DELETED && deltakelse.erAvsluttet()) {
-			log.info("Mottok slettemelding men deltaker var allerede i en ferdig-status")
-			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
-			return
-		}
-
 		val personIdent = personsporingService.get(deltakelse.personId, arenaGjennomforingId).fodselsnummer
 
 		/*
@@ -92,7 +86,7 @@ open class DeltakerProcessor(
 			if (deltakelse.opprettetFørMenAktivEtterLansering()) {
 				getOppfolgingsperiodeForPersonVedLansering(personIdent)
 			} else getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
-		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode, message.operationTimestamp)
+		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode, message.operationTimestamp, message.operationType)
 		when (endring) {
 			is EndringsType.NyttAktivitetskortByttPeriode  -> {
 				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${periodeMatch.oppfolgingsperiode.uuid}. " +
@@ -124,11 +118,18 @@ open class DeltakerProcessor(
 			oppfolgingsperiode = periodeMatch.oppfolgingsperiode.uuid,
 			oppfolgingsSluttDato = periodeMatch.oppfolgingsperiode.sluttDato
 		)
-		aktivitetService.upsert(aktivitet, aktivitetskortHeaders, deltakelse.tiltakdeltakelseId)
 
-		if (endring.skalIgnoreres) {
+		aktivitetService.upsert(aktivitet, aktivitetskortHeaders, deltakelse.tiltakdeltakelseId, IgnorertStatus.IKKE_IGNORERT != endring.skalIgnoreres )
+
+		if (endring.skalIgnoreres == IgnorertStatus.IGNORERT_SLETTEMELDING) {
+			log.info("Mottok slettemelding men deltaker var allerede i en ferdig-status")
+			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandledAndIgnored(deltakelse.tiltakdeltakelseId, "ignorert slettemelding"))
+			return
+		}
+
+		if (endring.skalIgnoreres == IgnorertStatus.FORELOPIG_IGNORERT) {
 			log.info("Deltakeren har status=${arenaDeltaker.DELTAKERSTATUSKODE} og administrasjonskode=${tiltak.administrasjonskode} som ikke skal håndteres")
-			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandled(deltakelse.tiltakdeltakelseId, "foreløpig ignorert"))
+			arenaDataRepository.upsert(message.toUpsertInputWithStatusHandledAndIgnored(deltakelse.tiltakdeltakelseId, "foreløpig ignorert"))
 			return
 		}
 
@@ -145,11 +146,18 @@ open class DeltakerProcessor(
 
 	//	Alle tiltaksaktiviteter hentes med unntak for tiltak av
 	//	administrasjonstypene Institusjonelt tiltak (INST) og Individuelt tiltak (IND) som har deltakerstatus Aktuell (AKTUELL).
-	private fun skalIgnoreres(arenaDeltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode, deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
+	private fun skalIgnoreres(arenaDeltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode, deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime, operationType: Operation): IgnorertStatus {
 		// hvis vi har en tidligere endring som har gått gjennom til aktivitetsplan, kan vi ikke ignorere disse endringene.
-		if (arenaDataRepository.harTidligereEndringSomIkkeErIgnorert(deltakelseId, operationTimestamp)) return false
-		else return arenaDeltakerStatusKode == "AKTUELL"
-			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)
+		return when {
+			operationType == Operation.DELETED && ArenaDeltakerConverter.toAktivitetStatus(arenaDeltakerStatusKode).erAvsluttet() ->
+				IgnorertStatus.IGNORERT_SLETTEMELDING
+			arenaDataRepository.harTidligereEndringSomIkkeErIgnorert(deltakelseId, operationTimestamp) ->
+				IgnorertStatus.IKKE_IGNORERT
+			arenaDeltakerStatusKode == "AKTUELL"
+				&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST) ->
+				IgnorertStatus.FORELOPIG_IGNORERT
+			else -> IgnorertStatus.IKKE_IGNORERT
+		}
 	}
 
 	private fun handleOppfolgingsperiodeNull(deltakelse: TiltakDeltakelse, personIdent: String, tidspunkt: LocalDateTime, tiltakDeltakelseId: DeltakelseId): Nothing {
@@ -187,9 +195,10 @@ open class DeltakerProcessor(
 		deltakelseId: DeltakelseId,
 		deltakerStatusKode: String,
 		administrasjonskode: Tiltak.Administrasjonskode,
-		operationTimestamp: LocalDateTime
+		operationTimestamp: LocalDateTime,
+		operationType: Operation
 	): EndringsType {
-		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode, deltakelseId, operationTimestamp)
+		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode, deltakelseId, operationTimestamp, operationType)
 		val oppfolgingsperiodeTilAktivitetskortId = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
 			.firstOrNull { it.oppfolgingsPeriode == periodeMatch.oppfolgingsperiode.uuid }?.id
@@ -238,10 +247,16 @@ open class DeltakerProcessor(
 	}
 }
 
-sealed class EndringsType(val aktivitetskortId: UUID, val skalIgnoreres: Boolean) {
-	class OppdaterAktivitet(aktivitetskortId: UUID, skalIgnoreres: Boolean): EndringsType(aktivitetskortId, skalIgnoreres)
-	class NyttAktivitetskort(aktivitetskortId:UUID, val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: Boolean): EndringsType(aktivitetskortId, skalIgnoreres)
-	class NyttAktivitetskortByttPeriode(val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: Boolean): EndringsType(UUID.randomUUID(), skalIgnoreres)
+enum class IgnorertStatus {
+	FORELOPIG_IGNORERT,
+	IGNORERT_SLETTEMELDING,
+	IKKE_IGNORERT
+}
+
+sealed class EndringsType(val aktivitetskortId: UUID, val skalIgnoreres: IgnorertStatus) {
+	class OppdaterAktivitet(aktivitetskortId: UUID, skalIgnoreres: IgnorertStatus): EndringsType(aktivitetskortId, skalIgnoreres)
+	class NyttAktivitetskort(aktivitetskortId:UUID, val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: IgnorertStatus): EndringsType(aktivitetskortId, skalIgnoreres)
+	class NyttAktivitetskortByttPeriode(val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: IgnorertStatus): EndringsType(UUID.randomUUID(), skalIgnoreres)
 }
 
 

@@ -46,6 +46,10 @@ fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: DeltakelseId, n
 	return this.toUpsertInput(arenaId.value.toString(), IngestStatus.HANDLED, note)
 }
 
+fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandledAndIgnored(arenaId: DeltakelseId, note: String? = null): ArenaDataUpsertInput {
+	return this.toUpsertInput(arenaId.value.toString(), IngestStatus.HANDLED_AND_IGNORED, note)
+}
+
 fun ArenaKafkaMessage<*>.toUpsertInputWithStatusHandled(arenaId: String): ArenaDataUpsertInput {
 	return this.toUpsertInput(arenaId, IngestStatus.HANDLED, null)
 }

@@ -42,7 +42,7 @@ open class AktivitetResult(
 	}
 
 	fun expectHandledAndIngored(check: (data: HandledAndIgnored) -> Unit) {
-		if (this !is HandledAndIgnored) fail("Expected arena message to have ingest status HANDLED and to be ignored but was ${this.arenaDataDbo.ingestStatus}")
+		if (this !is HandledAndIgnored) fail("Expected arena message to have ingest status HandledAndIgnored and to be ignored but was ${this.arenaDataDbo.ingestStatus}")
 		check(this)
 	}
 	fun arenaData(check: (data: ArenaDataDbo) -> Unit): AktivitetResult {

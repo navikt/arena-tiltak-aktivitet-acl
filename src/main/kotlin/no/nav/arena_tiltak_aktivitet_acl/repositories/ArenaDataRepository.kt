@@ -164,7 +164,7 @@ open class ArenaDataRepository(
 	fun getByIngestStatus(
 		tableName: ArenaTableName,
 		status: IngestStatus,
-		fromPos: OperationPos,
+		fromTimestamp: LocalDateTime,
 		limit: Int = 500
 	): List<ArenaDataDbo> {
 		//language=PostgreSQL
@@ -173,7 +173,7 @@ open class ArenaDataRepository(
 			FROM arena_data
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
-			AND operation_pos > :fromPos
+			AND operation_timestamp > :fromTs
 			ORDER BY operation_pos ASC
 			LIMIT :limit
 		""".trimIndent()
@@ -181,7 +181,7 @@ open class ArenaDataRepository(
 		val parameters = sqlParameters(
 			"ingestStatus" to status.name,
 			"tableName" to tableName.tableName,
-			"fromPos" to fromPos.value,
+			"fromTs" to fromTimestamp,
 			"limit" to limit
 		)
 		val resultat = template.query(sql, parameters, arenaDataRowMapper)
@@ -232,8 +232,7 @@ open class ArenaDataRepository(
 			SELECT count(*) as antall FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
-				AND ingest_status != 'HANDLED'
-				AND ingest_status != 'IGNORED'
+				AND ingest_status in ('NEW', 'RETRY', 'FAILED', 'QUEUED','INVALID')
 		""".trimIndent()
 		val params = sqlParameters(
 			"arena_id" to deltakelseArenaId.toString(),
@@ -243,13 +242,13 @@ open class ArenaDataRepository(
 			?.let { it > 0 } ?: false
 	}
 
-	fun hasHandledDeltakelseWithLaterPos(deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
+	fun hasHandledDeltakelseWithLaterTimestamp(deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime): Boolean {
 		//language=PostgreSQL
 		val sql = """
 			SELECT count(*) as antallNyereMeldinger FROM arena_data
 			where arena_id = :arena_id
 				AND arena_table_name = :deltakerTableName
-				AND ingest_status = 'HANDLED'
+				AND (ingest_status = 'HANDLED' or ingest_status = 'HANDLED_AND_IGNORED')
 				AND operation_timestamp > :operationTimestamp
 		""".trimIndent()
 		val params = sqlParameters(
@@ -265,15 +264,21 @@ open class ArenaDataRepository(
 		// For en deltakelse (arena_id)
 		// Sett QUEUED til RETRY kun hvis det ikke finnes noen RETRY eller FAILED
 		// Alt som er RETRY eller FAILED er alltid først i køen
-
 		//language=PostgreSQL
 		val sql = """
-			UPDATE arena_data a SET ingest_status = 'RETRY' WHERE a.arena_table_name = :arenaTableName AND a.operation_pos in (
-				SELECT MIN(operation_pos) FROM arena_data a2 -- Kan ikke stole på at ID er riktig rekkefølge
-				WHERE a2.arena_table_name = :arenaTableName AND ingest_status = 'QUEUED' AND NOT EXISTS(
-					SELECT 1 FROM arena_data a3 WHERE a3.ingest_status in ('RETRY','FAILED') AND a3.arena_id = a2.arena_id AND a3.arena_table_name = :arenaTableName)
-				GROUP BY arena_id
-			)
+			update arena_data target set ingest_status = 'RETRY' from (
+			select distinct on (arena_id) * from arena_data a
+			        WHERE a.arena_table_name = :arenaTableName
+			        AND a.ingest_status = 'QUEUED'
+			    AND NOT EXISTS(
+			            SELECT 1
+			            FROM arena_data a3
+			            WHERE a3.ingest_status in ('RETRY', 'FAILED')
+			              AND a3.arena_id = a.arena_id
+			              AND a3.arena_table_name = :arenaTableName
+			        )
+			    order by a.arena_id,a.operation_timestamp asc) source
+			where target.arena_id = source.arena_id and target.operation_pos = source.operation_pos;
 		""".trimIndent()
 		return template.update(sql, mapOf("arenaTableName" to arenaTableName.tableName))
 	}
@@ -281,7 +286,7 @@ open class ArenaDataRepository(
 	fun alreadyProcessed(deltakelseArenaId: String, tableName: ArenaTableName, before: JsonNode?, after: JsonNode?): Boolean {
 		val sql = """
 			WITH latestRow AS (
-				SELECT arena_id, MAX(id) latestId
+				SELECT arena_id, MAX(operation_timestamp) latestOpTs
 				FROM arena_data WHERE
 					arena_id = :arenaId
 					AND arena_table_name = :tableName
@@ -289,7 +294,7 @@ open class ArenaDataRepository(
 			SELECT EXISTS(
 				SELECT 1
 				FROM arena_data
-				JOIN latestRow ON arena_data.id = latestRow.latestId
+				JOIN latestRow ON arena_data.operation_timestamp = latestRow.latestOpTs
 			${if (after != null) "AND after @> :after::jsonb" else "AND after IS NULL"}
         	${if (before != null) "AND before @> :before::jsonb" else "AND before IS NULL"}
 			)
@@ -305,7 +310,7 @@ open class ArenaDataRepository(
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
-				ORDER BY arena_id, operation_pos DESC;
+				ORDER BY arena_id, operation_timestamp DESC;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}

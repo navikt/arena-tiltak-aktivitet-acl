@@ -13,5 +13,6 @@ data class AktivitetDbo (
 	val tiltakKode: String,
 	val oppfolgingsperiodeUUID: UUID,
 	val oppfolgingsSluttTidspunkt: ZonedDateTime?,
+	val forelopigIgnorert: Boolean = false
 ) {
 }

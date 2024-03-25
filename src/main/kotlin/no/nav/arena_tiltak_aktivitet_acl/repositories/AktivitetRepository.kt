@@ -23,7 +23,7 @@ class AktivitetRepository(
 	fun upsert(aktivitet: AktivitetDbo) {
 		@Language("PostgreSQL")
 		val sql = """
-			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt)
+			INSERT INTO aktivitet(id, person_ident, kategori_type, data, arena_id, tiltak_kode, oppfolgingsperiode_uuid, oppfolgingsperiode_slutt_tidspunkt, forelopig_ignorert)
 			VALUES (:id,
 					:person_ident,
 					:kategori_type,
@@ -31,11 +31,13 @@ class AktivitetRepository(
 					:arena_id,
 					:tiltak_kode,
 					:oppfolgingsperiode_uuid,
-					:oppfolgingsperiode_slutt_tidspunkt)
+					:oppfolgingsperiode_slutt_tidspunkt,
+					:forelopig_ignorert)
 			ON CONFLICT ON CONSTRAINT aktivitet_pkey
 			DO UPDATE SET data = :data::jsonb,
 				oppfolgingsperiode_slutt_tidspunkt = :oppfolgingsperiode_slutt_tidspunkt,
-				oppfolgingsperiode_uuid = :oppfolgingsperiode_uuid
+				oppfolgingsperiode_uuid = :oppfolgingsperiode_uuid,
+				forelopig_ignorert = :forelopig_ignorert
 		""".trimIndent()
 
 		val parameters = MapSqlParameterSource().addValues(
@@ -48,6 +50,7 @@ class AktivitetRepository(
 				"tiltak_kode" to aktivitet.tiltakKode,
 				"oppfolgingsperiode_uuid" to aktivitet.oppfolgingsperiodeUUID,
 				"oppfolgingsperiode_slutt_tidspunkt" to aktivitet.oppfolgingsSluttTidspunkt?.toOffsetDateTime(),
+				"forelopig_ignorert" to aktivitet.forelopigIgnorert
 			)
 		)
 

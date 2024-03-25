@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 enum class IngestStatus {
 	NEW,
 	HANDLED,
+	HANDLED_AND_IGNORED,
 	RETRY,
 	FAILED,
 	IGNORED,

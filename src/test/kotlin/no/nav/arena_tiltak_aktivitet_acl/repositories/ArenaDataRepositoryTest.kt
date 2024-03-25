@@ -81,7 +81,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		repository.upsert(data)
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName,stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe false
-		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos(Random.nextLong(10000))))
+		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos(Random.nextLong(10000)), operationTimestamp = LocalDateTime.now()))
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe false
 	}
@@ -103,7 +103,7 @@ class ArenaDataRepositoryTest : FunSpec({
 		repository.upsert(data)
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName,stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe false
-		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos(Random.nextLong(10000))))
+		repository.upsert(data.copy(before = nyBefore, after = nyAfter, operationPosition = OperationPos(Random.nextLong(10000)), operationTimestamp = LocalDateTime.now()))
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(nyBefore), stringToJsonNode(nyAfter)) shouldBe true
 		repository.alreadyProcessed(data.arenaId, data.arenaTableName, stringToJsonNode(gammelBefore), stringToJsonNode(gammelAfter)) shouldBe false
 	}
