@@ -174,7 +174,7 @@ open class ArenaDataRepository(
 			WHERE ingest_status = :ingestStatus
 			AND arena_table_name = :tableName
 			AND operation_timestamp > :fromTs
-			ORDER BY operation_pos ASC
+			ORDER BY operation_timestamp ASC, operation_pos ASC
 			LIMIT :limit
 		""".trimIndent()
 
@@ -277,7 +277,7 @@ open class ArenaDataRepository(
 			              AND a3.arena_id = a.arena_id
 			              AND a3.arena_table_name = :arenaTableName
 			        )
-			    order by a.arena_id,a.operation_timestamp asc) source
+			    order by a.arena_id,a.operation_timestamp asc, a.operation_pos asc) source
 			where target.arena_id = source.arena_id and target.operation_pos = source.operation_pos;
 		""".trimIndent()
 		return template.update(sql, mapOf("arenaTableName" to arenaTableName.tableName))
@@ -310,7 +310,7 @@ open class ArenaDataRepository(
 				SELECT DISTINCT ON (arena_data.arena_id) *
 				FROM arena_data WHERE
 					arena_id = :deltakelseId AND arena_table_name = 'SIAMO.TILTAKDELTAKER'
-				ORDER BY arena_id, operation_timestamp DESC;
+				ORDER BY arena_id, operation_timestamp DESC, operation_pos DESC;
 		""".trimIndent()
 		return template.queryForObject(sql, mapOf("deltakelseId" to deltakelseArenaId.value.toString()), arenaDataRowMapper)
 	}
