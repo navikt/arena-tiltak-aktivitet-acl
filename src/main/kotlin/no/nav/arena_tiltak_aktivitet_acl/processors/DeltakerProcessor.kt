@@ -148,12 +148,16 @@ open class DeltakerProcessor(
 	//	administrasjonstypene Institusjonelt tiltak (INST) og Individuelt tiltak (IND) som har deltakerstatus Aktuell (AKTUELL).
 	private fun skalIgnoreres(arenaDeltakerStatusKode: String, administrasjonskode: Tiltak.Administrasjonskode, deltakelseId: DeltakelseId, operationTimestamp: LocalDateTime, operationType: Operation): IgnorertStatus {
 		// hvis vi har en tidligere endring som har gått gjennom til aktivitetsplan, kan vi ikke ignorere disse endringene.
-		if (arenaDataRepository.harTidligereEndringSomIkkeErIgnorert(deltakelseId, operationTimestamp)) return IgnorertStatus.IKKE_IGNORERT
-		else if (arenaDeltakerStatusKode == "AKTUELL"
-			&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST)) return IgnorertStatus.FORELOPIG_IGNORERT
-		else if (operationType == Operation.DELETED && ArenaDeltakerConverter.toAktivitetStatus(arenaDeltakerStatusKode).erAvsluttet()) return IgnorertStatus.IGNORERT_SLETTEMELDING
-		else return IgnorertStatus.IKKE_IGNORERT
-
+		return when {
+			operationType == Operation.DELETED && ArenaDeltakerConverter.toAktivitetStatus(arenaDeltakerStatusKode).erAvsluttet() ->
+				IgnorertStatus.IGNORERT_SLETTEMELDING
+			arenaDataRepository.harTidligereEndringSomIkkeErIgnorert(deltakelseId, operationTimestamp) ->
+				IgnorertStatus.IKKE_IGNORERT
+			arenaDeltakerStatusKode == "AKTUELL"
+				&& administrasjonskode in listOf(Tiltak.Administrasjonskode.IND, Tiltak.Administrasjonskode.INST) ->
+				IgnorertStatus.FORELOPIG_IGNORERT
+			else -> IgnorertStatus.IKKE_IGNORERT
+		}
 	}
 
 	private fun handleOppfolgingsperiodeNull(deltakelse: TiltakDeltakelse, personIdent: String, tidspunkt: LocalDateTime, tiltakDeltakelseId: DeltakelseId): Nothing {
