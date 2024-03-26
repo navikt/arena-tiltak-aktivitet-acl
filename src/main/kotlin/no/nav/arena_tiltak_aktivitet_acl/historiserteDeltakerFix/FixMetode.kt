@@ -7,8 +7,7 @@ import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.OperationPos
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.ArenaTableName
-import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
-import java.lang.IllegalStateException
+import no.nav.arena_tiltak_aktivitet_acl.utils.asLocalDateTime
 import java.time.LocalDateTime
 import java.util.*
 
@@ -23,7 +22,7 @@ class Oppdater(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDel
 			deltakelseId = deltakelseId,
 			operation = Operation.DELETED,
 			pos = generertPos,
-			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
+			operationTimestamp = historiskDeltakelse.mod_dato.asLocalDateTime(),
 			before = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
 		)
 	}
@@ -35,7 +34,7 @@ class OpprettMedLegacyId(deltakelseId: DeltakelseId, val historiskDeltakelse: Hi
 			deltakelseId = deltakelseId,
 			operation = Operation.DELETED,
 			pos = generertPos,
-			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
+			operationTimestamp = historiskDeltakelse.mod_dato.asLocalDateTime(),
 			before = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
 		)
 	}
@@ -49,7 +48,7 @@ class OppdaterTaptIACLMenFinnesIVeilarbaktivitet(deltakelseId: DeltakelseId, val
 			deltakelseId = deltakelseId,
 			operation = operation,
 			pos = generertPos,
-			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
+			operationTimestamp = historiskDeltakelse.mod_dato.asLocalDateTime(),
 			after = if (operation == Operation.DELETED) null else content,
 			before = if (operation == Operation.CREATED) null else content
 		)
@@ -71,7 +70,7 @@ class Opprett(deltakelseId: DeltakelseId, val historiskDeltakelse: HistoriskDelt
 			deltakelseId = deltakelseId,
 			operation = Operation.DELETED,
 			pos = generertPos,
-			operationTimestamp = historiskDeltakelse.mod_dato.asBackwardsFormattedLocalDateTime(),
+			operationTimestamp = historiskDeltakelse.mod_dato.asLocalDateTime(),
 			before = historiskDeltakelse.toArenaDeltakelse(deltakelseId)
 		)
 	}
