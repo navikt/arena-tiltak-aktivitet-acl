@@ -2,7 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.historiserteDeltakerFix
 
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakelse
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
-import no.nav.arena_tiltak_aktivitet_acl.utils.asBackwardsFormattedLocalDateTime
+import no.nav.arena_tiltak_aktivitet_acl.utils.asLocalDateTime
 
 data class HistoriskDeltakelse(
 	val hist_tiltakdeltaker_id: Long,
@@ -46,15 +46,15 @@ fun HistoriskDeltakelse.toArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDelt
 		DELTAKERSTATUSKODE = this.deltakerstatuskode,
 		DELTAKERTYPEKODE = this.deltakertypekode,
 		BEGRUNNELSE_PRIORITERING = null, // sletter denne
-		REG_DATO = this.reg_dato.asBackwardsFormattedLocalDateTime().format(arenaYearfirstFormat),
+		REG_DATO = this.reg_dato.asLocalDateTime().format(arenaYearfirstFormat),
 		REG_USER = this.reg_user,
-		MOD_DATO = this.mod_dato.asBackwardsFormattedLocalDateTime().format(arenaYearfirstFormat),
+		MOD_DATO = this.mod_dato.asLocalDateTime().format(arenaYearfirstFormat),
 		MOD_USER = this.mod_user,
-		DATO_FRA = this.dato_fra?.asBackwardsFormattedLocalDateTime()?.format(arenaYearfirstFormat),
-		DATO_TIL = this.dato_til?.asBackwardsFormattedLocalDateTime()?.format(arenaYearfirstFormat),
+		DATO_FRA = this.dato_fra?.asLocalDateTime()?.format(arenaYearfirstFormat),
+		DATO_TIL = this.dato_til?.asLocalDateTime()?.format(arenaYearfirstFormat),
 		PROSENT_DELTID = this.prosent_deltid?.toFloat(),
 		BRUKERID_STATUSENDRING = this.brukerid_statusendring,
-		DATO_STATUSENDRING = this.dato_statusendring?.asBackwardsFormattedLocalDateTime()?.format(arenaYearfirstFormat),
+		DATO_STATUSENDRING = this.dato_statusendring?.asLocalDateTime()?.format(arenaYearfirstFormat),
 		AKTIVITET_ID = this.aktivitet_id?.toLong(),
 		BRUKERID_ENDRING_PRIORITERING = this.brukerid_endring_prioritering,
 		DATO_ENDRING_PRIORITERING = this.dato_endring_prioritering,
@@ -63,7 +63,7 @@ fun HistoriskDeltakelse.toArenaDeltakelse(deltakelseId: DeltakelseId): ArenaDelt
 		OPPMOTETYPEKODE = this.oppmotetypekode,
 		PRIORITET = this.prioritet?.toInt(),
 		BEGRUNNELSE_INNSOKT = null,
-		DATO_SVARFRIST = this.dato_svarfrist?.asBackwardsFormattedLocalDateTime()?.format(arenaYearfirstFormat),
+		DATO_SVARFRIST = this.dato_svarfrist?.asLocalDateTime()?.format(arenaYearfirstFormat),
 		BEGRUNNELSE_STATUS = null,
 		DOKUMENTKODE_SISTE_BREV = this.dokumentkode_siste_brev,
 		STATUS_INNSOK_PAKKE = null,

@@ -48,7 +48,8 @@ fun String.asLocalDate(): LocalDate {
 
 fun String.asLocalDateTime(): LocalDateTime {
 	val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-	return LocalDateTime.parse(this, formatter)
+	if (this.length == 10) return LocalDateTime.parse(this + " 00:00:00", formatter)
+	else return LocalDateTime.parse(this, formatter)
 }
 
 fun String.asBackwardsFormattedLocalDateTime(): LocalDateTime {
