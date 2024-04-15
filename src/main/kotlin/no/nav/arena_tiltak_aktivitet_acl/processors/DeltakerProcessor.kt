@@ -4,10 +4,9 @@ import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.Oppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.IngestStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandled
 import no.nav.arena_tiltak_aktivitet_acl.domain.db.toUpsertInputWithStatusHandledAndIgnored
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetskortHeaders
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Operation
-import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.Tiltak
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.*
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetStatus.AVBRUTT
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetStatus.FULLFORT
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.ArenaDeltakerKafkaMessage
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.TiltakDeltakelse
@@ -85,8 +84,9 @@ open class DeltakerProcessor(
 		val periodeMatch =
 			if (deltakelse.opprettetFørMenAktivEtterLansering()) {
 				getOppfolgingsperiodeForPersonVedLansering(personIdent)
-			} else getOppfolgingsPeriodeOrThrow(deltakelse, personIdent)
+			} else getOppfolgingsPeriode(deltakelse, personIdent)
 		val endring = utledEndringsType(periodeMatch, deltakelse.tiltakdeltakelseId, arenaDeltaker.DELTAKERSTATUSKODE, tiltak.administrasjonskode, message.operationTimestamp, message.operationType)
+
 		when (endring) {
 			is EndringsType.NyttAktivitetskortByttPeriode  -> {
 				secureLog.info("Endring på deltakelse ${deltakelse.tiltakdeltakelseId} på deltakerId ${deltakelse.tiltakdeltakelseId} til ny aktivitetsid ${endring.aktivitetskortId} og oppfølgingsperiode ${periodeMatch.oppfolgingsperiode.uuid}. " +
@@ -172,14 +172,14 @@ open class DeltakerProcessor(
 		}
 	}
 
-	private fun getOppfolgingsPeriodeOrThrow(deltaker: TiltakDeltakelse, personIdent: String): FinnOppfolgingResult.FunnetPeriodeResult {
+	private fun getOppfolgingsPeriode(deltaker: TiltakDeltakelse, personIdent: String): FinnOppfolgingResult {
 		val oppslagsDato = deltaker.datoTil
 			?.let { tilDato -> minOf(tilDato.atStartOfDay(), deltaker.modDato) } ?: deltaker.modDato
-		val funnetPeriode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, oppslagsDato)
-		return when (funnetPeriode) {
-			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
-			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato, deltaker.tiltakdeltakelseId)
-		}
+		return oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, oppslagsDato)
+//		return when (funnetPeriode) {
+//			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
+//			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato, deltaker.tiltakdeltakelseId)
+//		}
 	}
 
 	private fun getOppfolgingsperiodeForPersonVedLansering(personIdent: String): FinnOppfolgingResult.FunnetPeriodeResult {
@@ -191,7 +191,7 @@ open class DeltakerProcessor(
 	}
 
 	private fun utledEndringsType(
-		periodeMatch: FinnOppfolgingResult.FunnetPeriodeResult,
+		periodeMatch: FinnOppfolgingResult,
 		deltakelseId: DeltakelseId,
 		deltakerStatusKode: String,
 		administrasjonskode: Tiltak.Administrasjonskode,
@@ -199,16 +199,23 @@ open class DeltakerProcessor(
 		operationType: Operation
 	): EndringsType {
 		val skalIgnoreres = skalIgnoreres(deltakerStatusKode, administrasjonskode, deltakelseId, operationTimestamp, operationType)
-		val oppfolgingsperiodeTilAktivitetskortId = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
-		val eksisterendeAktivitetsId = oppfolgingsperiodeTilAktivitetskortId
-			.firstOrNull { it.oppfolgingsPeriode == periodeMatch.oppfolgingsperiode.uuid }?.id
+		val aktivitetsKort = aktivitetService.getAllBy(deltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+
+		val eksisterendeAktivitetsId = when (periodeMatch) {
+			is FinnOppfolgingResult.FunnetPeriodeResult -> aktivitetsKort
+				.firstOrNull { it.oppfolgingsPeriode == periodeMatch.oppfolgingsperiode.uuid }?.id
+			is FinnOppfolgingResult.IngenPeriodeResult -> aktivitetsKort.
+		}
+
 		return when {
+			måAvslutteAktivitetskort() -> EndringsType.AvbrytDeltakelse(aktivitetsKort.first().id)
 			// Har tidligere deltakelse på samme oppfolgingsperiode
 			eksisterendeAktivitetsId != null -> EndringsType.OppdaterAktivitet(eksisterendeAktivitetsId, skalIgnoreres)
 			// Har ingen tidligere aktivitetskort
-			oppfolgingsperiodeTilAktivitetskortId.isEmpty() -> EndringsType.NyttAktivitetskort(getAkivitetskortId(deltakelseId), periodeMatch.oppfolgingsperiode, skalIgnoreres)
+			aktivitetsKort.isEmpty() -> EndringsType.NyttAktivitetskort(getAkivitetskortId(deltakelseId), periodeMatch.oppfolgingsperiode, skalIgnoreres)
 			// Har tidligere deltakelse men ikke på samme oppfølgingsperiode
 			else -> {
+
 				EndringsType.NyttAktivitetskortByttPeriode(periodeMatch.oppfolgingsperiode, skalIgnoreres)
 			}
 		}
@@ -245,6 +252,13 @@ open class DeltakerProcessor(
 	private fun TiltakDeltakelse.erAvsluttet(): Boolean {
 		return ArenaDeltakerConverter.toAktivitetStatus(this.deltakerStatusKode).erAvsluttet()
 	}
+
+	private fun måAvslutteAktivitetskort(): Boolean {
+		val harOpprettetAktivitetskortUtenSplitt = oppfolgingsperiodeTilAktivitetskortId == 1
+		val ingenOppfølgingsperiode = periodeMatch is FinnOppfolgingResult.IngenPeriodeResult
+		val erAvsluttet = listOf(AVBRUTT, FULLFORT).contains(oppfolgingsperiodeTilAktivitetskortId.first().status)
+		val måavslutteOpprettetAktivitetskort = harOpprettetAktivitetskortUtenSplitt && ingenOppfølgingsperiode && !erAvsluttet
+	}
 }
 
 enum class IgnorertStatus {
@@ -257,6 +271,7 @@ sealed class EndringsType(val aktivitetskortId: UUID, val skalIgnoreres: Ignorer
 	class OppdaterAktivitet(aktivitetskortId: UUID, skalIgnoreres: IgnorertStatus): EndringsType(aktivitetskortId, skalIgnoreres)
 	class NyttAktivitetskort(aktivitetskortId:UUID, val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: IgnorertStatus): EndringsType(aktivitetskortId, skalIgnoreres)
 	class NyttAktivitetskortByttPeriode(val oppfolgingsperiode: Oppfolgingsperiode, skalIgnoreres: IgnorertStatus): EndringsType(UUID.randomUUID(), skalIgnoreres)
+	class AvbrytDeltakelse(aktivitetskortId: UUID)
 }
 
 

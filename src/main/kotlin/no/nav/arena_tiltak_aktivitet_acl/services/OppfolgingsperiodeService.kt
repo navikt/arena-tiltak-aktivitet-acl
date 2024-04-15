@@ -39,7 +39,7 @@ open class OppfolgingsperiodeService(
 				"Arenatiltak finn oppfølgingsperiode - bruker har ingen oppfølgingsperioder - fnr={}, tidspunkt={}, oppfolgingsperioder={}",
 				fnr, tidspunkt, listOf<Oppfolgingsperiode>()
 			)
-			return FinnOppfolgingResult.IngenPeriodeResult( emptyList())
+			return FinnOppfolgingResult.IngenPeriodeResult(emptyList())
 		}
 
 		val tidspunktZDT = ZonedDateTime.from(tidspunkt.atZone(ZoneId.systemDefault()))

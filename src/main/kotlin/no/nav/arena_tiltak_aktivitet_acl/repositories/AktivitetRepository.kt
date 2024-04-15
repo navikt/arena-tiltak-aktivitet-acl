@@ -2,6 +2,7 @@ package no.nav.arena_tiltak_aktivitet_acl.repositories
 
 import no.nav.arena_tiltak_aktivitet_acl.clients.oppfolging.AvsluttetOppfolgingsperiode
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetKategori
+import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.aktivitet.AktivitetStatus
 import no.nav.arena_tiltak_aktivitet_acl.domain.kafka.arena.tiltak.DeltakelseId
 import no.nav.arena_tiltak_aktivitet_acl.utils.getNullableZonedDateTime
 import no.nav.arena_tiltak_aktivitet_acl.utils.getUUID
@@ -94,11 +95,11 @@ class AktivitetRepository(
 	fun getAllBy(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): List<AktivitetMetaData> {
 		@Language("PostgreSQL")
 		val sql = """
-			SELECT oppfolgingsperiode_uuid as oppfolgingsPeriode, id FROM aktivitet WHERE arena_id = :arenaId
+			SELECT oppfolgingsperiode_uuid as oppfolgingsPeriode, id, data->>'aktivitetStatus' as status, FROM aktivitet WHERE arena_id = :arenaId
 		""".trimIndent()
 		val params = mapOf("arenaId" to "${aktivitetKategori.prefix}${deltakelseId.value}")
 		return template.query(sql, params) { row, _ ->
-			AktivitetMetaData(row.getUUID("id"), row.getUUID("oppfolgingsPeriode")) }
+			AktivitetMetaData(row.getUUID("id"), row.getUUID("oppfolgingsPeriode"), AktivitetStatus.valueOf(row.getString("status"))) }
 	}
 
 	fun closeClosedPerioder(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, oppfolgingsperioder: List<AvsluttetOppfolgingsperiode>) {
@@ -134,4 +135,5 @@ fun ResultSet.toAktivitetDbo() =
 data class AktivitetMetaData(
 	val id: UUID,
 	val oppfolgingsPeriode: UUID,
+	val status: AktivitetStatus
 )
