@@ -3,4 +3,5 @@
     <include resource="no/nav/common/log/logback-stdout-json.xml"/>
     <include resource="no/nav/common/log/logback-securelogs.xml"/>
     <logger name="no.nav.arena_tiltak_aktivitet_acl" level="DEBUG"/>
+    <logger name="no.nav.common" level="DEBUG"/>
 </configuration>
