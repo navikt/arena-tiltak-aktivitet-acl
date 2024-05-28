@@ -295,6 +295,7 @@ open class ArenaDataRepository(
 				SELECT 1
 				FROM arena_data
 				JOIN latestRow ON arena_data.operation_timestamp = latestRow.latestOpTs
+				and arena_data.arena_id = :arenaId
 			${if (after != null) "AND after @> :after::jsonb" else "AND after IS NULL"}
         	${if (before != null) "AND before @> :before::jsonb" else "AND before IS NULL"}
 			)
