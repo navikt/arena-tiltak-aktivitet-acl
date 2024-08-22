@@ -800,9 +800,8 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 			sluttDato = null
 		)
 		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(avsluttetFoerstePeriode, nyperiode)
-		val endretTidspunkt = LocalDateTime.now()
-		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = endretTidspunkt)
-			.copy(deltakerStatusKode = "AVSLAG"))
+		val endretTidspunkt = LocalDateTime.of(LocalDate.of(2024, 6, 6), LocalTime.of(10, 10, 0))
+		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = endretTidspunkt))
 		var aktivitetsId2: UUID? = null
 		deltakerExecutor.execute(oppdaterComand)
 			.expectHandled { handledResult ->
