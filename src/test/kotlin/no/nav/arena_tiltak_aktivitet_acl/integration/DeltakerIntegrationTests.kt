@@ -760,6 +760,63 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `test 1`() {
+		val (gjennomforingId, deltakerId, _) = setup()
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.of(LocalDate.of(2024, 1, 1), LocalTime.of(1, 1, 1), ZoneId.systemDefault()),
+			sluttDato = null
+		)
+		val fnr = "515151"
+		OrdsClientMock.fnrHandlers[123L] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
+		val opprettetTidspunkt = LocalDateTime.now().minusDays(4)
+		val deltakerInput = DeltakerInput(
+			datoFra = LocalDate.of(2024, 8, 19),
+			datoTil = LocalDate.of(2024, 10, 31),
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = opprettetTidspunkt,
+			endretTidspunkt = opprettetTidspunkt,
+			personId = 123L
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		var aktivitetsId1: UUID? = null
+		deltakerExecutor.execute(deltakerCommand)
+			.expectHandled { handledResult ->
+				handledResult.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
+				handledResult.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+				handledResult.aktivitetskort {
+					it.endretTidspunkt shouldBe opprettetTidspunkt.truncatedTo(ChronoUnit.SECONDS)
+					aktivitetsId1 = it.id
+				}
+			}
+		val avsluttetFoerstePeriode = foerstePeriode.copy(sluttDato = foerstePeriode.startDato.withMonth(8).withDayOfMonth(13))
+		val nyperiode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = ZonedDateTime.of(LocalDate.of(2024, 8, 19), LocalTime.of(10, 51, 0), ZoneId.systemDefault()),
+			sluttDato = null
+		)
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(avsluttetFoerstePeriode, nyperiode)
+		val endretTidspunkt = LocalDateTime.now()
+		val oppdaterComand = OppdaterDeltakerCommand(deltakerInput, deltakerInput.copy(endretTidspunkt = endretTidspunkt)
+			.copy(deltakerStatusKode = "AVSLAG"))
+		var aktivitetsId2: UUID? = null
+		deltakerExecutor.execute(oppdaterComand)
+			.expectHandled { handledResult ->
+				handledResult.arenaDataDbo.ingestStatus shouldBe IngestStatus.HANDLED
+				handledResult.headers.oppfolgingsperiode shouldBe nyperiode.uuid
+				handledResult.aktivitetskort {
+					aktivitetsId2 = it.id
+				}
+			}
+		aktivitetsId1 shouldNotBe aktivitetsId2
+		hentTranslationMedRestClient(deltakerId) shouldBe aktivitetsId2
+	}
+
+	@Test
 	fun `hvis neste oppdatering utenfor periode og aktivitet avsluttet - ignorer`() {
 		val (gjennomforingId, deltakerId, _) = setup()
 		val foerstePeriode = Oppfolgingsperiode(
