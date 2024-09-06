@@ -39,7 +39,8 @@ data class ArenaDeltakelse(
 	val OPPLYSNINGER_INNSOK: String? = null,
 	val PARTISJON: Int? = null,
 	val BEGRUNNELSE_BESTILLING: String? = null,
-	val ANTALL_DAGER_PR_UKE: Int? = null
+	val ANTALL_DAGER_PR_UKE: Int? = null,
+	val EKSTERN_ID: String? = null
 ) {
 
 	private val log = LoggerFactory.getLogger(javaClass)
@@ -67,6 +68,7 @@ data class ArenaDeltakelse(
 			modUser = MOD_USER,
 			regUser = REG_USER,
 			modDato = MOD_DATO.asValidatedLocalDateTime("MOD_DATO"),
+			eksternId = EKSTERN_ID
 		)
 	}
 

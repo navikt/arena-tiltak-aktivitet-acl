@@ -1089,6 +1089,21 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `Skal ignorere (handled men ingen aktivitetskort) deltakelser opprettet utenfor arena (de har en eksternId)`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val deltakerInput = DeltakerInput(
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			endretAv = Ident(ident = "SIG123"),
+			eksternId = "asdasas"
+		)
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		deltakerExecutor.execute(deltakerCommand).arenaData {
+			it.ingestStatus shouldBe IngestStatus.IGNORED
+		}
+	}
+
+	@Test
 	fun `Skal ikke lage aktivitetskort hvis eneste melding på deltakelse er slettemelding`() {
 		// Dette burde aldri skje
 		val (gjennomforingId, deltakerId) = setup()

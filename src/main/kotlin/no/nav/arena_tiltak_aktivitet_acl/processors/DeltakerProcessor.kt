@@ -54,6 +54,8 @@ open class DeltakerProcessor(
 
 		// Ikke behandle aktiviteter som ikke var "aktive" ved lansering
 		deltakelse.sjekkIkkeFerdigFørLansering()
+		// Deltakelse opprettet utenfor arena skal ikke behandles men sendes på AKAAS
+		deltakelse.sjekkIkkeOpprettetUtenforArena()
 
 		val ingestStatus: IngestStatus? = runCatching {
 			arenaDataRepository.get(
@@ -232,6 +234,11 @@ open class DeltakerProcessor(
 	private fun TiltakDeltakelse.sjekkIkkeFerdigFørLansering() {
 		if (this.opprettetFørLansering() && !this.varAktivEtterLansering()) {
 			throw IgnoredException("Deltakeren registrert=${this.regDato} opprettet før aktivitetsplan skal ikke håndteres")
+		}
+	}
+	private fun TiltakDeltakelse.sjekkIkkeOpprettetUtenforArena() {
+		if (this.eksternId != null) {
+			throw IgnoredException("Deltakelse opprettet utenfor arena ${this.regUser}")
 		}
 	}
 	private fun TiltakDeltakelse.opprettetFørMenAktivEtterLansering(): Boolean {
