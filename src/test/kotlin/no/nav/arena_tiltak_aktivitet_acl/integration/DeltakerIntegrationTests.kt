@@ -1100,6 +1100,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 		val deltakerCommand = NyDeltakerCommand(deltakerInput)
 		deltakerExecutor.execute(deltakerCommand).arenaData {
 			it.ingestStatus shouldBe IngestStatus.IGNORED
+			it.note shouldContain "eksternId: asdasas"
 		}
 	}
 
