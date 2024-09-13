@@ -238,7 +238,7 @@ open class DeltakerProcessor(
 	}
 	private fun TiltakDeltakelse.sjekkIkkeOpprettetUtenforArena() {
 		if (this.eksternId != null) {
-			throw IgnoredException("Deltakelse opprettet utenfor arena ${this.regUser}")
+			throw IgnoredException("Deltakelse opprettet utenfor arena eksternId: ${this.eksternId} deltakerId: ${this.tiltakdeltakelseId} modUser: ${this.regUser}")
 		}
 	}
 	private fun TiltakDeltakelse.opprettetFørMenAktivEtterLansering(): Boolean {
