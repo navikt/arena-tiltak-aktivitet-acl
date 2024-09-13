@@ -45,7 +45,8 @@ abstract class DeltakerCommand(val tiltakDeltakerId: DeltakelseId) : Command(til
 			OPPLYSNINGER_INNSOK = GENERIC_STRING,
 			PARTISJON = GENERIC_INT,
 			BEGRUNNELSE_BESTILLING = input.innsokBegrunnelse,
-			ANTALL_DAGER_PR_UKE = input.antallDagerPerUke
+			ANTALL_DAGER_PR_UKE = input.antallDagerPerUke,
+			EKSTERN_ID = input.eksternId
 		)
 		return objectMapper.readTree(objectMapper.writeValueAsString(data))
 	}

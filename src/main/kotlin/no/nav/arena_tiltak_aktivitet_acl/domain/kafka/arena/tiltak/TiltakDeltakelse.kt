@@ -19,6 +19,7 @@ data class TiltakDeltakelse(
 	val regUser: String?,
 	val modUser: String?,
 	val modDato: LocalDateTime,
+	val eksternId: String?,
 )
 
 @JvmInline
