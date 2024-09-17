@@ -43,6 +43,9 @@ spec:
         - application: amt-aktivitetskort-publisher
           namespace: amt
           cluster: dev-gcp
+        - application: tiltaksgjennomforing-api
+          namespace: arbeidsgiver
+          cluster: dev-fss
     outbound:
       rules:
         - application: amt-enhetsregister
