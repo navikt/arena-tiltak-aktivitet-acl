@@ -51,6 +51,8 @@ spec:
         - application: amt-enhetsregister
           namespace: amt
           cluster: prod-gcp
+        - application: veilarboppfolging
+          namespace: poao
       external:
         - host: amt-arena-ords-proxy.prod-fss-pub.nais.io
         - host: veilarboppfolging.prod-fss-pub.nais.io
@@ -76,9 +78,9 @@ spec:
     - name: AMT_ENHETSREGISTER_URL
       value: http://amt-enhetsregister.amt.svc.cluster.local
     - name: VEILARBOPPFOLGING_SCOPE
-      value: api://prod-fss.pto.veilarboppfolging/.default
+      value: api://prod-gcp.poao.veilarboppfolging/.default
     - name: VEILARBOPPFOLGING_URL
-      value: https://veilarboppfolging.prod-fss-pub.nais.io
+      value: http://veilarboppfolging.poao
     - name: UNLEASH_ENVIRONMENT
       value: production
   gcp:
