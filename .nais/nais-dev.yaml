@@ -51,9 +51,10 @@ spec:
         - application: amt-enhetsregister
           namespace: amt
           cluster: dev-gcp
+        - application: veilarboppfolging
+          namespace: poao
       external:
         - host: amt-arena-ords-proxy.dev-fss-pub.nais.io
-        - host: veilarboppfolging.dev-fss-pub.nais.io
         - host: dab-unleash-api.nav.cloud.nais.io
   envFrom:
     - secret: aktivitet-arena-acl-unleash-api-token
@@ -78,9 +79,9 @@ spec:
     - name: AMT_ENHETSREGISTER_URL
       value: http://amt-enhetsregister.amt.svc.cluster.local
     - name: VEILARBOPPFOLGING_SCOPE
-      value: api://dev-fss.pto.veilarboppfolging/.default
+      value: api://dev-gcp.poao.veilarboppfolging/.default
     - name: VEILARBOPPFOLGING_URL
-      value: https://veilarboppfolging.dev-fss-pub.nais.io
+      value: http://veilarboppfolging.poao
     - name: UNLEASH_ENVIRONMENT
       value: development
   gcp:
