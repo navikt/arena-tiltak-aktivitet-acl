@@ -180,7 +180,17 @@ open class DeltakerProcessor(
 		val funnetPeriode = oppfolgingsperiodeService.finnOppfolgingsperiode(personIdent, oppslagsDato)
 		return when (funnetPeriode) {
 			is FinnOppfolgingResult.FunnetPeriodeResult -> funnetPeriode
-			is FinnOppfolgingResult.IngenPeriodeResult -> handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato, deltaker.tiltakdeltakelseId)
+			is FinnOppfolgingResult.IngenPeriodeResult -> {
+				/* Hvis perioden er åpne OG det finnes et aktivitetskort i den så ønsker vi likevel å oppdatere kortet selvom
+				nåværende tilDato og modDato ikke matcher en oppfølgingperiode */
+				val etterslengerAktivitetskort = aktivitetService
+					.getAllBy(deltaker.tiltakdeltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
+					.firstOrNull { it.oppfolgingsperiodeSlutt == null } // Bare hvis perioden er åpen
+				etterslengerAktivitetskort?.oppfolgingsPeriode
+					?.let { funnetPeriode.allePerioder.find { it.uuid == etterslengerAktivitetskort.id } }
+					?.let { FinnOppfolgingResult.FunnetPeriodeResult(it, funnetPeriode.allePerioder) }
+					?: handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato, deltaker.tiltakdeltakelseId)
+			}
 		}
 	}
 
