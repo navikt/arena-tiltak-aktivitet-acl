@@ -66,7 +66,7 @@ open class OppfolgingsperiodeService(
 					}
 				}
 				?.let { FinnOppfolgingResult.FunnetPeriodeResult(it, oppfolgingsperioder) }
-		?: FinnOppfolgingResult.IngenPeriodeResult(emptyList())
+		?: FinnOppfolgingResult.IngenPeriodeResult(oppfolgingsperioder)
 	}
 }
 

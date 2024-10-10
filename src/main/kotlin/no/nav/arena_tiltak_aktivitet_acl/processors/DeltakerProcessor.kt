@@ -187,7 +187,7 @@ open class DeltakerProcessor(
 					.getAllBy(deltaker.tiltakdeltakelseId, AktivitetKategori.TILTAKSAKTIVITET)
 					.firstOrNull { it.oppfolgingsperiodeSlutt == null } // Bare hvis perioden er åpen
 				etterslengerAktivitetskort?.oppfolgingsPeriode
-					?.let { funnetPeriode.allePerioder.find { it.uuid == etterslengerAktivitetskort.id } }
+					?.let { funnetPeriode.allePerioder.find { it.uuid == etterslengerAktivitetskort.oppfolgingsPeriode } }
 					?.let { FinnOppfolgingResult.FunnetPeriodeResult(it, funnetPeriode.allePerioder) }
 					?: handleOppfolgingsperiodeNull(deltaker, personIdent, deltaker.modDato, deltaker.tiltakdeltakelseId)
 			}

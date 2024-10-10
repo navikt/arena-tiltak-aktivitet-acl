@@ -98,6 +98,7 @@ class AktivitetRepository(
 			SELECT
 				oppfolgingsperiode_uuid as oppfolgingsPeriode,
 				id,
+				oppfolgingsperiode_slutt_tidspunkt,
 				COALESCE(aktivitet.oppfolgingsperiode_slutt_tidspunkt, TO_TIMESTAMP('9999', 'YYYY')) oppfolging_slutt_tidspunkt_eller_max
 			FROM aktivitet WHERE arena_id = :arenaId
 			ORDER BY oppfolging_slutt_tidspunkt_eller_max DESC
