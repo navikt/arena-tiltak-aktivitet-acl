@@ -518,6 +518,47 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	}
 
 	@Test
+	fun `process deltakelser-updates with no periodematch if aktivitetskort already created`() {
+		val (gjennomforingId, deltakerId) = setup()
+		val oppfølgingsperiodeStart = ZonedDateTime.now().minusMonths(1)
+		val tilDatoInniPeriode = oppfølgingsperiodeStart.plusDays(4)
+		val tilDatoUtenforPeriode = oppfølgingsperiodeStart.minusDays(15).toLocalDate()
+
+		val foerstePeriode = Oppfolgingsperiode(
+			uuid = UUID.randomUUID(),
+			startDato = oppfølgingsperiodeStart,
+			sluttDato = null
+		)
+
+		val deltakerInput = DeltakerInput(
+			personId = 444L,
+			tiltakDeltakelseId = deltakerId,
+			tiltakgjennomforingId = gjennomforingId,
+			innsokBegrunnelse = "innsøkbegrunnelse",
+			endretAv = Ident(ident = "SIG123"),
+			registrertDato = tilDatoInniPeriode.toLocalDateTime(),
+			endretTidspunkt = tilDatoInniPeriode.toLocalDateTime(),
+			datoTil = null
+		)
+
+		val fnr = "12345678902"
+		OrdsClientMock.fnrHandlers[deltakerInput.personId!!] = { fnr }
+		OppfolgingClientMock.oppfolgingsperioder[fnr] = listOf(foerstePeriode)
+
+		val deltakerCommand = NyDeltakerCommand(deltakerInput)
+		val result = deltakerExecutor.execute(deltakerCommand)
+		result.expectHandled {
+				data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+		}
+		val oppdaterInput = deltakerInput.copy(datoTil = tilDatoUtenforPeriode)
+		val oppdaterDeltakerCommand = OppdaterDeltakerCommand(deltakerInput, oppdaterInput)
+		val oppdaterResult = deltakerExecutor.execute(oppdaterDeltakerCommand)
+		oppdaterResult.expectHandled {
+				data -> data.headers.oppfolgingsperiode shouldBe foerstePeriode.uuid
+		}
+	}
+
+	@Test
 	fun `tittel should be set to default value when gjennomforing navn is null`() {
 		val gjennomforingId: Long = Random.nextLong()
 		val deltakerId = DeltakelseId()
