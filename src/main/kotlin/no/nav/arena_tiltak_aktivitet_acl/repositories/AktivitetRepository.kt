@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.ResultSet
+import java.time.ZonedDateTime
 import java.util.*
 
 @Component
@@ -94,11 +95,20 @@ class AktivitetRepository(
 	fun getAllBy(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori): List<AktivitetMetaData> {
 		@Language("PostgreSQL")
 		val sql = """
-			SELECT oppfolgingsperiode_uuid as oppfolgingsPeriode, id FROM aktivitet WHERE arena_id = :arenaId
+			SELECT
+				oppfolgingsperiode_uuid as oppfolgingsPeriode,
+				id,
+				oppfolgingsperiode_slutt_tidspunkt,
+				COALESCE(aktivitet.oppfolgingsperiode_slutt_tidspunkt, TO_TIMESTAMP('9999', 'YYYY')) oppfolging_slutt_tidspunkt_eller_max
+			FROM aktivitet WHERE arena_id = :arenaId
+			ORDER BY oppfolging_slutt_tidspunkt_eller_max DESC
 		""".trimIndent()
 		val params = mapOf("arenaId" to "${aktivitetKategori.prefix}${deltakelseId.value}")
 		return template.query(sql, params) { row, _ ->
-			AktivitetMetaData(row.getUUID("id"), row.getUUID("oppfolgingsPeriode")) }
+			AktivitetMetaData(
+				row.getUUID("id"),
+				row.getUUID("oppfolgingsPeriode"),
+				row.getNullableZonedDateTime("oppfolgingsperiode_slutt_tidspunkt")) }
 	}
 
 	fun closeClosedPerioder(deltakelseId: DeltakelseId, aktivitetKategori: AktivitetKategori, oppfolgingsperioder: List<AvsluttetOppfolgingsperiode>) {
@@ -134,4 +144,5 @@ fun ResultSet.toAktivitetDbo() =
 data class AktivitetMetaData(
 	val id: UUID,
 	val oppfolgingsPeriode: UUID,
+	val oppfolgingsperiodeSlutt: ZonedDateTime?,
 )
