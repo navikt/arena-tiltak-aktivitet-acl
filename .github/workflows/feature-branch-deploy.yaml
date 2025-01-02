@@ -7,8 +7,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  packages: write
-  contents: write
+  contents: read
+  id-token: write
 
 env:
   IMAGE_TAG: ${{ github.sha }}
