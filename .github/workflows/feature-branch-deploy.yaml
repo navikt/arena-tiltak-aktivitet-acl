@@ -10,12 +10,8 @@ permissions:
   contents: read
   id-token: write
 
-env:
-  IMAGE_TAG: ${{ github.sha }}
-  IMAGE: ghcr.io/${{ github.repository }}/aktivitet-arena-acl
-
 jobs:
-  test-build-and-push:
+  test-build-push:
     name: Test, build and push
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +37,7 @@ jobs:
       telemetry: ${{ steps.docker-build-push.outputs.telemetry }}
   deploy-dev:
     name: Deploy to dev
-    needs: [test-build-and-push]
+    needs: [test-build-push]
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: dev

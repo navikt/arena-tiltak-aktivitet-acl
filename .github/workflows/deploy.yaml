@@ -18,7 +18,7 @@ env:
   PRINT_PAYLOAD: true
 
 jobs:
-  test-build-and-push:
+  test-build-push:
     name: Test, build and push
     runs-on: ubuntu-latest
     permissions:
@@ -58,7 +58,7 @@ jobs:
 
   deploy-dev:
     name: Deploy to dev
-    needs: [test-build-and-push]
+    needs: [test-build-push]
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: dev
@@ -70,7 +70,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
   deploy-prod:
     name: Deploy to prod
-    needs: [test-build-and-push, deploy-dev]
+    needs: [test-build-push, deploy-dev]
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: prod
