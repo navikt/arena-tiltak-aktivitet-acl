@@ -1,6 +1,12 @@
 on:
   workflow_call:
     inputs:
+      VAR:
+        type: string
+        required: true
+      TELEMETRY:
+        type: string
+        required: true
       environment:
         type: string
         required: true
@@ -8,6 +14,8 @@ on:
       nais-deploy-secret:
         required: true
       github-token:
+        required: true
+      SLACK_WEBHOOK:
         required: true
 
 jobs:
@@ -18,9 +26,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Deploy application to ${{ inputs.environment }}
-        uses: nais/deploy/actions/deploy@v1
+        uses: nais/deploy/actions/deploy@v2
         env:
-          APIKEY: ${{ secrets.nais-deploy-secret }}
           CLUSTER: ${{ inputs.environment }}-gcp
           RESOURCE: .nais/nais-${{ inputs.environment }}.yaml
-          VAR: version=${{ github.sha }}
+          VAR: ${{ inputs.VAR }}
+          TELEMETRY: ${{ inputs.TELEMETRY }}
+      - name: Slack Notification (deploy failure)
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_COLOR: danger
+          SLACK_USERNAME: Github Actions
+          SLACK_ICON: https://github.com/github.png?size=48
+          SLACK_TITLE: 'Veilarbdialog: deploy feilet!'
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: 'Commit-message til feilende deploy: ${{ github.event.head_commit.message }}'

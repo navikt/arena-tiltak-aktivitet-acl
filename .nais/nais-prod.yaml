@@ -6,7 +6,7 @@ metadata:
   labels:
     team: dab
 spec:
-  image: ghcr.io/navikt/aktivitet-arena-acl/aktivitet-arena-acl:{{version}}
+  image: {{image}}
   port: 8080
   ingresses:
     - https://aktivitet-arena-acl.intern.nav.no
