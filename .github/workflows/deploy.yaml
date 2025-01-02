@@ -9,8 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  packages: write
-  contents: write
+  contents: read
+  id-token: write
 
 env:
   IMAGE_TAG: ${{ github.sha }}
@@ -18,9 +18,12 @@ env:
   PRINT_PAYLOAD: true
 
 jobs:
-  test-build-and-push:
+  test-build-push:
     name: Test, build and push
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,33 +35,48 @@ jobs:
           cache: 'maven'
       - name: Build maven artifacts
         run: mvn -B package
-      - uses: docker/login-action@v3
+      - name: Slack Notification (test failure)
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_COLOR: danger
+          SLACK_USERNAME: Github Actions
+          SLACK_ICON: https://github.com/github.png?size=48
+          SLACK_TITLE: 'aktivitet-arena-acl: bygg feilet under deploy til prod'
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: 'Commit-message til feilende deploy: ${{ github.event.head_commit.message }}'
+      - name: Push docker image to GAR
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ env.IMAGE }}:${{ env.IMAGE_TAG }}
+          team: dab
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # Provided as Organization Secret
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # Provided as Organization Variable
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+      telemetry: ${{ steps.docker-build-push.outputs.telemetry }}
 
   deploy-dev:
     name: Deploy to dev
-    needs: test-build-and-push
+    needs: [test-build-push]
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: dev
+      VAR: image=${{ needs.test-build-push.outputs.image }}
+      TELEMETRY: ${{ needs.test-build-push.outputs.telemetry }}
     secrets:
       nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
-
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
   deploy-prod:
     name: Deploy to prod
-    needs: test-build-and-push
+    needs: [test-build-push, deploy-dev]
     uses: ./.github/workflows/naisdeploy.yaml
     with:
       environment: prod
+      VAR: image=${{ needs.test-build-push.outputs.image }}
+      TELEMETRY: ${{ needs.test-build-push.outputs.telemetry }}
     secrets:
       nais-deploy-secret: ${{ secrets.NAIS_DEPLOY_APIKEY }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
