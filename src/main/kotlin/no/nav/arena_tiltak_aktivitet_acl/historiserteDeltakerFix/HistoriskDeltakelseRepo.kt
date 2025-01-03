@@ -187,7 +187,7 @@ class HistoriskDeltakelseRepo(
 		log.info("forrige deltakerId: ${forrigeLedige}, nesteMinDeltakelseId: ${nesteMinDeltakelseId} max: ${maxDeltakelseId}")
 		return runCatching {
 			template.queryForObject(sql, params) { row, _ -> row.getLong(1) }
-				.let { DeltakelseId(it) }
+				.let { DeltakelseId(it!!) }
 		}.getOrElse {
 			return when(it) {
 				is EmptyResultDataAccessException -> getNextFreeDeltakerId(DeltakelseId(maxDeltakelseId), retries + 1)
