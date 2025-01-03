@@ -41,8 +41,8 @@ import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mockito
 import org.mockito.kotlin.doThrow
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.http.HttpStatus
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import java.time.*
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -56,7 +56,7 @@ class DeltakerIntegrationTests : IntegrationTestBase() {
 	@Autowired
 	lateinit var arenaDataRepository: ArenaDataRepository
 
-	@SpyBean
+	@MockitoSpyBean
 	lateinit var kafkaProducerService: KafkaProducerService
 
 	data class TestData(
