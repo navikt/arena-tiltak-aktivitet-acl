@@ -25,7 +25,7 @@
         <java.version>21</java.version>
 
         <common.version>3.2024.11.26_16.35-432a29107830</common.version>
-        <kotest.version>5.0.0.M2</kotest.version>
+        <kotest.version>6.0.0.M1</kotest.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <token-support.version>4.0.3</token-support.version> <!-- NB keep in sync with spring-boot (for token-validation-spring) -->
         <nimbus.version>11.20.1</nimbus.version> <!-- NB keep in sync with token support-->
