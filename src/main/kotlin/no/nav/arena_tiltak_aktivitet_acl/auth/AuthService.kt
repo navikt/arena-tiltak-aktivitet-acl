@@ -11,7 +11,7 @@ open class AuthService(
 	private val tokenValidationContextHolder: TokenValidationContextHolder
 ) {
 
-	fun claims() = tokenValidationContextHolder.tokenValidationContext.getClaims(Issuer.AZURE_AD)
+	fun claims() = tokenValidationContextHolder.getTokenValidationContext().getClaims(Issuer.AZURE_AD)
 	open fun hentAzureIdTilInnloggetBruker(): UUID = claims()
 		.getStringClaim("oid").let { UUID.fromString(it) }
 		?: throw ResponseStatusException(
