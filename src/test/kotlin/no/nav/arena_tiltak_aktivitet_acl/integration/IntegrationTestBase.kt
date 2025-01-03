@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Profile
 import org.springframework.kafka.test.EmbeddedKafkaBroker
+import org.springframework.kafka.test.EmbeddedKafkaKraftBroker
 import org.springframework.test.context.ActiveProfiles
 import java.util.*
 import javax.sql.DataSource
@@ -160,9 +161,8 @@ open class IntegrationTestConfiguration(
 
 	@Bean
 	open fun embeddedKafka(): EmbeddedKafkaBroker {
-		return EmbeddedKafkaBroker(
+		return EmbeddedKafkaKraftBroker(
 			1,
-			false,
 			1,
 			kafkaTopicProperties.arenaTiltakTopic,
 			kafkaTopicProperties.arenaTiltakDeltakerTopic,
